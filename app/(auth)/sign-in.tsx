@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,14 +9,26 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import { useSignIn } from "@clerk/clerk-expo";
-import { Link } from "expo-router";
+import { useSignIn, useOAuth } from "@clerk/clerk-expo";
+import { Link, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
+  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    WebBrowser.warmUpAsync();
+    return () => { WebBrowser.coolDownAsync(); };
+  }, []);
 
   async function handleSignIn() {
     if (!isLoaded) return;
@@ -30,6 +42,22 @@ export default function SignInScreen() {
       Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo iniciar sesión");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    try {
+      const { createdSessionId, setActive: setOAuthActive } = await startOAuthFlow({
+        redirectUrl: Linking.createURL("/(tabs)/album", { scheme: "controldepostales" }),
+      });
+      if (createdSessionId && setOAuthActive) {
+        await setOAuthActive({ session: createdSessionId });
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo iniciar sesión con Google");
+    } finally {
+      setGoogleLoading(false);
     }
   }
 
@@ -62,14 +90,36 @@ export default function SignInScreen() {
 
         <TouchableOpacity
           onPress={handleSignIn}
-          disabled={loading}
-          className="bg-blue-600 rounded-xl py-4 items-center mb-4"
+          disabled={loading || googleLoading}
+          className="bg-blue-600 rounded-xl py-4 items-center mb-3"
           activeOpacity={0.8}
         >
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
             <Text className="text-white font-semibold text-base">Iniciar sesión</Text>
+          )}
+        </TouchableOpacity>
+
+        <View className="flex-row items-center mb-3">
+          <View className="flex-1 h-px bg-gray-200" />
+          <Text className="mx-3 text-gray-400 text-sm">o</Text>
+          <View className="flex-1 h-px bg-gray-200" />
+        </View>
+
+        <TouchableOpacity
+          onPress={handleGoogleSignIn}
+          disabled={loading || googleLoading}
+          className="border border-gray-300 rounded-xl py-4 items-center flex-row justify-center mb-6"
+          activeOpacity={0.8}
+        >
+          {googleLoading ? (
+            <ActivityIndicator color="#4285F4" />
+          ) : (
+            <>
+              <Text className="text-lg mr-2">🔵</Text>
+              <Text className="text-gray-700 font-semibold text-base">Continuar con Google</Text>
+            </>
           )}
         </TouchableOpacity>
 

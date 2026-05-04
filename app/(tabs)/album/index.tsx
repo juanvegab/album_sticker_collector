@@ -11,23 +11,17 @@ type ListItem =
   | { type: "section"; section: AlbumSection };
 
 function buildListItems(): ListItem[] {
-  const confMap: Record<string, { label: string; emoji: string }> = {
-    UEFA: { label: "UEFA — Europa", emoji: "🇪🇺" },
-    CONMEBOL: { label: "CONMEBOL — Sudamérica", emoji: "🌎" },
-    CONCACAF: { label: "CONCACAF — Norte/Centro América", emoji: "🏟️" },
-    CAF: { label: "CAF — África", emoji: "🌍" },
-    AFC: { label: "AFC — Asia", emoji: "🌏" },
-    OFC: { label: "OFC + Playoffs", emoji: "🌊" },
-  };
-
   const items: ListItem[] = [];
+  let lastConfederation = "";
+
   for (const section of WORLD_CUP_2026.sections) {
-    if (CONFEDERATION_HEADERS.has(section.id)) {
-      const meta = confMap[section.id];
-      if (meta) items.push({ type: "header", label: meta.label, emoji: meta.emoji });
-    } else if (section.stickers.length > 0) {
-      items.push({ type: "section", section });
+    const confHeader = CONFEDERATION_HEADERS[section.id];
+    if (confHeader && confHeader !== lastConfederation) {
+      lastConfederation = confHeader;
+      const [emoji, ...rest] = confHeader.split(" ");
+      items.push({ type: "header", label: rest.join(" "), emoji });
     }
+    items.push({ type: "section", section });
   }
   return items;
 }
