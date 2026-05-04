@@ -35,6 +35,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "47428053-5039-4492-b9ad-c17b5eb381fd"
+      }
+    },
+    "owner": "juanvegab"
   }
 }
