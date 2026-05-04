@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Panini Collector",
-    "slug": "panini-collector",
+    "name": "Control de Postales",
+    "slug": "control-de-postales",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "albumstickercollector",
+    "scheme": "controldepostales",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
