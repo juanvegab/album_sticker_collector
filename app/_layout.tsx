@@ -4,6 +4,8 @@ import * as SplashScreen from "expo-splash-screen";
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import * as SecureStore from "expo-secure-store";
 import "../global.css";
+// Required for Dev Build to enable QR scanning + hot reload
+import "expo-dev-client";
 
 SplashScreen.preventAutoHideAsync();
 
