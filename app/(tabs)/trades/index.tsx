@@ -12,6 +12,8 @@ import { useUser } from "@clerk/clerk-expo";
 import { useOpenTrades, useMyTrades } from "@/hooks/useTrades";
 import { TradeCard } from "@/components/trades/TradeCard";
 import { updateTradeStatus } from "@/lib/firestore/trades";
+import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
+import { TrialBanner } from "@/components/premium/TrialBanner";
 
 type Tab = "open" | "mine";
 
@@ -42,6 +44,8 @@ export default function TradesScreen() {
     <>
       <Stack.Screen options={{ title: "Intercambios" }} />
       <View className="flex-1 bg-gray-50">
+        <TrialBanner />
+        <BannerAd />
         {/* Tabs */}
         <View className="flex-row bg-white border-b border-gray-100 px-2 pt-2">
           {(["open", "mine"] as Tab[]).map((t) => (

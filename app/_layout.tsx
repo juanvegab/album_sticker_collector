@@ -1,9 +1,11 @@
+import "../global.css";
 import { useEffect } from "react";
+import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
 import { Slot, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import * as SecureStore from "expo-secure-store";
-import "../global.css";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { usePremium } from "@/hooks/usePremium";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,21 +21,28 @@ const tokenCache = {
   },
 };
 
-function AuthGuard() {
+function AppRoot() {
+  useFirebaseAuth();
   const { isLoaded, isSignedIn } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
+  // Initialize premium/trial only when signed in
+  usePremium();
+
   useEffect(() => {
     if (!isLoaded) return;
     SplashScreen.hideAsync();
-    const inAuth = segments[0] === "(auth)";
-    if (!isSignedIn && !inAuth) {
-      router.replace("/(auth)/sign-in");
-    } else if (isSignedIn && inAuth) {
+
+    const inAuthGroup = segments[0] === "(auth)";
+    const inTabsGroup = segments[0] === "(tabs)";
+
+    if (isSignedIn && !inTabsGroup) {
       router.replace("/(tabs)/album");
+    } else if (!isSignedIn && !inAuthGroup) {
+      router.replace("/(auth)/sign-in");
     }
-  }, [isLoaded, isSignedIn, segments]);
+  }, [isLoaded, isSignedIn]);
 
   return <Slot />;
 }
@@ -41,9 +50,15 @@ function AuthGuard() {
 export default function RootLayout() {
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
+  if (!publishableKey) {
+    throw new Error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in .env");
+  }
+
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <AuthGuard />
+      <ClerkLoaded>
+        <AppRoot />
+      </ClerkLoaded>
     </ClerkProvider>
   );
 }

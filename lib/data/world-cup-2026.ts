@@ -282,16 +282,36 @@ const ofcTeams: AlbumSection[] = [
   ]),
 ];
 
-// ── Assemble full album ───────────────────────────────────────────
-const allSections = [
-  openingSection,
-  ...uefaTeams,
-  ...conmebolTeams,
-  ...concacafTeams,
-  ...cafTeams,
-  ...afcTeams,
-  ...ofcTeams,
+// ── Group order (official WC2026 draw) ────────────────────────────
+const GROUP_ORDER: [string, string[]][] = [
+  ["A", ["MEX", "RSA", "KOR", "CZE"]],
+  ["B", ["CAN", "BIH", "QAT", "SUI"]],
+  ["C", ["BRA", "MAR", "HAI", "SCO"]],
+  ["D", ["USA", "PAR", "AUS", "TUR"]],
+  ["E", ["GER", "CUW", "CIV", "ECU"]],
+  ["F", ["NED", "JPN", "SWE", "TUN"]],
+  ["G", ["BEL", "EGY", "IRN", "NZL"]],
+  ["H", ["ESP", "CPV", "KSA", "URU"]],
+  ["I", ["FRA", "SEN", "IRQ", "NOR"]],
+  ["J", ["ARG", "ALG", "AUT", "JOR"]],
+  ["K", ["POR", "COD", "UZB", "COL"]],
+  ["L", ["ENG", "CRO", "GHA", "PAN"]],
 ];
+
+const teamSectionById = new Map<string, AlbumSection>(
+  [...uefaTeams, ...conmebolTeams, ...concacafTeams, ...cafTeams, ...afcTeams, ...ofcTeams]
+    .map((s) => [s.id, s])
+);
+
+const orderedTeamSections: AlbumSection[] = GROUP_ORDER.flatMap(([, codes]) =>
+  codes.map((code) => {
+    const s = teamSectionById.get(code);
+    if (!s) throw new Error(`Team section not found: ${code}`);
+    return s;
+  })
+);
+
+const allSections = [openingSection, ...orderedTeamSections];
 
 export const WORLD_CUP_2026: Album = {
   id: "wc2026",
@@ -309,59 +329,30 @@ export const ALL_STICKERS_MAP = new Map(
   WORLD_CUP_2026.sections.flatMap((s) => s.stickers).map((st) => [st.id, st])
 );
 
-export const CONFEDERATION_HEADERS: Record<string, string> = {
-  // UEFA — primer equipo del grupo
-  AUT: "🇪🇺 UEFA — EUROPA",
-  BEL: "🇪🇺 UEFA — EUROPA",
-  BIH: "🇪🇺 UEFA — EUROPA",
-  CRO: "🇪🇺 UEFA — EUROPA",
-  CZE: "🇪🇺 UEFA — EUROPA",
-  ENG: "🇪🇺 UEFA — EUROPA",
-  FRA: "🇪🇺 UEFA — EUROPA",
-  GER: "🇪🇺 UEFA — EUROPA",
-  NED: "🇪🇺 UEFA — EUROPA",
-  NOR: "🇪🇺 UEFA — EUROPA",
-  POR: "🇪🇺 UEFA — EUROPA",
-  SCO: "🇪🇺 UEFA — EUROPA",
-  ESP: "🇪🇺 UEFA — EUROPA",
-  SUI: "🇪🇺 UEFA — EUROPA",
-  SWE: "🇪🇺 UEFA — EUROPA",
-  TUR: "🇪🇺 UEFA — EUROPA",
-  // CONMEBOL
-  ARG: "🌎 CONMEBOL — SUDAMÉRICA",
-  BRA: "🌎 CONMEBOL — SUDAMÉRICA",
-  COL: "🌎 CONMEBOL — SUDAMÉRICA",
-  ECU: "🌎 CONMEBOL — SUDAMÉRICA",
-  PAR: "🌎 CONMEBOL — SUDAMÉRICA",
-  URU: "🌎 CONMEBOL — SUDAMÉRICA",
-  // CONCACAF
-  CAN: "🌎 CONCACAF — NORTEAMÉRICA",
-  CUW: "🌎 CONCACAF — NORTEAMÉRICA",
-  HAI: "🌎 CONCACAF — NORTEAMÉRICA",
-  MEX: "🌎 CONCACAF — NORTEAMÉRICA",
-  PAN: "🌎 CONCACAF — NORTEAMÉRICA",
-  USA: "🌎 CONCACAF — NORTEAMÉRICA",
-  // CAF
-  ALG: "🌍 CAF — ÁFRICA",
-  CPV: "🌍 CAF — ÁFRICA",
-  COD: "🌍 CAF — ÁFRICA",
-  EGY: "🌍 CAF — ÁFRICA",
-  GHA: "🌍 CAF — ÁFRICA",
-  CIV: "🌍 CAF — ÁFRICA",
-  MAR: "🌍 CAF — ÁFRICA",
-  SEN: "🌍 CAF — ÁFRICA",
-  RSA: "🌍 CAF — ÁFRICA",
-  TUN: "🌍 CAF — ÁFRICA",
-  // AFC
-  AUS: "🌏 AFC — ASIA",
-  IRN: "🌏 AFC — ASIA",
-  IRQ: "🌏 AFC — ASIA",
-  JPN: "🌏 AFC — ASIA",
-  JOR: "🌏 AFC — ASIA",
-  KOR: "🌏 AFC — ASIA",
-  KSA: "🌏 AFC — ASIA",
-  QAT: "🌏 AFC — ASIA",
-  UZB: "🌏 AFC — ASIA",
-  // OFC
-  NZL: "🌏 OFC — OCEANÍA",
+export const TEAM_GROUP: Record<string, string> = {};
+export const GROUP_HEADERS: Record<string, string> = {};
+
+for (const [letter, codes] of GROUP_ORDER) {
+  const label = `Grupo ${letter}`;
+  for (const code of codes) {
+    TEAM_GROUP[code] = letter;
+    GROUP_HEADERS[code] = label;
+  }
+}
+
+export const FIFA_TO_ISO: Record<string, string> = {
+  MEX: "mx", RSA: "za", KOR: "kr", CZE: "cz",
+  CAN: "ca", BIH: "ba", QAT: "qa", SUI: "ch",
+  BRA: "br", MAR: "ma", HAI: "ht", SCO: "gb-sct",
+  USA: "us", PAR: "py", AUS: "au", TUR: "tr",
+  GER: "de", CUW: "cw", CIV: "ci", ECU: "ec",
+  NED: "nl", JPN: "jp", SWE: "se", TUN: "tn",
+  BEL: "be", EGY: "eg", IRN: "ir", NZL: "nz",
+  ESP: "es", CPV: "cv", KSA: "sa", URU: "uy",
+  FRA: "fr", SEN: "sn", IRQ: "iq", NOR: "no",
+  ARG: "ar", ALG: "dz", AUT: "at", JOR: "jo",
+  POR: "pt", COD: "cd", UZB: "uz", COL: "co",
+  ENG: "gb-eng", CRO: "hr", GHA: "gh", PAN: "pa",
 };
+
+export const CONFEDERATION_HEADERS: Record<string, string> = GROUP_HEADERS;

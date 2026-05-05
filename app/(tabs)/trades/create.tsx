@@ -3,18 +3,20 @@ import {
   View,
   Text,
   TouchableOpacity,
-  FlatList,
   ActivityIndicator,
   Alert,
+  Share,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
 import { useCollection } from "@/hooks/useCollection";
 import { createTrade } from "@/lib/firestore/trades";
-import { WORLD_CUP_2026, ALL_STICKERS_MAP } from "@/lib/data/world-cup-2026";
-import type { AlbumSticker } from "@/types/album";
+import { WORLD_CUP_2026 } from "@/lib/data/world-cup-2026";
+import { TradeStickersSelector } from "@/components/trades/TradeStickersSelector";
 
 type Step = "offering" | "requesting";
+
+const DEEP_LINK_BASE = "controldepostales://trade";
 
 export default function CreateTradeScreen() {
   const router = useRouter();
@@ -27,19 +29,17 @@ export default function CreateTradeScreen() {
 
   const allStickers = WORLD_CUP_2026.sections.flatMap((s) => s.stickers);
 
-  // Offering: stickers I own (owned or has duplicates)
-  const offeringPool = allStickers.filter(
-    (s) => ownedSet.has(s.id) || (duplicates[s.id] ?? 0) > 0
-  );
-  // Requesting: stickers I don't have
+  // Only stickers with extra copies (duplicates > 0)
+  const offeringPool = allStickers.filter((s) => (duplicates[s.id] ?? 0) > 0);
+  // Only stickers not owned at all
   const requestingPool = allStickers.filter((s) => !ownedSet.has(s.id));
 
   const pool = step === "offering" ? offeringPool : requestingPool;
   const selected = step === "offering" ? offering : requesting;
-  const setSelected = step === "offering" ? setOffering : setRequesting;
 
-  function toggleSelect(id: string) {
-    setSelected((prev) =>
+  function toggle(id: string) {
+    const setter = step === "offering" ? setOffering : setRequesting;
+    setter((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   }
@@ -47,12 +47,12 @@ export default function CreateTradeScreen() {
   async function submit() {
     if (!user) return;
     if (offering.length === 0 || requesting.length === 0) {
-      Alert.alert("Incompleto", "Selecciona al menos 1 sticker de cada lado");
+      Alert.alert("Incompleto", "Selecciona al menos 1 postal de cada lado");
       return;
     }
     setSaving(true);
     try {
-      await createTrade({
+      const tradeId = await createTrade({
         albumId: "world-cup-2026",
         fromUserId: user.id,
         fromUserName: user.firstName ?? user.emailAddresses[0].emailAddress,
@@ -60,7 +60,17 @@ export default function CreateTradeScreen() {
         requesting,
         status: "open",
       });
+
+      const link = `${DEEP_LINK_BASE}/${tradeId}`;
       router.back();
+
+      // Share the link after navigating back so the modal is dismissed first
+      setTimeout(() => {
+        Share.share({
+          message: `¡Te propongo un intercambio de postales del Mundial 2026! 🌍⚽\nTengo ${offering.length} postales repetidas y busco ${requesting.length}.\nAbre el link para ver los detalles:\n${link}`,
+          url: link,
+        }).catch(() => {});
+      }, 400);
     } catch {
       Alert.alert("Error", "No se pudo crear el intercambio");
     } finally {
@@ -72,64 +82,52 @@ export default function CreateTradeScreen() {
     <>
       <Stack.Screen options={{ title: "Nuevo intercambio", presentation: "modal" }} />
       <View className="flex-1 bg-gray-50">
-        {/* Step indicator */}
+        {/* Step tabs */}
         <View className="flex-row bg-white px-4 py-3 border-b border-gray-100">
-          <View className={`flex-1 items-center pb-2 ${step === "offering" ? "border-b-2 border-blue-600" : ""}`}>
-            <Text className={step === "offering" ? "text-blue-600 font-semibold" : "text-gray-400"}>
-              1. Ofreces ({offering.length})
+          <TouchableOpacity
+            onPress={() => setStep("offering")}
+            className={`flex-1 items-center pb-2 ${
+              step === "offering" ? "border-b-2 border-blue-600" : ""
+            }`}
+          >
+            <Text
+              className={`text-sm font-semibold ${
+                step === "offering" ? "text-blue-600" : "text-gray-400"
+              }`}
+            >
+              📤 Ofreces ({offering.length})
             </Text>
-          </View>
-          <View className={`flex-1 items-center pb-2 ${step === "requesting" ? "border-b-2 border-blue-600" : ""}`}>
-            <Text className={step === "requesting" ? "text-blue-600 font-semibold" : "text-gray-400"}>
-              2. Pides ({requesting.length})
+            <Text className="text-xs text-gray-400 mt-0.5">Repetidas que das</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              if (offering.length > 0) setStep("requesting");
+            }}
+            className={`flex-1 items-center pb-2 ${
+              step === "requesting" ? "border-b-2 border-blue-600" : ""
+            }`}
+          >
+            <Text
+              className={`text-sm font-semibold ${
+                step === "requesting" ? "text-blue-600" : "text-gray-400"
+              }`}
+            >
+              📥 Pides ({requesting.length})
             </Text>
-          </View>
+            <Text className="text-xs text-gray-400 mt-0.5">Las que necesitas</Text>
+          </TouchableOpacity>
         </View>
 
-        <Text className="text-xs text-gray-400 px-4 py-2">
-          {step === "offering"
-            ? "Elige los stickers que ofreces para el intercambio"
-            : "Elige los stickers que quieres recibir"}
-        </Text>
-
-        <FlatList
-          data={pool}
-          keyExtractor={(s) => s.id}
-          contentContainerStyle={{ padding: 12, paddingBottom: 100 }}
-          renderItem={({ item }) => {
-            const isSelected = selected.includes(item.id);
-            return (
-              <TouchableOpacity
-                onPress={() => toggleSelect(item.id)}
-                className={`flex-row items-center rounded-xl mb-2 px-4 py-3 border ${
-                  isSelected
-                    ? "bg-blue-50 border-blue-400"
-                    : "bg-white border-gray-100"
-                }`}
-              >
-                <View
-                  className={`w-6 h-6 rounded-full border-2 mr-3 items-center justify-center ${
-                    isSelected ? "bg-blue-600 border-blue-600" : "border-gray-300"
-                  }`}
-                >
-                  {isSelected && <Text className="text-white text-xs font-bold">✓</Text>}
-                </View>
-                <Text className="text-xs text-gray-400 w-16">{item.id}</Text>
-                <Text className="flex-1 text-gray-800 text-sm" numberOfLines={1}>
-                  {item.name}
-                </Text>
-                {(duplicates[item.id] ?? 0) > 0 && (
-                  <View className="bg-orange-500 rounded-full w-5 h-5 items-center justify-center">
-                    <Text className="text-white text-xs">{duplicates[item.id]}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          }}
+        {/* Grouped selector */}
+        <TradeStickersSelector
+          key={step}
+          pool={pool}
+          selected={selected}
+          onToggle={toggle}
         />
 
-        {/* Footer buttons */}
-        <View className="absolute bottom-0 left-0 right-0 bg-white px-4 py-4 border-t border-gray-100 flex-row gap-3">
+        {/* Footer */}
+        <View className="bg-white px-4 py-4 border-t border-gray-100 flex-row gap-3">
           {step === "offering" ? (
             <TouchableOpacity
               onPress={() => setStep("requesting")}
@@ -138,8 +136,12 @@ export default function CreateTradeScreen() {
                 offering.length > 0 ? "bg-blue-600" : "bg-gray-200"
               }`}
             >
-              <Text className={offering.length > 0 ? "text-white font-semibold" : "text-gray-400 font-semibold"}>
-                Siguiente →
+              <Text
+                className={`font-semibold ${
+                  offering.length > 0 ? "text-white" : "text-gray-400"
+                }`}
+              >
+                Siguiente → ({offering.length} seleccionadas)
               </Text>
             </TouchableOpacity>
           ) : (
@@ -160,8 +162,12 @@ export default function CreateTradeScreen() {
                 {saving ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className={requesting.length > 0 ? "text-white font-semibold" : "text-gray-400 font-semibold"}>
-                    Publicar 🎉
+                  <Text
+                    className={`font-semibold ${
+                      requesting.length > 0 ? "text-white" : "text-gray-400"
+                    }`}
+                  >
+                    Publicar y compartir 🎉
                   </Text>
                 )}
               </TouchableOpacity>

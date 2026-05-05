@@ -10,20 +10,23 @@ import {
   Alert,
 } from "react-native";
 import { useSignIn, useOAuth } from "@clerk/clerk-expo";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
-  const router = useRouter();
+  const { startOAuthFlow: startGoogleFlow } = useOAuth({ strategy: "oauth_google" });
+  const { startOAuthFlow: startAppleFlow } = useOAuth({ strategy: "oauth_apple" });
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   useEffect(() => {
     WebBrowser.warmUpAsync();
@@ -45,21 +48,39 @@ export default function SignInScreen() {
     }
   }
 
-  async function handleGoogleSignIn() {
+  async function handleGoogle() {
     setGoogleLoading(true);
     try {
-      const { createdSessionId, setActive: setOAuthActive } = await startOAuthFlow({
+      const { createdSessionId, setActive: setOAuthActive } = await startGoogleFlow({
         redirectUrl: Linking.createURL("/(tabs)/album", { scheme: "controldepostales" }),
       });
       if (createdSessionId && setOAuthActive) {
         await setOAuthActive({ session: createdSessionId });
       }
     } catch (err: any) {
-      Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo iniciar sesión con Google");
+      Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo continuar con Google");
     } finally {
       setGoogleLoading(false);
     }
   }
+
+  async function handleApple() {
+    setAppleLoading(true);
+    try {
+      const { createdSessionId, setActive: setOAuthActive } = await startAppleFlow({
+        redirectUrl: Linking.createURL("/(tabs)/album", { scheme: "controldepostales" }),
+      });
+      if (createdSessionId && setOAuthActive) {
+        await setOAuthActive({ session: createdSessionId });
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo continuar con Apple");
+    } finally {
+      setAppleLoading(false);
+    }
+  }
+
+  const anyLoading = loading || googleLoading || appleLoading;
 
   return (
     <KeyboardAvoidingView
@@ -71,6 +92,52 @@ export default function SignInScreen() {
         <Text className="text-3xl font-bold text-gray-900 mb-1">Bienvenido</Text>
         <Text className="text-gray-500 mb-8">Tu álbum del Mundial 2026</Text>
 
+        {/* Google */}
+        <TouchableOpacity
+          onPress={handleGoogle}
+          disabled={anyLoading}
+          className="border border-gray-300 rounded-xl py-3.5 items-center flex-row justify-center mb-3"
+          activeOpacity={0.8}
+        >
+          {googleLoading ? (
+            <ActivityIndicator color="#4285F4" />
+          ) : (
+            <>
+              <FontAwesome name="google" size={18} color="#4285F4" />
+              <Text className="text-gray-700 font-semibold text-base ml-3">
+                Continuar con Google
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* Apple */}
+        <TouchableOpacity
+          onPress={handleApple}
+          disabled={anyLoading}
+          className="bg-black rounded-xl py-3.5 items-center flex-row justify-center mb-6"
+          activeOpacity={0.8}
+        >
+          {appleLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <>
+              <FontAwesome name="apple" size={20} color="white" />
+              <Text className="text-white font-semibold text-base ml-3">
+                Continuar con Apple
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* Divider */}
+        <View className="flex-row items-center mb-6">
+          <View className="flex-1 h-px bg-gray-200" />
+          <Text className="mx-3 text-gray-400 text-sm">o con correo</Text>
+          <View className="flex-1 h-px bg-gray-200" />
+        </View>
+
+        {/* Email / password */}
         <TextInput
           className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-900 text-base"
           placeholder="Correo electrónico"
@@ -90,36 +157,14 @@ export default function SignInScreen() {
 
         <TouchableOpacity
           onPress={handleSignIn}
-          disabled={loading || googleLoading}
-          className="bg-blue-600 rounded-xl py-4 items-center mb-3"
+          disabled={anyLoading}
+          className="bg-blue-600 rounded-xl py-4 items-center mb-6"
           activeOpacity={0.8}
         >
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
             <Text className="text-white font-semibold text-base">Iniciar sesión</Text>
-          )}
-        </TouchableOpacity>
-
-        <View className="flex-row items-center mb-3">
-          <View className="flex-1 h-px bg-gray-200" />
-          <Text className="mx-3 text-gray-400 text-sm">o</Text>
-          <View className="flex-1 h-px bg-gray-200" />
-        </View>
-
-        <TouchableOpacity
-          onPress={handleGoogleSignIn}
-          disabled={loading || googleLoading}
-          className="border border-gray-300 rounded-xl py-4 items-center flex-row justify-center mb-6"
-          activeOpacity={0.8}
-        >
-          {googleLoading ? (
-            <ActivityIndicator color="#4285F4" />
-          ) : (
-            <>
-              <Text className="text-lg mr-2">🔵</Text>
-              <Text className="text-gray-700 font-semibold text-base">Continuar con Google</Text>
-            </>
           )}
         </TouchableOpacity>
 

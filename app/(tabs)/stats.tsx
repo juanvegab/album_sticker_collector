@@ -1,9 +1,11 @@
-import { ScrollView, View, Text, TouchableOpacity } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, Image } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
 import { useUser } from "@clerk/clerk-expo";
 import { useCollection } from "@/hooks/useCollection";
 import { StatCard } from "@/components/stats/StatCard";
-import { WORLD_CUP_2026 } from "@/lib/data/world-cup-2026";
+import { WORLD_CUP_2026, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
+import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
+import { TrialBanner } from "@/components/premium/TrialBanner";
 
 export default function StatsScreen() {
   const { signOut } = useAuth();
@@ -19,7 +21,10 @@ export default function StatsScreen() {
   const sections = WORLD_CUP_2026.sections.filter((s) => s.stickers.length > 0);
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerStyle={{ paddingBottom: 32 }}>
+    <View className="flex-1 bg-gray-50">
+    <TrialBanner />
+    <BannerAd />
+    <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
       {/* User header */}
       <View className="bg-blue-600 pt-6 pb-8 px-4">
         <Text className="text-white text-sm opacity-80 mb-1">Hola,</Text>
@@ -54,9 +59,20 @@ export default function StatsScreen() {
           return (
             <View key={section.id} className="mb-3">
               <View className="flex-row justify-between mb-1">
-                <Text className="text-sm text-gray-700" numberOfLines={1}>
-                  {section.emoji} {section.name}
-                </Text>
+                <View className="flex-row items-center flex-1 mr-2">
+                  {FIFA_TO_ISO[section.id] ? (
+                    <Image
+                      source={{ uri: `https://flagcdn.com/w40/${FIFA_TO_ISO[section.id]}.png` }}
+                      style={{ width: 22, height: 15, borderRadius: 2, marginRight: 6 }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text className="mr-1">{section.emoji}</Text>
+                  )}
+                  <Text className="text-sm text-gray-700 flex-1" numberOfLines={1}>
+                    {section.name}
+                  </Text>
+                </View>
                 <Text className="text-xs text-gray-400">
                   {sOwned}/{section.stickers.length}
                 </Text>
@@ -81,5 +97,6 @@ export default function StatsScreen() {
         <Text className="text-gray-500 font-medium">Cerrar sesión</Text>
       </TouchableOpacity>
     </ScrollView>
+    </View>
   );
 }

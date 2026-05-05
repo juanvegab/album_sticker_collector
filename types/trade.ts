@@ -12,3 +12,12 @@ export interface Trade {
   createdAt: number;
   updatedAt: number;
 }
+
+export interface TradeResponse {
+  id: string;
+  responderId?: string;
+  responderName: string;
+  wantsToReceive: string[]; // subset of trade.offering (what respondent wants)
+  canGive: string[];         // subset of trade.requesting (what respondent can provide)
+  createdAt: number;
+}

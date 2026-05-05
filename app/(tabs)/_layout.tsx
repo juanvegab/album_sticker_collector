@@ -17,33 +17,47 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="album"
-        options={{
-          title: "Álbum",
-          tabBarIcon: ({ color }) => <Icon name="book" color={color} />,
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
         name="collection"
         options={{
-          title: "Mi Colección",
+          title: "Colección",
+          tabBarLabel: "Colección",
           tabBarIcon: ({ color }) => <Icon name="star" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="trades"
-        options={{
-          title: "Intercambios",
-          tabBarIcon: ({ color }) => <Icon name="exchange" color={color} />,
-          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="stats"
         options={{
           title: "Estadísticas",
+          tabBarLabel: "Estadísticas",
           tabBarIcon: ({ color }) => <Icon name="bar-chart" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="album/index"
+        options={{
+          title: "Álbum",
+          tabBarLabel: "Álbum",
+          tabBarIcon: ({ color }) => <Icon name="book" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="trades/index"
+        options={{
+          title: "Intercambios",
+          tabBarLabel: "Intercambios",
+          tabBarIcon: ({ color }) => <Icon name="retweet" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="trades/create"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: "Mi Cuenta",
+          tabBarLabel: "Cuenta",
+          tabBarIcon: ({ color }) => <Icon name="user" color={color} />,
         }}
       />
     </Tabs>

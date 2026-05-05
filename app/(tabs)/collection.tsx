@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, SectionList, TouchableOpacity, Image } from "react-native";
 import { useCollection } from "@/hooks/useCollection";
-import { WORLD_CUP_2026, ALL_STICKERS_MAP } from "@/lib/data/world-cup-2026";
+import { WORLD_CUP_2026, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
 import type { AlbumSticker } from "@/types/album";
+import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
+import { TrialBanner } from "@/components/premium/TrialBanner";
 
 type Tab = "owned" | "missing" | "duplicates";
 
@@ -12,29 +14,57 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "duplicates", label: "Repetidos 🔁" },
 ];
 
+// Group stickers into rows of 4 for display
+function toRows<T>(items: T[], cols = 4): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += cols) {
+    rows.push(items.slice(i, i + cols));
+  }
+  return rows;
+}
+
+type StickerWithCount = AlbumSticker & { count?: number };
+
+type SectionData = {
+  sectionId: string;
+  sectionName: string;
+  emoji?: string;
+  rows: StickerWithCount[][];
+};
+
 export default function CollectionScreen() {
   const { ownedSet, duplicates } = useCollection();
   const [activeTab, setActiveTab] = useState<Tab>("owned");
 
-  const allStickers = WORLD_CUP_2026.sections.flatMap((s) => s.stickers);
+  const sections: SectionData[] = WORLD_CUP_2026.sections
+    .map((section) => {
+      let stickers: StickerWithCount[];
 
-  let items: (AlbumSticker & { count?: number })[] = [];
-  if (activeTab === "owned") {
-    items = allStickers.filter((s) => ownedSet.has(s.id));
-  } else if (activeTab === "missing") {
-    items = allStickers.filter((s) => !ownedSet.has(s.id));
-  } else {
-    items = Object.entries(duplicates)
-      .filter(([, count]) => count > 0)
-      .map(([id, count]) => {
-        const sticker = ALL_STICKERS_MAP.get(id);
-        return sticker ? { ...sticker, count } : null;
-      })
-      .filter(Boolean) as (AlbumSticker & { count: number })[];
-  }
+      if (activeTab === "owned") {
+        stickers = section.stickers.filter((s) => ownedSet.has(s.id));
+      } else if (activeTab === "missing") {
+        stickers = section.stickers.filter((s) => !ownedSet.has(s.id));
+      } else {
+        stickers = section.stickers
+          .filter((s) => (duplicates[s.id] ?? 0) > 0)
+          .map((s) => ({ ...s, count: duplicates[s.id] }));
+      }
+
+      return {
+        sectionId: section.id,
+        sectionName: section.name,
+        emoji: section.emoji,
+        rows: toRows(stickers),
+      };
+    })
+    .filter((s) => s.rows.length > 0);
+
+  const totalItems = sections.reduce((acc, s) => acc + s.rows.flat().length, 0);
 
   return (
     <View className="flex-1 bg-gray-50">
+      <TrialBanner />
+      <BannerAd />
       {/* Tab selector */}
       <View className="flex-row bg-white border-b border-gray-100 px-2 pt-2">
         {TABS.map((t) => (
@@ -58,10 +88,10 @@ export default function CollectionScreen() {
 
       {/* Count badge */}
       <View className="px-4 py-2 bg-white border-b border-gray-100">
-        <Text className="text-gray-500 text-sm">{items.length} stickers</Text>
+        <Text className="text-gray-500 text-sm">{totalItems} stickers</Text>
       </View>
 
-      {items.length === 0 ? (
+      {sections.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <Text className="text-5xl mb-3">
             {activeTab === "owned" ? "📬" : activeTab === "missing" ? "🎉" : "✨"}
@@ -75,34 +105,65 @@ export default function CollectionScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(s) => s.id}
-          contentContainerStyle={{ padding: 12 }}
-          renderItem={({ item }) => (
-            <View className="flex-row items-center bg-white rounded-xl mb-2 px-4 py-3 shadow-sm border border-gray-100">
-              <View
-                className={`w-10 h-10 rounded-lg items-center justify-center mr-3 ${
+        <SectionList
+          sections={sections.map((s) => ({ ...s, data: s.rows }))}
+          keyExtractor={(row, i) => `${row[0]?.id ?? i}-row`}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => {
+            const iso = FIFA_TO_ISO[section.sectionId];
+            return (
+              <View className="flex-row items-center bg-gray-100 px-3 py-2 border-b border-gray-200 mt-2">
+                {iso ? (
+                  <Image
+                    source={{ uri: `https://flagcdn.com/w40/${iso}.png` }}
+                    style={{ width: 24, height: 16, borderRadius: 2, marginRight: 7 }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text className="mr-1.5">{section.emoji}</Text>
+                )}
+                <Text className="text-sm font-semibold text-gray-700 flex-1" numberOfLines={1}>
+                  {section.sectionName}
+                </Text>
+                <Text className="text-xs text-gray-400">
+                  {section.rows.flat().length}
+                </Text>
+              </View>
+            );
+          }}
+          renderItem={({ item: row, section }) => (
+            <View className="flex-row px-2 pt-2">
+              {row.map((sticker) => {
+                const isOwned = ownedSet.has(sticker.id);
+                const dupCount = sticker.count ?? (duplicates[sticker.id] ?? 0);
+                const bgColor =
                   activeTab === "owned"
                     ? "bg-green-100"
                     : activeTab === "missing"
                     ? "bg-gray-100"
-                    : "bg-orange-100"
-                }`}
-              >
-                <Text className="text-xs font-bold text-gray-600">{item.number}</Text>
-              </View>
-              <View className="flex-1">
-                <Text className="font-medium text-gray-800" numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text className="text-xs text-gray-400">{item.sectionId}</Text>
-              </View>
-              {activeTab === "duplicates" && item.count && (
-                <View className="bg-orange-500 rounded-full w-7 h-7 items-center justify-center">
-                  <Text className="text-white text-xs font-bold">{item.count}</Text>
-                </View>
-              )}
+                    : "bg-orange-100";
+                return (
+                  <View
+                    key={sticker.id}
+                    className={`flex-1 mx-1 rounded-lg ${bgColor} items-center justify-center py-2`}
+                    style={{ minHeight: 52 }}
+                  >
+                    <Text className="text-xs font-bold text-gray-700" numberOfLines={1}>
+                      {sticker.id}
+                    </Text>
+                    {activeTab === "duplicates" && dupCount > 0 && (
+                      <View className="bg-orange-500 rounded-full w-5 h-5 items-center justify-center mt-0.5">
+                        <Text className="text-white text-xs font-bold">{dupCount}</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+              {/* Fill empty slots in last row */}
+              {Array.from({ length: 4 - row.length }).map((_, i) => (
+                <View key={`empty-${i}`} className="flex-1 mx-1" />
+              ))}
             </View>
           )}
         />
