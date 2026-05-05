@@ -5,6 +5,7 @@ import {
   Alert,
   ScrollView,
   Image,
+  Linking,
 } from "react-native";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useCollection } from "@/hooks/useCollection";
@@ -122,6 +123,27 @@ export default function AccountScreen() {
             <Text className="text-xs text-gray-500 mt-0.5" numberOfLines={1}>
               {user?.id ?? "—"}
             </Text>
+          </View>
+        </View>
+
+        {/* About */}
+        <View className="mx-4 mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <Text className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-4 pt-4 pb-2">
+            Acerca de
+          </Text>
+
+          <TouchableOpacity
+            onPress={() => Linking.openURL("https://elalbum2026.com/")}
+            className="flex-row items-center justify-between px-4 py-3 border-b border-gray-50"
+            activeOpacity={0.7}
+          >
+            <Text className="text-sm text-blue-600">Visitar elalbum2026.com</Text>
+            <Text className="text-gray-400">›</Text>
+          </TouchableOpacity>
+
+          <View className="px-4 py-3">
+            <Text className="text-xs text-gray-400">Versión</Text>
+            <Text className="text-sm text-gray-800 mt-0.5">1.0.0</Text>
           </View>
         </View>
 

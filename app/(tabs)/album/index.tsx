@@ -290,7 +290,7 @@ export default function AlbumScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Álbum Mundial 2026" }} />
+      <Stack.Screen options={{ title: "El Álbum 2026" }} />
       <View className="flex-1 bg-gray-50">
 
         {/* Global progress banner */}
