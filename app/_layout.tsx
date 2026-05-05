@@ -1,11 +1,12 @@
 import "../global.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
 import { Slot, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from "expo-secure-store";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { usePremium } from "@/hooks/usePremium";
+import { initI18n } from "@/lib/i18n";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,12 +27,17 @@ function AppRoot() {
   const { isLoaded, isSignedIn } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [i18nReady, setI18nReady] = useState(false);
 
   // Initialize premium/trial only when signed in
   usePremium();
 
   useEffect(() => {
-    if (!isLoaded) return;
+    initI18n().finally(() => setI18nReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !i18nReady) return;
     SplashScreen.hideAsync();
 
     const inAuthGroup = segments[0] === "(auth)";
@@ -42,7 +48,9 @@ function AppRoot() {
     } else if (!isSignedIn && !inAuthGroup) {
       router.replace("/(auth)/sign-in");
     }
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, i18nReady]);
+
+  if (!i18nReady) return null;
 
   return <Slot />;
 }

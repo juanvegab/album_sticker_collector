@@ -14,10 +14,12 @@ import { Link } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useTranslation } from "react-i18next";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignInScreen() {
+  const { t } = useTranslation();
   const { signIn, setActive, isLoaded } = useSignIn();
   const { startOAuthFlow: startGoogleFlow } = useOAuth({ strategy: "oauth_google" });
   const { startOAuthFlow: startAppleFlow } = useOAuth({ strategy: "oauth_apple" });
@@ -42,7 +44,7 @@ export default function SignInScreen() {
         await setActive({ session: result.createdSessionId });
       }
     } catch (err: any) {
-      Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo iniciar sesión");
+      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorSignIn"));
     } finally {
       setLoading(false);
     }
@@ -58,7 +60,7 @@ export default function SignInScreen() {
         await setOAuthActive({ session: createdSessionId });
       }
     } catch (err: any) {
-      Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo continuar con Google");
+      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorGoogle"));
     } finally {
       setGoogleLoading(false);
     }
@@ -74,7 +76,7 @@ export default function SignInScreen() {
         await setOAuthActive({ session: createdSessionId });
       }
     } catch (err: any) {
-      Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo continuar con Apple");
+      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorApple"));
     } finally {
       setAppleLoading(false);
     }
@@ -89,8 +91,8 @@ export default function SignInScreen() {
     >
       <View className="flex-1 justify-center px-8">
         <Text className="text-4xl mb-2">⚽</Text>
-        <Text className="text-3xl font-bold text-gray-900 mb-1">Bienvenido</Text>
-        <Text className="text-gray-500 mb-8">Tu álbum del Mundial 2026</Text>
+        <Text className="text-3xl font-bold text-gray-900 mb-1">{t("auth.welcome")}</Text>
+        <Text className="text-gray-500 mb-8">{t("auth.tagline")}</Text>
 
         {/* Google */}
         <TouchableOpacity
@@ -105,7 +107,7 @@ export default function SignInScreen() {
             <>
               <FontAwesome name="google" size={18} color="#4285F4" />
               <Text className="text-gray-700 font-semibold text-base ml-3">
-                Continuar con Google
+                {t("auth.continueGoogle")}
               </Text>
             </>
           )}
@@ -124,7 +126,7 @@ export default function SignInScreen() {
             <>
               <FontAwesome name="apple" size={20} color="white" />
               <Text className="text-white font-semibold text-base ml-3">
-                Continuar con Apple
+                {t("auth.continueApple")}
               </Text>
             </>
           )}
@@ -133,14 +135,13 @@ export default function SignInScreen() {
         {/* Divider */}
         <View className="flex-row items-center mb-6">
           <View className="flex-1 h-px bg-gray-200" />
-          <Text className="mx-3 text-gray-400 text-sm">o con correo</Text>
+          <Text className="mx-3 text-gray-400 text-sm">{t("auth.orEmail")}</Text>
           <View className="flex-1 h-px bg-gray-200" />
         </View>
 
-        {/* Email / password */}
         <TextInput
           className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-900 text-base"
-          placeholder="Correo electrónico"
+          placeholder={t("auth.email")}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -149,7 +150,7 @@ export default function SignInScreen() {
         />
         <TextInput
           className="border border-gray-300 rounded-xl px-4 py-3 mb-6 text-gray-900 text-base"
-          placeholder="Contraseña"
+          placeholder={t("auth.password")}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -164,15 +165,15 @@ export default function SignInScreen() {
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white font-semibold text-base">Iniciar sesión</Text>
+            <Text className="text-white font-semibold text-base">{t("auth.signIn")}</Text>
           )}
         </TouchableOpacity>
 
         <View className="flex-row justify-center">
-          <Text className="text-gray-500">¿No tienes cuenta? </Text>
+          <Text className="text-gray-500">{t("auth.noAccount")}</Text>
           <Link href="/(auth)/sign-up" asChild>
             <TouchableOpacity>
-              <Text className="text-blue-600 font-semibold">Regístrate</Text>
+              <Text className="text-blue-600 font-semibold">{t("auth.signUp")}</Text>
             </TouchableOpacity>
           </Link>
         </View>

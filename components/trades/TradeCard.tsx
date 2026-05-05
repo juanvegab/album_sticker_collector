@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity } from "react-native";
+import { useTranslation } from "react-i18next";
 import type { Trade } from "@/types/trade";
 import { ALL_STICKERS_MAP } from "@/lib/data/world-cup-2026";
 
@@ -16,6 +17,8 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function TradeCard({ trade, onPress }: Props) {
+  const { t } = useTranslation();
+
   const offerLabel = trade.offering
     .slice(0, 3)
     .map((id) => ALL_STICKERS_MAP.get(id)?.name ?? id)
@@ -44,17 +47,17 @@ export function TradeCard({ trade, onPress }: Props) {
       </View>
       <View className="flex-row gap-4">
         <View className="flex-1">
-          <Text className="text-xs text-gray-500 mb-1">Ofrece 🎁</Text>
+          <Text className="text-xs text-gray-500 mb-1">{t("trades.offers")}</Text>
           <Text className="text-sm text-gray-700" numberOfLines={2}>
             {offerLabel}
-            {trade.offering.length > 3 && ` +${trade.offering.length - 3} más`}
+            {trade.offering.length > 3 && t("trades.more", { count: trade.offering.length - 3 })}
           </Text>
         </View>
         <View className="flex-1">
-          <Text className="text-xs text-gray-500 mb-1">Pide 🙏</Text>
+          <Text className="text-xs text-gray-500 mb-1">{t("trades.requests")}</Text>
           <Text className="text-sm text-gray-700" numberOfLines={2}>
             {wantLabel}
-            {trade.requesting.length > 3 && ` +${trade.requesting.length - 3} más`}
+            {trade.requesting.length > 3 && t("trades.more", { count: trade.requesting.length - 3 })}
           </Text>
         </View>
       </View>

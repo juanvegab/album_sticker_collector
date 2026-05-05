@@ -10,6 +10,7 @@ import {
   NativeScrollEvent,
 } from "react-native";
 import { Stack } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useCollection } from "@/hooks/useCollection";
 import { useCollectionStore } from "@/store/collectionStore";
 import { StickerCard } from "@/components/stickers/StickerCard";
@@ -98,7 +99,7 @@ function sectionWithMostPixels(scrollY: number, viewH: number): string {
 const fwcSection = WORLD_CUP_2026.sections[0];
 
 type LeftItem =
-  | { type: "header"; label: string }
+  | { type: "header"; group: string }
   | { type: "section"; section: AlbumSection };
 
 function buildLeftItems(): LeftItem[] {
@@ -108,7 +109,7 @@ function buildLeftItems(): LeftItem[] {
     const group = TEAM_GROUP[section.id];
     if (group && group !== lastGroup) {
       lastGroup = group;
-      items.push({ type: "header", label: `Grupo ${group}` });
+      items.push({ type: "header", group });
     }
     items.push({ type: "section", section });
   }
@@ -191,6 +192,7 @@ const StickerRow = React.memo(
 
 // ── Screen ────────────────────────────────────────────────────────────
 export default function AlbumScreen() {
+  const { t } = useTranslation();
   const { ownedSet, toggle, setDuplicates } = useCollection();
 
   const [activeSectionId, setActiveSectionId] = useState(fwcSection.id);
@@ -290,7 +292,7 @@ export default function AlbumScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "El Álbum 2026" }} />
+      <Stack.Screen options={{ title: t("album.title") }} />
       <View className="flex-1 bg-gray-50">
 
         {/* Global progress banner */}
@@ -317,7 +319,7 @@ export default function AlbumScreen() {
                   return (
                     <View key={`hdr-${i}`} className="px-2 pt-3 pb-1">
                       <Text className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
-                        {item.label}
+                        {t("album.group", { letter: item.group })}
                       </Text>
                     </View>
                   );

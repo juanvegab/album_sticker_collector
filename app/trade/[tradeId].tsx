@@ -1,22 +1,16 @@
 import { useState, useEffect } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  TextInput,
-  Alert,
-  Image,
+  View, Text, ScrollView, TouchableOpacity, ActivityIndicator,
+  TextInput, Alert, Image,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
+import { useTranslation } from "react-i18next";
 import { getTrade, addTradeResponse } from "@/lib/firestore/trades";
 import { ALL_STICKERS_MAP, WORLD_CUP_2026, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
 import type { Trade } from "@/types/trade";
 import type { AlbumSticker } from "@/types/album";
 
-// Groups sticker IDs into { sectionId, stickers }[] in album order
 function groupBySection(ids: string[]): { sectionId: string; stickers: AlbumSticker[] }[] {
   const bySection = new Map<string, AlbumSticker[]>();
   for (const id of ids) {
@@ -33,57 +27,28 @@ function groupBySection(ids: string[]): { sectionId: string; stickers: AlbumStic
   return result;
 }
 
-function StickerRow({
-  sticker,
-  selected,
-  onToggle,
-}: {
-  sticker: AlbumSticker;
-  selected: boolean;
-  onToggle: () => void;
-}) {
+function StickerRow({ sticker, selected, onToggle }: { sticker: AlbumSticker; selected: boolean; onToggle: () => void }) {
   return (
     <TouchableOpacity
       onPress={onToggle}
-      className={`flex-row items-center py-2.5 px-2 rounded-lg mb-1 border ${
-        selected ? "bg-blue-50 border-blue-300" : "bg-white border-gray-100"
-      }`}
+      className={`flex-row items-center py-2.5 px-2 rounded-lg mb-1 border ${selected ? "bg-blue-50 border-blue-300" : "bg-white border-gray-100"}`}
       activeOpacity={0.7}
     >
-      <View
-        className={`w-5 h-5 rounded border-2 mr-2 items-center justify-center flex-shrink-0 ${
-          selected ? "bg-blue-600 border-blue-600" : "border-gray-300"
-        }`}
-      >
-        {selected && (
-          <Text className="text-white font-bold" style={{ fontSize: 10 }}>
-            ✓
-          </Text>
-        )}
+      <View className={`w-5 h-5 rounded border-2 mr-2 items-center justify-center flex-shrink-0 ${selected ? "bg-blue-600 border-blue-600" : "border-gray-300"}`}>
+        {selected && <Text className="text-white font-bold" style={{ fontSize: 10 }}>✓</Text>}
       </View>
-      <Text className="text-xs font-semibold text-gray-500 mr-1.5" style={{ minWidth: 36 }}>
-        {sticker.id}
-      </Text>
-      <Text className="text-xs text-gray-700 flex-1" numberOfLines={1}>
-        {sticker.name}
-      </Text>
+      <Text className="text-xs font-semibold text-gray-500 mr-1.5" style={{ minWidth: 36 }}>{sticker.id}</Text>
+      <Text className="text-xs text-gray-700 flex-1" numberOfLines={1}>{sticker.name}</Text>
     </TouchableOpacity>
   );
 }
 
 function StickerPanel({
-  title,
-  color,
-  ids,
-  selected,
-  onToggle,
+  title, color, ids, selected, onToggle,
 }: {
-  title: string;
-  color: "blue" | "green";
-  ids: string[];
-  selected: string[];
-  onToggle: (id: string) => void;
+  title: string; color: "blue" | "green"; ids: string[]; selected: string[]; onToggle: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const groups = groupBySection(ids);
   const headerBg = color === "blue" ? "bg-blue-600" : "bg-green-600";
 
@@ -92,7 +57,7 @@ function StickerPanel({
       <View className={`${headerBg} px-3 py-2.5`}>
         <Text className="text-white text-sm font-bold text-center">{title}</Text>
         <Text className="text-white/70 text-xs text-center">
-          {selected.length}/{ids.length} seleccionadas
+          {t("trades.selected", { count: selected.length, total: ids.length })}
         </Text>
       </View>
       <ScrollView className="flex-1 bg-gray-50 px-2 pt-2" showsVerticalScrollIndicator={false}>
@@ -108,17 +73,10 @@ function StickerPanel({
                     resizeMode="cover"
                   />
                 ) : null}
-                <Text className="text-xs font-semibold text-gray-500 uppercase">
-                  {sectionId}
-                </Text>
+                <Text className="text-xs font-semibold text-gray-500 uppercase">{sectionId}</Text>
               </View>
               {stickers.map((s) => (
-                <StickerRow
-                  key={s.id}
-                  sticker={s}
-                  selected={selected.includes(s.id)}
-                  onToggle={() => onToggle(s.id)}
-                />
+                <StickerRow key={s.id} sticker={s} selected={selected.includes(s.id)} onToggle={() => onToggle(s.id)} />
               ))}
             </View>
           );
@@ -130,6 +88,7 @@ function StickerPanel({
 }
 
 export default function TradeViewerScreen() {
+  const { t } = useTranslation();
   const { tradeId } = useLocalSearchParams<{ tradeId: string }>();
   const { user } = useUser();
   const router = useRouter();
@@ -145,32 +104,25 @@ export default function TradeViewerScreen() {
 
   useEffect(() => {
     if (!tradeId) return;
-    getTrade(tradeId)
-      .then(setTrade)
-      .catch(() => setTrade(null))
-      .finally(() => setLoading(false));
+    getTrade(tradeId).then(setTrade).catch(() => setTrade(null)).finally(() => setLoading(false));
   }, [tradeId]);
 
   function toggleReceive(id: string) {
-    setWantsToReceive((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setWantsToReceive((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   }
 
   function toggleGive(id: string) {
-    setCanGive((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setCanGive((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   }
 
   async function submitResponse() {
     if (!trade) return;
     if (!responderName.trim()) {
-      Alert.alert("Falta tu nombre", "¿Cómo te llamas?");
+      Alert.alert(t("trades.missingName"), t("trades.yourNameQ"));
       return;
     }
     if (wantsToReceive.length === 0 && canGive.length === 0) {
-      Alert.alert("Selecciona postales", "Marca cuáles darías y cuáles quieres recibir");
+      Alert.alert(t("trades.selectStickers"), t("trades.selectHint"));
       return;
     }
     setSubmitting(true);
@@ -182,34 +134,28 @@ export default function TradeViewerScreen() {
         canGive,
       });
       Alert.alert(
-        "¡Propuesta enviada! 🎉",
-        `Tu propuesta fue enviada a ${trade.fromUserName}. Te contactará pronto.`,
-        [{ text: "OK", onPress: () => router.replace("/(tabs)/album") }]
+        t("trades.proposalSent"),
+        t("trades.proposalSentMsg", { name: trade.fromUserName }),
+        [{ text: t("common.ok"), onPress: () => router.replace("/(tabs)/album") }]
       );
     } catch {
-      Alert.alert("Error", "No se pudo enviar la propuesta");
+      Alert.alert(t("common.error"), t("trades.errorSend"));
     } finally {
       setSubmitting(false);
     }
   }
 
   if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#2563eb" />
-      </View>
-    );
+    return <View className="flex-1 items-center justify-center bg-white"><ActivityIndicator size="large" color="#2563eb" /></View>;
   }
 
   if (!trade) {
     return (
       <>
-        <Stack.Screen options={{ title: "Intercambio" }} />
+        <Stack.Screen options={{ title: t("trades.tradeDetail") }} />
         <View className="flex-1 items-center justify-center bg-white px-8">
           <Text className="text-5xl mb-3">🔍</Text>
-          <Text className="text-gray-500 text-base text-center">
-            No se encontró este intercambio
-          </Text>
+          <Text className="text-gray-500 text-base text-center">{t("trades.notFound")}</Text>
         </View>
       </>
     );
@@ -217,40 +163,25 @@ export default function TradeViewerScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: `Intercambio de ${trade.fromUserName}` }} />
+      <Stack.Screen options={{ title: t("trades.tradeFrom", { name: trade.fromUserName }) }} />
       <View className="flex-1 bg-white">
-        {/* Trade summary header */}
         <View className="bg-blue-600 px-4 py-3">
           <Text className="text-white font-bold text-base">{trade.fromUserName}</Text>
           <Text className="text-blue-200 text-xs">
-            {trade.offering.length} postales ofrece · {trade.requesting.length} postales busca
+            {t("trades.offersSummary", { offering: trade.offering.length, requesting: trade.requesting.length })}
           </Text>
         </View>
 
-        {/* 50/50 split panels */}
         <View className="flex-1 flex-row">
-          <StickerPanel
-            title="📤 Lo que entrego"
-            color="blue"
-            ids={trade.requesting}
-            selected={canGive}
-            onToggle={toggleGive}
-          />
-          <StickerPanel
-            title="📥 Lo que recibo"
-            color="green"
-            ids={trade.offering}
-            selected={wantsToReceive}
-            onToggle={toggleReceive}
-          />
+          <StickerPanel title={t("trades.whatIDeliver")} color="blue" ids={trade.requesting} selected={canGive} onToggle={toggleGive} />
+          <StickerPanel title={t("trades.whatIReceive")} color="green" ids={trade.offering} selected={wantsToReceive} onToggle={toggleReceive} />
         </View>
 
-        {/* Footer: name + submit */}
         <View className="bg-white border-t border-gray-200 px-4 py-3">
           {!user && (
             <TextInput
               className="border border-gray-300 rounded-xl px-3 py-2.5 mb-3 text-gray-900 text-sm"
-              placeholder="Tu nombre"
+              placeholder={t("trades.yourName")}
               value={responderName}
               onChangeText={setResponderName}
               autoCapitalize="words"
@@ -259,17 +190,13 @@ export default function TradeViewerScreen() {
           <TouchableOpacity
             onPress={submitResponse}
             disabled={submitting}
-            className={`rounded-xl py-4 items-center ${
-              submitting ? "bg-gray-200" : "bg-green-600"
-            }`}
+            className={`rounded-xl py-4 items-center ${submitting ? "bg-gray-200" : "bg-green-600"}`}
             activeOpacity={0.8}
           >
             {submitting ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text className="text-white font-bold text-base">
-                Enviar propuesta 🤝
-              </Text>
+              <Text className="text-white font-bold text-base">{t("trades.sendProposal")}</Text>
             )}
           </TouchableOpacity>
         </View>

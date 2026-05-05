@@ -14,10 +14,12 @@ import { Link } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useTranslation } from "react-i18next";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignUpScreen() {
+  const { t } = useTranslation();
   const { signUp, setActive, isLoaded } = useSignUp();
   const { startOAuthFlow: startGoogleFlow } = useOAuth({ strategy: "oauth_google" });
   const { startOAuthFlow: startAppleFlow } = useOAuth({ strategy: "oauth_apple" });
@@ -44,7 +46,7 @@ export default function SignUpScreen() {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (err: any) {
-      Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo registrar");
+      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorRegister"));
     } finally {
       setLoading(false);
     }
@@ -59,7 +61,7 @@ export default function SignUpScreen() {
         await setActive({ session: result.createdSessionId });
       }
     } catch (err: any) {
-      Alert.alert("Código inválido", err.errors?.[0]?.message ?? "Intenta de nuevo");
+      Alert.alert(t("auth.errorCode"), err.errors?.[0]?.message ?? t("auth.tryAgain"));
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ export default function SignUpScreen() {
         await setOAuthActive({ session: createdSessionId });
       }
     } catch (err: any) {
-      Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo continuar con Google");
+      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorGoogle"));
     } finally {
       setGoogleLoading(false);
     }
@@ -91,7 +93,7 @@ export default function SignUpScreen() {
         await setOAuthActive({ session: createdSessionId });
       }
     } catch (err: any) {
-      Alert.alert("Error", err.errors?.[0]?.message ?? "No se pudo continuar con Apple");
+      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorApple"));
     } finally {
       setAppleLoading(false);
     }
@@ -107,10 +109,8 @@ export default function SignUpScreen() {
       >
         <View className="flex-1 justify-center px-8">
           <Text className="text-4xl mb-2">📬</Text>
-          <Text className="text-3xl font-bold text-gray-900 mb-1">Verifica tu email</Text>
-          <Text className="text-gray-500 mb-8">
-            Ingresa el código de 6 dígitos que enviamos a {email}
-          </Text>
+          <Text className="text-3xl font-bold text-gray-900 mb-1">{t("auth.verifyEmail")}</Text>
+          <Text className="text-gray-500 mb-8">{t("auth.verifyCode", { email })}</Text>
           <TextInput
             className="border border-gray-300 rounded-xl px-4 py-4 mb-6 text-gray-900 text-2xl text-center tracking-widest"
             placeholder="000000"
@@ -128,7 +128,7 @@ export default function SignUpScreen() {
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text className="text-white font-semibold text-base">Verificar</Text>
+              <Text className="text-white font-semibold text-base">{t("auth.verify")}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -143,10 +143,9 @@ export default function SignUpScreen() {
     >
       <View className="flex-1 justify-center px-8">
         <Text className="text-4xl mb-2">🎴</Text>
-        <Text className="text-3xl font-bold text-gray-900 mb-1">Crear cuenta</Text>
-        <Text className="text-gray-500 mb-8">Empieza a coleccionar stickers</Text>
+        <Text className="text-3xl font-bold text-gray-900 mb-1">{t("auth.createAccount")}</Text>
+        <Text className="text-gray-500 mb-8">{t("auth.taglineSignUp")}</Text>
 
-        {/* OAuth buttons */}
         <TouchableOpacity
           onPress={handleGoogle}
           disabled={anyLoading}
@@ -159,7 +158,7 @@ export default function SignUpScreen() {
             <>
               <FontAwesome name="google" size={18} color="#4285F4" />
               <Text className="text-gray-700 font-semibold text-base ml-3">
-                Continuar con Google
+                {t("auth.continueGoogle")}
               </Text>
             </>
           )}
@@ -177,30 +176,28 @@ export default function SignUpScreen() {
             <>
               <FontAwesome name="apple" size={20} color="white" />
               <Text className="text-white font-semibold text-base ml-3">
-                Continuar con Apple
+                {t("auth.continueApple")}
               </Text>
             </>
           )}
         </TouchableOpacity>
 
-        {/* Divider */}
         <View className="flex-row items-center mb-6">
           <View className="flex-1 h-px bg-gray-200" />
-          <Text className="mx-3 text-gray-400 text-sm">o con correo</Text>
+          <Text className="mx-3 text-gray-400 text-sm">{t("auth.orEmail")}</Text>
           <View className="flex-1 h-px bg-gray-200" />
         </View>
 
-        {/* Email/password */}
         <TextInput
           className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-900 text-base"
-          placeholder="Tu nombre"
+          placeholder={t("auth.yourName")}
           value={name}
           onChangeText={setName}
           autoCapitalize="words"
         />
         <TextInput
           className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-900 text-base"
-          placeholder="Correo electrónico"
+          placeholder={t("auth.email")}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -208,7 +205,7 @@ export default function SignUpScreen() {
         />
         <TextInput
           className="border border-gray-300 rounded-xl px-4 py-3 mb-6 text-gray-900 text-base"
-          placeholder="Contraseña"
+          placeholder={t("auth.password")}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -223,15 +220,15 @@ export default function SignUpScreen() {
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-white font-semibold text-base">Crear cuenta</Text>
+            <Text className="text-white font-semibold text-base">{t("auth.createAccount")}</Text>
           )}
         </TouchableOpacity>
 
         <View className="flex-row justify-center">
-          <Text className="text-gray-500">¿Ya tienes cuenta? </Text>
+          <Text className="text-gray-500">{t("auth.haveAccount")}</Text>
           <Link href="/(auth)/sign-in" asChild>
             <TouchableOpacity>
-              <Text className="text-blue-600 font-semibold">Inicia sesión</Text>
+              <Text className="text-blue-600 font-semibold">{t("auth.signInLink")}</Text>
             </TouchableOpacity>
           </Link>
         </View>

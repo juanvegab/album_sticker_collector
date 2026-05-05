@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { View, Text, ScrollView, SectionList, TouchableOpacity, Image } from "react-native";
+import { useTranslation } from "react-i18next";
 import { WORLD_CUP_2026, TEAM_GROUP, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
 import type { AlbumSticker } from "@/types/album";
 
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function TradeStickersSelector({ pool, selected, onToggle }: Props) {
+  const { t } = useTranslation();
   // Index eligible stickers by section, preserving album order
   const poolBySection = new Map<string, AlbumSticker[]>();
   for (const sticker of pool) {
@@ -45,7 +47,7 @@ export function TradeStickersSelector({ pool, selected, onToggle }: Props) {
     const group = TEAM_GROUP[s.sectionId];
     if (group && group !== lastGroup) {
       lastGroup = group;
-      leftItems.push({ type: "header", label: `Grupo ${group}` });
+      leftItems.push({ type: "header", label: t("trades.group", { letter: group }) });
     }
     leftItems.push({
       type: "section",
@@ -75,7 +77,7 @@ export function TradeStickersSelector({ pool, selected, onToggle }: Props) {
       <View className="flex-1 items-center justify-center px-6">
         <Text className="text-4xl mb-3">📭</Text>
         <Text className="text-gray-400 text-base text-center">
-          No hay postales disponibles para este paso
+          {t("trades.noStickersStep")}
         </Text>
       </View>
     );
@@ -171,7 +173,7 @@ export function TradeStickersSelector({ pool, selected, onToggle }: Props) {
               ) : null}
               <Text className="text-xs font-bold text-gray-700 flex-1">{section.name}</Text>
               {selCount > 0 && (
-                <Text className="text-xs text-blue-600 font-semibold">{selCount} sel.</Text>
+                <Text className="text-xs text-blue-600 font-semibold">{t("trades.selCount", { count: selCount })}</Text>
               )}
             </View>
           );
