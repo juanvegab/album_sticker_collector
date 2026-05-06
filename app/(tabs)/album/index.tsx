@@ -13,6 +13,7 @@ import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useCollection } from "@/hooks/useCollection";
 import { useCollectionStore } from "@/store/collectionStore";
+import { usePremiumStore } from "@/store/premiumStore";
 import { StickerCard } from "@/components/stickers/StickerCard";
 import { NativeAdCard, AD_HEIGHT } from "@/components/ads/NativeAdCard";
 import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
@@ -194,6 +195,7 @@ const StickerRow = React.memo(
 export default function AlbumScreen() {
   const { t } = useTranslation();
   const { ownedSet, toggle, setDuplicates } = useCollection();
+  const showAds = usePremiumStore((s) => s.showAds());
 
   const [activeSectionId, setActiveSectionId] = useState(fwcSection.id);
   const activeSectionIdRef = useRef(fwcSection.id);
@@ -231,7 +233,17 @@ export default function AlbumScreen() {
     updateActive(section.id, true);
     const idx = SECTION_FIRST_IDX.get(section.id) ?? 0;
     programmaticTarget.current = section.id;
-    rightListRef.current?.scrollToIndex({ index: idx, animated: true, viewOffset: 0 });
+
+    // scrollToOffset is more reliable than scrollToIndex (no failure path,
+    // no double-animation conflict with onScrollToIndexFailed).
+    // For non-premium users: the NativeAdCard (AD_HEIGHT) is injected right
+    // after each section header, pushing the first sticker row down. Pull
+    // back by SECTION_HEADER_HEIGHT so the header lands visually centered
+    // and the first cards are visible below the ad.
+    const base = FLAT_OFFSETS[idx] ?? 0;
+    const offset = showAds ? Math.max(0, base - SECTION_HEADER_HEIGHT) : base;
+    rightListRef.current?.scrollToOffset({ offset, animated: true });
+
     setTimeout(() => {
       programmaticTarget.current = null;
     }, 1500);
@@ -398,9 +410,11 @@ export default function AlbumScreen() {
               onScrollBeginDrag={handleScrollBeginDrag}
               scrollEventThrottle={100}
               onScrollToIndexFailed={({ index }) => {
+                // Fallback: handleSelectSection now uses scrollToOffset directly,
+                // but keep this guard for any future scrollToIndex calls.
                 rightListRef.current?.scrollToOffset({
                   offset: FLAT_OFFSETS[index] ?? 0,
-                  animated: true,
+                  animated: false,
                 });
               }}
             />
