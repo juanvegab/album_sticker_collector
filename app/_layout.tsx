@@ -1,12 +1,14 @@
 import "../global.css";
 import { useEffect, useState } from "react";
-import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
+import { ClerkProvider, ClerkLoaded, useAuth, useUser } from "@clerk/clerk-expo";
 import { Slot, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from "expo-secure-store";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { usePremium } from "@/hooks/usePremium";
 import { initI18n } from "@/lib/i18n";
+import { createOrUpdateProfile, saveExpoPushToken } from "@/lib/firestore/users";
+import { registerForPushNotifications } from "@/lib/notifications";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,6 +27,7 @@ const tokenCache = {
 function AppRoot() {
   useFirebaseAuth();
   const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
   const segments = useSegments();
   const router = useRouter();
   const [i18nReady, setI18nReady] = useState(false);
@@ -35,6 +38,16 @@ function AppRoot() {
   useEffect(() => {
     initI18n().finally(() => setI18nReady(true));
   }, []);
+
+  // Create/update Firestore user profile and register push token on sign-in
+  useEffect(() => {
+    if (!user) return;
+    const name = user.firstName ?? user.emailAddresses[0]?.emailAddress ?? "Usuario";
+    createOrUpdateProfile(user.id, name, user.imageUrl ?? undefined).catch(console.error);
+    registerForPushNotifications().then((token) => {
+      if (token) saveExpoPushToken(user.id, token).catch(console.error);
+    });
+  }, [user?.id]);
 
   useEffect(() => {
     if (!isLoaded || !i18nReady) return;

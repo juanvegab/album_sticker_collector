@@ -1,9 +1,38 @@
 import { Tabs } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useTranslation } from "react-i18next";
+import { View, Text } from "react-native";
+import { useFriends } from "@/hooks/useFriends";
+import { useStickerRequests } from "@/hooks/useStickerRequests";
 
 function Icon(props: { name: React.ComponentProps<typeof FontAwesome>["name"]; color: string }) {
   return <FontAwesome size={24} {...props} />;
+}
+
+function FriendsTabIcon({ color }: { color: string }) {
+  const { pendingFrom } = useFriends();
+  const { incoming } = useStickerRequests();
+  const badgeCount = pendingFrom.length + incoming.length;
+
+  return (
+    <View>
+      <Icon name="users" color={color} />
+      {badgeCount > 0 && (
+        <View
+          style={{
+            position: "absolute", top: -4, right: -8,
+            backgroundColor: "#ef4444", borderRadius: 8,
+            minWidth: 16, height: 16, paddingHorizontal: 3,
+            alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: "white", fontSize: 9, fontWeight: "700" }}>
+            {badgeCount > 9 ? "9+" : badgeCount}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
 export default function TabLayout() {
@@ -44,15 +73,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="trades/index"
+        name="friends/index"
         options={{
-          title: t("tabs.trades"),
-          tabBarLabel: t("tabs.trades"),
-          tabBarIcon: ({ color }) => <Icon name="retweet" color={color} />,
+          title: t("tabs.friends"),
+          tabBarLabel: t("tabs.friends"),
+          tabBarIcon: ({ color }) => <FriendsTabIcon color={color} />,
         }}
       />
       <Tabs.Screen
-        name="trades/create"
+        name="friends/[friendId]"
         options={{ href: null }}
       />
       <Tabs.Screen
