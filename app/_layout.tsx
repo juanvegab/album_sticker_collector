@@ -4,11 +4,14 @@ import { ClerkProvider, ClerkLoaded, useAuth, useUser } from "@clerk/clerk-expo"
 import { Slot, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from "expo-secure-store";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { usePremium } from "@/hooks/usePremium";
 import { initI18n } from "@/lib/i18n";
-import { createOrUpdateProfile, saveExpoPushToken } from "@/lib/firestore/users";
-import { registerForPushNotifications } from "@/lib/notifications";
+import { createOrUpdateProfile } from "@/lib/firestore/users";
+
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,15 +42,28 @@ function AppRoot() {
     initI18n().finally(() => setI18nReady(true));
   }, []);
 
-  // Create/update Firestore user profile and register push token on sign-in
+  // Create/update Firestore user profile on sign-in
   useEffect(() => {
     if (!user) return;
     const name = user.firstName ?? user.emailAddresses[0]?.emailAddress ?? "Usuario";
     createOrUpdateProfile(user.id, name, user.imageUrl ?? undefined).catch(console.error);
-    registerForPushNotifications().then((token) => {
-      if (token) saveExpoPushToken(user.id, token).catch(console.error);
-    });
   }, [user?.id]);
+
+  // GDPR/EU consent for AdMob — only runs in real builds (UMP SDK not available in Expo Go)
+  useEffect(() => {
+    if (isExpoGo) return;
+    (async () => {
+      try {
+        const { AdsConsent } = await import("react-native-google-mobile-ads");
+        const info = await AdsConsent.requestInfoUpdate();
+        if (info.isConsentFormAvailable) {
+          await AdsConsent.showForm();
+        }
+      } catch {
+        // silently ignore — consent failure should not block the app
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (!isLoaded || !i18nReady) return;

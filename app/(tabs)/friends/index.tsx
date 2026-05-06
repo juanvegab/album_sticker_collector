@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View, Text, FlatList, TouchableOpacity, ActivityIndicator,
   Alert, Share, ScrollView,
@@ -8,9 +8,9 @@ import { useUser } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
 import { useFriends } from "@/hooks/useFriends";
 import { useStickerRequests } from "@/hooks/useStickerRequests";
-import { acceptFriendRequest, rejectFriendRequest, getProfile } from "@/lib/firestore/users";
+import { acceptFriendRequest, rejectFriendRequest, getProfile, saveExpoPushToken } from "@/lib/firestore/users";
 import { markRequestReceived } from "@/lib/firestore/requests";
-import { sendPushNotification } from "@/lib/notifications";
+import { sendPushNotification, registerForPushNotifications } from "@/lib/notifications";
 import { ALL_STICKERS_MAP } from "@/lib/data/world-cup-2026";
 import { RequestCard } from "@/components/friends/RequestCard";
 import { QRModal } from "@/components/friends/QRModal";
@@ -28,6 +28,15 @@ export default function FriendsScreen() {
   const { friendProfiles, pendingFrom, loading } = useFriends();
   const { incoming, pendingDeliveries } = useStickerRequests();
   const [qrVisible, setQrVisible] = useState(false);
+
+  // Request push permission when user first visits Friends — contextually appropriate
+  // since notifications here are only for friend requests and sticker exchanges.
+  useEffect(() => {
+    if (!user) return;
+    registerForPushNotifications().then((token) => {
+      if (token) saveExpoPushToken(user.id, token).catch(console.error);
+    });
+  }, [user?.id]);
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [pendingProfiles, setPendingProfiles] = useState<Record<string, UserProfile>>({});
 

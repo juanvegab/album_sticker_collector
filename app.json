@@ -21,6 +21,7 @@
       }
     },
     "android": {
+      "package": "com.juanvegab.controldepostales",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -39,8 +40,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+          "androidAppId": "ca-app-pub-1141376334966091~2434404871",
+          "iosAppId": "ca-app-pub-1141376334966091~8594737124"
         }
       ]
     ],

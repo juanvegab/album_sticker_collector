@@ -13,12 +13,12 @@ import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useCollection } from "@/hooks/useCollection";
 import { useCollectionStore } from "@/store/collectionStore";
-import { usePremiumStore } from "@/store/premiumStore";
 import { StickerCard } from "@/components/stickers/StickerCard";
 import { NativeAdCard, AD_HEIGHT } from "@/components/ads/NativeAdCard";
 import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialBanner } from "@/components/premium/TrialBanner";
 import { WORLD_CUP_2026, TEAM_GROUP, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
+import { usePremiumStore } from "@/store/premiumStore";
 import type { AlbumSection, AlbumSticker } from "@/types/album";
 
 // ── Layout constants (must match rendered heights exactly) ────────────
@@ -50,41 +50,40 @@ for (const section of WORLD_CUP_2026.sections) {
   }
 }
 
-// Pre-computed cumulative offsets — enables reliable getItemLayout
-const FLAT_OFFSETS: number[] = [];
-let _cum = PADDING_TOP;
-for (const item of FLAT_ITEMS) {
-  FLAT_OFFSETS.push(_cum);
-  _cum +=
-    item.type === "header"
-      ? SECTION_HEADER_HEIGHT
-      : item.type === "ad"
-      ? AD_HEIGHT
-      : ROW_HEIGHT;
+// Pre-computed cumulative offsets — two variants: with ads (non-premium) and without ads (trial/premium).
+// NativeAdCard renders null (0px) when showAds() is false, so offsets diverge per ad item.
+type SectionBound = { sectionId: string; start: number; end: number };
+
+function buildOffsets(adH: number): { offsets: number[]; bounds: SectionBound[] } {
+  const offsets: number[] = [];
+  let cum = PADDING_TOP;
+  for (const item of FLAT_ITEMS) {
+    offsets.push(cum);
+    cum += item.type === "header" ? SECTION_HEADER_HEIGHT : item.type === "ad" ? adH : ROW_HEIGHT;
+  }
+  const bounds: SectionBound[] = [];
+  for (let i = 0; i < FLAT_ITEMS.length; i++) {
+    if (FLAT_ITEMS[i].type === "header") {
+      let j = i + 1;
+      while (j < FLAT_ITEMS.length && FLAT_ITEMS[j].type !== "header") j++;
+      const end =
+        j < FLAT_ITEMS.length ? offsets[j] : offsets[FLAT_ITEMS.length - 1] + ROW_HEIGHT;
+      bounds.push({ sectionId: FLAT_ITEMS[i].sectionId, start: offsets[i], end });
+    }
+  }
+  return { offsets, bounds };
 }
 
-// Pre-computed section pixel ranges — used for overlap-based selection
-type SectionBound = { sectionId: string; start: number; end: number };
-const SECTION_BOUNDS: SectionBound[] = [];
-for (let i = 0; i < FLAT_ITEMS.length; i++) {
-  if (FLAT_ITEMS[i].type === "header") {
-    let j = i + 1;
-    while (j < FLAT_ITEMS.length && FLAT_ITEMS[j].type !== "header") j++;
-    const end =
-      j < FLAT_ITEMS.length
-        ? FLAT_OFFSETS[j]
-        : FLAT_OFFSETS[FLAT_ITEMS.length - 1] + ROW_HEIGHT;
-    SECTION_BOUNDS.push({ sectionId: FLAT_ITEMS[i].sectionId, start: FLAT_OFFSETS[i], end });
-  }
-}
+const { offsets: FLAT_OFFSETS_ADS, bounds: SECTION_BOUNDS_ADS } = buildOffsets(AD_HEIGHT);
+const { offsets: FLAT_OFFSETS_FREE, bounds: SECTION_BOUNDS_FREE } = buildOffsets(0);
 
 // Returns the section occupying the most pixels in [scrollY, scrollY+viewH].
-function sectionWithMostPixels(scrollY: number, viewH: number): string {
+function sectionWithMostPixels(scrollY: number, viewH: number, bounds: SectionBound[]): string {
   const vpTop = scrollY;
   const vpBottom = scrollY + Math.max(viewH, 1);
-  let bestId = SECTION_BOUNDS[0].sectionId;
+  let bestId = bounds[0].sectionId;
   let bestPx = -1;
-  for (const { sectionId, start, end } of SECTION_BOUNDS) {
+  for (const { sectionId, start, end } of bounds) {
     if (start >= vpBottom) break;
     if (end <= vpTop) continue;
     const px = Math.min(vpBottom, end) - Math.max(vpTop, start);
@@ -196,6 +195,8 @@ export default function AlbumScreen() {
   const { t } = useTranslation();
   const { ownedSet, toggle, setDuplicates } = useCollection();
   const showAds = usePremiumStore((s) => s.showAds());
+  const showAdsRef = useRef(showAds);
+  useEffect(() => { showAdsRef.current = showAds; }, [showAds]);
 
   const [activeSectionId, setActiveSectionId] = useState(fwcSection.id);
   const activeSectionIdRef = useRef(fwcSection.id);
@@ -234,15 +235,8 @@ export default function AlbumScreen() {
     const idx = SECTION_FIRST_IDX.get(section.id) ?? 0;
     programmaticTarget.current = section.id;
 
-    // scrollToOffset is more reliable than scrollToIndex (no failure path,
-    // no double-animation conflict with onScrollToIndexFailed).
-    // For non-premium users: the NativeAdCard (AD_HEIGHT) is injected right
-    // after each section header, pushing the first sticker row down. Pull
-    // back by SECTION_HEADER_HEIGHT so the header lands visually centered
-    // and the first cards are visible below the ad.
-    const base = FLAT_OFFSETS[idx] ?? 0;
-    const offset = showAds ? Math.max(0, base - SECTION_HEADER_HEIGHT) : base;
-    rightListRef.current?.scrollToOffset({ offset, animated: true });
+    const offsets = showAdsRef.current ? FLAT_OFFSETS_ADS : FLAT_OFFSETS_FREE;
+    rightListRef.current?.scrollToOffset({ offset: offsets[idx] ?? 0, animated: true });
 
     setTimeout(() => {
       programmaticTarget.current = null;
@@ -257,7 +251,8 @@ export default function AlbumScreen() {
     if (programmaticTarget.current !== null) return;
     const scrollY = e.nativeEvent.contentOffset.y;
     const viewH = rightPanelHeight.current > 0 ? rightPanelHeight.current : ROW_HEIGHT * 6;
-    const id = sectionWithMostPixels(scrollY, viewH);
+    const bounds = showAdsRef.current ? SECTION_BOUNDS_ADS : SECTION_BOUNDS_FREE;
+    const id = sectionWithMostPixels(scrollY, viewH, bounds);
     updateActive(id, true);
   }, []);
 
@@ -293,13 +288,15 @@ export default function AlbumScreen() {
 
   const getItemLayout = useCallback((_: unknown, index: number) => {
     const item = FLAT_ITEMS[index];
+    const ads = showAdsRef.current;
     const length =
       item?.type === "header"
         ? SECTION_HEADER_HEIGHT
         : item?.type === "ad"
-        ? AD_HEIGHT
+        ? (ads ? AD_HEIGHT : 0)
         : ROW_HEIGHT;
-    return { length, offset: FLAT_OFFSETS[index] ?? 0, index };
+    const offsets = ads ? FLAT_OFFSETS_ADS : FLAT_OFFSETS_FREE;
+    return { length, offset: offsets[index] ?? 0, index };
   }, []);
 
   return (
@@ -409,14 +406,6 @@ export default function AlbumScreen() {
               onScroll={handleScroll}
               onScrollBeginDrag={handleScrollBeginDrag}
               scrollEventThrottle={100}
-              onScrollToIndexFailed={({ index }) => {
-                // Fallback: handleSelectSection now uses scrollToOffset directly,
-                // but keep this guard for any future scrollToIndex calls.
-                rightListRef.current?.scrollToOffset({
-                  offset: FLAT_OFFSETS[index] ?? 0,
-                  animated: false,
-                });
-              }}
             />
           </View>
 
