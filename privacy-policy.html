@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="page-title">Política de Privacidad — El Álbum 2026</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1f2937;
+      background: #f9fafb;
+      line-height: 1.7;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 48px 40px;
+    }
+    @media (max-width: 600px) { .container { padding: 32px 20px; } }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 40px;
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 20px;
+    }
+    header h1 { font-size: 1.8rem; color: #1d4ed8; }
+    header p { color: #6b7280; font-size: 0.9rem; margin-top: 6px; }
+
+    /* ── Language toggle ── */
+    .lang-toggle {
+      display: flex;
+      gap: 4px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      padding: 4px;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .lang-toggle button {
+      border: none;
+      background: transparent;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #6b7280;
+      transition: all 0.15s;
+    }
+    .lang-toggle button.active {
+      background: #2563eb;
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    /* ── Content sections ── */
+    .lang-section { display: none; }
+    .lang-section.visible { display: block; }
+
+    h2 { font-size: 1.15rem; color: #1e3a8a; margin: 36px 0 12px; }
+    h3 { font-size: 1rem; color: #374151; margin: 20px 0 8px; font-weight: 600; }
+    p { margin-bottom: 12px; }
+    ul { margin: 8px 0 12px 20px; }
+    ul li { margin-bottom: 6px; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .highlight {
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      padding: 14px 18px;
+      border-radius: 4px;
+      margin: 16px 0;
+      font-size: 0.95rem;
+    }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+    th { background: #1d4ed8; color: #fff; text-align: left; padding: 10px 12px; }
+    td { padding: 9px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+    tr:nth-child(even) td { background: #f9fafb; }
+    footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div>
+      <h1>⚽ <span class="t" data-es="Política de Privacidad" data-en="Privacy Policy">Política de Privacidad</span></h1>
+      <p>
+        <strong>El Álbum 2026</strong> ·
+        <span class="t" data-es="Última actualización: 5 de mayo de 2025" data-en="Last updated: May 5, 2025">Última actualización: 5 de mayo de 2025</span>
+      </p>
+    </div>
+    <div class="lang-toggle">
+      <button id="btn-es" class="active" onclick="setLang('es')">ES</button>
+      <button id="btn-en" onclick="setLang('en')">EN</button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       ESPAÑOL
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="content-es" class="lang-section visible">
+
+    <div class="highlight">
+      Esta política explica qué información recopila <strong>El Álbum 2026</strong>, cómo se usa y cómo puedes controlarla. Si tienes preguntas, escríbenos a <a href="mailto:contacto@elalbum2026.com">contacto@elalbum2026.com</a>.
+    </div>
+
+    <h2>1. Responsable del tratamiento</h2>
+    <p>El Álbum 2026 es una aplicación móvil desarrollada de forma independiente por <strong>Juan Carlos Vega Abarca</strong>.</p>
+    <ul>
+      <li><strong>Sitio web:</strong> <a href="https://elalbum2026.com">elalbum2026.com</a></li>
+      <li><strong>Contacto:</strong> <a href="mailto:contacto@elalbum2026.com">contacto@elalbum2026.com</a></li>
+    </ul>
+
+    <h2>2. Información que recopilamos</h2>
+    <h3>2.1 Información que tú nos proporcionas</h3>
+    <ul>
+      <li><strong>Nombre y correo electrónico</strong> — al crear tu cuenta o iniciar sesión con Google o Apple.</li>
+      <li><strong>Colección de postales</strong> — las postales que marcas como obtenidas o repetidas dentro de la app.</li>
+      <li><strong>Lista de amigos y solicitudes de postales</strong> — cuando usas las funciones sociales de la app.</li>
+    </ul>
+    <h3>2.2 Información que recopilamos automáticamente</h3>
+    <ul>
+      <li><strong>Token de notificaciones push</strong> — para enviarte alertas sobre solicitudes de amigos y postales (solo si otorgas permiso).</li>
+      <li><strong>Datos de uso y diagnóstico</strong> — información técnica básica para mejorar el rendimiento de la app.</li>
+      <li><strong>Datos publicitarios</strong> — Google AdMob puede recopilar información para mostrarte anuncios (ver sección 5).</li>
+    </ul>
+    <h3>2.3 Información que NO recopilamos</h3>
+    <ul>
+      <li>No almacenamos imágenes de tu cámara. El acceso a la cámara se usa únicamente para escanear códigos QR al agregar amigos.</li>
+      <li>No recopilamos datos de localización GPS.</li>
+      <li>No accedemos a tus contactos.</li>
+    </ul>
+
+    <h2>3. Cómo usamos tu información</h2>
+    <table>
+      <thead><tr><th>Finalidad</th><th>Base legal</th></tr></thead>
+      <tbody>
+        <tr><td>Crear y gestionar tu cuenta de usuario</td><td>Ejecución del contrato</td></tr>
+        <tr><td>Sincronizar tu colección de postales entre dispositivos</td><td>Ejecución del contrato</td></tr>
+        <tr><td>Conectarte con amigos e intercambiar postales</td><td>Ejecución del contrato</td></tr>
+        <tr><td>Enviarte notificaciones sobre actividad de amigos</td><td>Consentimiento</td></tr>
+        <tr><td>Mostrarte anuncios y financiar la app</td><td>Interés legítimo / Consentimiento (UE)</td></tr>
+        <tr><td>Mejorar el funcionamiento y rendimiento de la app</td><td>Interés legítimo</td></tr>
+      </tbody>
+    </table>
+
+    <h2>4. Con quién compartimos tu información</h2>
+    <p>No vendemos tu información personal. La compartimos únicamente con los siguientes proveedores:</p>
+    <table>
+      <thead><tr><th>Proveedor</th><th>Servicio</th><th>Política de privacidad</th></tr></thead>
+      <tbody>
+        <tr><td>Clerk</td><td>Autenticación de usuarios</td><td><a href="https://clerk.com/privacy" target="_blank">clerk.com/privacy</a></td></tr>
+        <tr><td>Google Firebase / Firestore</td><td>Base de datos en la nube</td><td><a href="https://firebase.google.com/support/privacy" target="_blank">firebase.google.com/support/privacy</a></td></tr>
+        <tr><td>Google AdMob</td><td>Publicidad en la app</td><td><a href="https://policies.google.com/privacy" target="_blank">policies.google.com/privacy</a></td></tr>
+        <tr><td>Expo / Expo Push</td><td>Notificaciones push</td><td><a href="https://expo.dev/privacy" target="_blank">expo.dev/privacy</a></td></tr>
+      </tbody>
+    </table>
+
+    <h2>5. Publicidad y Google AdMob</h2>
+    <p>La app muestra anuncios a través de <strong>Google AdMob</strong> para usuarios en período de prueba gratuita o sin suscripción premium. AdMob puede usar tecnologías de seguimiento para mostrar anuncios relevantes.</p>
+    <p>Si te encuentras en la Unión Europea o el Reino Unido, la app te solicitará tu consentimiento antes de mostrar anuncios personalizados, de acuerdo con el RGPD.</p>
+    <p>Puedes optar por no recibir anuncios personalizados desde la configuración de tu dispositivo:</p>
+    <ul>
+      <li><strong>Android:</strong> Configuración → Google → Anuncios → Inhabilitar personalización de anuncios</li>
+      <li><strong>iOS:</strong> Configuración → Privacidad y seguridad → Publicidad de Apple → Desactivar</li>
+    </ul>
+
+    <h2>6. Retención de datos</h2>
+    <p>Conservamos tu información mientras tu cuenta esté activa. Si eliminas tu cuenta, borraremos tus datos personales en un plazo de <strong>30 días</strong>.</p>
+
+    <h2>7. Tus derechos</h2>
+    <p>Dependiendo de tu país de residencia, puedes tener derecho a:</p>
+    <ul>
+      <li><strong>Acceso:</strong> solicitar una copia de tus datos.</li>
+      <li><strong>Rectificación:</strong> corregir datos inexactos.</li>
+      <li><strong>Eliminación:</strong> solicitar el borrado de tu cuenta y datos.</li>
+      <li><strong>Portabilidad:</strong> recibir tus datos en formato estructurado.</li>
+      <li><strong>Oposición:</strong> oponerte al tratamiento basado en interés legítimo.</li>
+      <li><strong>Retirar el consentimiento</strong> en cualquier momento.</li>
+    </ul>
+    <p>Para ejercer cualquiera de estos derechos: <a href="mailto:contacto@elalbum2026.com">contacto@elalbum2026.com</a></p>
+
+    <h2>8. Seguridad</h2>
+    <p>Implementamos medidas técnicas razonables para proteger tu información, incluyendo cifrado en tránsito (HTTPS/TLS) y almacenamiento seguro de tokens de autenticación.</p>
+
+    <h2>9. Menores de edad</h2>
+    <p>El Álbum 2026 no está dirigida a menores de 13 años. Si eres padre o tutor y crees que tu hijo nos ha proporcionado datos personales, contáctanos para eliminarlos.</p>
+
+    <h2>10. Transferencias internacionales de datos</h2>
+    <p>Tus datos pueden ser procesados en servidores ubicados en Estados Unidos u otros países por parte de nuestros proveedores. Estos cumplen con marcos de protección de datos reconocidos internacionalmente.</p>
+
+    <h2>11. Cambios a esta política</h2>
+    <p>Podemos actualizar esta política ocasionalmente. Te notificaremos a través de la app o por correo si los cambios son significativos.</p>
+
+    <h2>12. Contacto</h2>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:contacto@elalbum2026.com">contacto@elalbum2026.com</a></li>
+      <li><strong>Sitio web:</strong> <a href="https://elalbum2026.com">elalbum2026.com</a></li>
+    </ul>
+
+    <footer>
+      <p>© 2025 El Álbum 2026 · <a href="https://elalbum2026.com">elalbum2026.com</a></p>
+    </footer>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       ENGLISH
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="content-en" class="lang-section">
+
+    <div class="highlight">
+      This policy explains what information <strong>El Álbum 2026</strong> collects, how it is used, and how you can control it. Questions? Email us at <a href="mailto:contacto@elalbum2026.com">contacto@elalbum2026.com</a>.
+    </div>
+
+    <h2>1. Data Controller</h2>
+    <p>El Álbum 2026 is an independently developed mobile app by <strong>Juan Carlos Vega Abarca</strong>.</p>
+    <ul>
+      <li><strong>Website:</strong> <a href="https://elalbum2026.com">elalbum2026.com</a></li>
+      <li><strong>Contact:</strong> <a href="mailto:contacto@elalbum2026.com">contacto@elalbum2026.com</a></li>
+    </ul>
+
+    <h2>2. Information We Collect</h2>
+    <h3>2.1 Information you provide</h3>
+    <ul>
+      <li><strong>Name and email address</strong> — when creating an account or signing in with Google or Apple.</li>
+      <li><strong>Sticker collection data</strong> — stickers you mark as owned or duplicated.</li>
+      <li><strong>Friends list and sticker requests</strong> — when using the social features of the app.</li>
+    </ul>
+    <h3>2.2 Information collected automatically</h3>
+    <ul>
+      <li><strong>Push notification token</strong> — to send alerts about friend requests and sticker exchanges (only with your permission).</li>
+      <li><strong>Usage and diagnostic data</strong> — basic technical information to improve app performance.</li>
+      <li><strong>Advertising data</strong> — Google AdMob may collect information to serve ads (see section 5).</li>
+    </ul>
+    <h3>2.3 Information we do NOT collect</h3>
+    <ul>
+      <li>Camera images are never stored. Camera access is used solely to scan QR codes when adding friends.</li>
+      <li>We do not collect GPS location data.</li>
+      <li>We do not access your contacts.</li>
+    </ul>
+
+    <h2>3. How We Use Your Information</h2>
+    <table>
+      <thead><tr><th>Purpose</th><th>Legal basis</th></tr></thead>
+      <tbody>
+        <tr><td>Creating and managing your user account</td><td>Contract performance</td></tr>
+        <tr><td>Syncing your sticker collection across devices</td><td>Contract performance</td></tr>
+        <tr><td>Connecting you with friends and exchanging stickers</td><td>Contract performance</td></tr>
+        <tr><td>Sending push notifications about friend activity</td><td>Consent</td></tr>
+        <tr><td>Showing ads to support the free app</td><td>Legitimate interest / Consent (EU)</td></tr>
+        <tr><td>Improving app performance and stability</td><td>Legitimate interest</td></tr>
+      </tbody>
+    </table>
+
+    <h2>4. Who We Share Your Information With</h2>
+    <p>We do not sell your personal information. We share it only with the following service providers acting on our behalf:</p>
+    <table>
+      <thead><tr><th>Provider</th><th>Service</th><th>Privacy Policy</th></tr></thead>
+      <tbody>
+        <tr><td>Clerk</td><td>User authentication</td><td><a href="https://clerk.com/privacy" target="_blank">clerk.com/privacy</a></td></tr>
+        <tr><td>Google Firebase / Firestore</td><td>Cloud database</td><td><a href="https://firebase.google.com/support/privacy" target="_blank">firebase.google.com/support/privacy</a></td></tr>
+        <tr><td>Google AdMob</td><td>In-app advertising</td><td><a href="https://policies.google.com/privacy" target="_blank">policies.google.com/privacy</a></td></tr>
+        <tr><td>Expo / Expo Push</td><td>Push notifications</td><td><a href="https://expo.dev/privacy" target="_blank">expo.dev/privacy</a></td></tr>
+      </tbody>
+    </table>
+
+    <h2>5. Advertising and Google AdMob</h2>
+    <p>The app displays ads via <strong>Google AdMob</strong> for users on the free trial or without a premium subscription. AdMob may use tracking technologies to show relevant ads.</p>
+    <p>If you are in the European Union or United Kingdom, the app will request your consent before showing personalized ads, in compliance with the GDPR.</p>
+    <p>You can opt out of personalized ads through your device settings:</p>
+    <ul>
+      <li><strong>Android:</strong> Settings → Google → Ads → Opt out of Ads Personalization</li>
+      <li><strong>iOS:</strong> Settings → Privacy & Security → Apple Advertising → Turn off</li>
+    </ul>
+
+    <h2>6. Data Retention</h2>
+    <p>We retain your information while your account is active. If you delete your account, we will delete your personal data within <strong>30 days</strong>.</p>
+
+    <h2>7. Your Rights</h2>
+    <p>Depending on your country of residence, you may have the right to access, correct, delete, or port your data, and to object to or withdraw consent for certain processing. Contact us at <a href="mailto:contacto@elalbum2026.com">contacto@elalbum2026.com</a>.</p>
+
+    <h2>8. Security</h2>
+    <p>We implement reasonable technical measures to protect your information, including encryption in transit (HTTPS/TLS) and secure storage of authentication tokens.</p>
+
+    <h2>9. Children</h2>
+    <p>El Álbum 2026 is not directed to children under 13. If you believe your child has provided us with personal data, please contact us to have it deleted.</p>
+
+    <h2>10. International Data Transfers</h2>
+    <p>Your data may be processed on servers located in the United States or other countries by our service providers. These providers comply with internationally recognized data protection frameworks.</p>
+
+    <h2>11. Changes to This Policy</h2>
+    <p>We may update this privacy policy from time to time. We will notify you through the app or by email if changes are significant.</p>
+
+    <h2>12. Contact</h2>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:contacto@elalbum2026.com">contacto@elalbum2026.com</a></li>
+      <li><strong>Website:</strong> <a href="https://elalbum2026.com">elalbum2026.com</a></li>
+    </ul>
+
+    <footer>
+      <p>© 2025 El Álbum 2026 · <a href="https://elalbum2026.com">elalbum2026.com</a></p>
+    </footer>
+  </div>
+
+</div>
+
+<script>
+  function setLang(lang) {
+    document.getElementById('content-es').classList.toggle('visible', lang === 'es');
+    document.getElementById('content-en').classList.toggle('visible', lang === 'en');
+    document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    document.documentElement.lang = lang;
+    document.getElementById('page-title').textContent =
+      lang === 'es'
+        ? 'Política de Privacidad — El Álbum 2026'
+        : 'Privacy Policy — El Álbum 2026';
+    localStorage.setItem('pp-lang', lang);
+  }
+
+  // Restore language preference
+  const saved = localStorage.getItem('pp-lang');
+  const browser = navigator.language?.startsWith('es') ? 'es' : 'en';
+  setLang(saved || browser);
+</script>
+</body>
+</html>
