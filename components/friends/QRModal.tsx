@@ -45,13 +45,17 @@ export function QRModal({ visible, onClose }: Props) {
     try {
       const friendProfile = await getProfile(friendId);
       if (!friendProfile) {
-        Alert.alert(t("common.error"), t("friends.userNotFound"));
+        Alert.alert(t("common.error"), t("friends.userNotFound"), [
+          { text: t("common.ok"), onPress: () => setScanned(false) },
+        ]);
         return;
       }
 
       // Check if already friends
       if (friendProfile.friends?.includes(user.id)) {
-        Alert.alert(t("friends.alreadyFriends"), friendProfile.name);
+        Alert.alert(t("friends.alreadyFriends"), friendProfile.name, [
+          { text: t("common.ok"), onPress: () => setScanned(false) },
+        ]);
         return;
       }
 
@@ -71,10 +75,13 @@ export function QRModal({ visible, onClose }: Props) {
         { text: t("common.ok"), onPress: onClose },
       ]);
     } catch {
-      Alert.alert(t("common.error"), t("friends.requestError"));
+      Alert.alert(t("common.error"), t("friends.requestError"), [
+        { text: t("common.ok"), onPress: () => setScanned(false) },
+      ]);
     } finally {
       setSending(false);
-      setScanned(false);
+      // Do NOT reset scanned here — only reset via Alert callbacks above
+      // to prevent the camera from re-firing while an Alert is visible
     }
   }
 

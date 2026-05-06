@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
@@ -9,6 +9,7 @@ import { sendStickerRequest } from "@/lib/firestore/requests";
 import { getProfile } from "@/lib/firestore/users";
 import { sendPushNotification } from "@/lib/notifications";
 import { StickerPickerPanel } from "@/components/stickers/StickerPickerPanel";
+import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 
 export default function FriendDetailScreen() {
   const { t } = useTranslation();
@@ -20,6 +21,11 @@ export default function FriendDetailScreen() {
 
   const [selected, setSelected] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
+
+  // Reset selection whenever we navigate to a different friend
+  useEffect(() => {
+    setSelected([]);
+  }, [friendId]);
 
   const friend = friendProfiles.find((p) => p.userId === friendId);
   const friendName = friend?.name ?? friendId ?? "";
@@ -67,8 +73,19 @@ export default function FriendDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t("friends.wantFrom", { name: friendName }) }} />
+      <Stack.Screen
+        options={{
+          title: t("friends.wantFrom", { name: friendName }),
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} className="pl-1 pr-3 py-1">
+              <Text className="text-blue-600 text-base font-semibold">‹ {t("common.back")}</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
       <View className="flex-1 bg-white">
+
+        <BannerAd />
 
         {/* Header banner */}
         <View className="bg-blue-600 px-4 py-3">

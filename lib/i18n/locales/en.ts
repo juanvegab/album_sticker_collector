@@ -3,6 +3,7 @@ const en = {
     cancel: "Cancel",
     error: "Error",
     ok: "OK",
+    back: "Back",
   },
   auth: {
     welcome: "Welcome",

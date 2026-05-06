@@ -111,7 +111,7 @@ export default function FriendsScreen() {
           title: t("friends.tab"),
           headerRight: () => (
             <TouchableOpacity onPress={() => setQrVisible(true)} className="mr-4 p-1">
-              <Text className="text-blue-600 text-2xl">⬛</Text>
+              <Text className="text-blue-600 text-2xl">👥</Text>
             </TouchableOpacity>
           ),
         }}
