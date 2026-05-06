@@ -9,7 +9,11 @@ const API_KEY = Platform.select({
 
 const ENTITLEMENT = "no_ads";
 
+// Test keys only work in Expo Go / debug — skip in release builds to avoid RC blocking the app
+const isTestKey = API_KEY.startsWith("test_");
+
 export async function initPurchases(userId: string): Promise<void> {
+  if (isTestKey) return;
   Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR);
   Purchases.configure({ apiKey: API_KEY, appUserID: userId });
 }
