@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
 import { useFriendCollection } from "@/hooks/useFriendCollection";
@@ -22,10 +22,11 @@ export default function FriendDetailScreen() {
   const [selected, setSelected] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
 
-  // Reset selection whenever we navigate to a different friend
-  useEffect(() => {
+  // Reset selection every time this screen comes into focus
+  // (covers same-friend re-entry where friendId hasn't changed)
+  useFocusEffect(useCallback(() => {
     setSelected([]);
-  }, [friendId]);
+  }, []));
 
   const friend = friendProfiles.find((p) => p.userId === friendId);
   const friendName = friend?.name ?? friendId ?? "";
@@ -51,6 +52,7 @@ export default function FriendDetailScreen() {
         );
       }
 
+      setSelected([]);
       Alert.alert(
         t("requests.sentTitle"),
         t("requests.sentMsg", { name: friendName }),
