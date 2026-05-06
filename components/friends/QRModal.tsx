@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { View, Text, Modal, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
@@ -23,11 +23,21 @@ export function QRModal({ visible, onClose }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [sending, setSending] = useState(false);
+  // Synchronous guard — useRef so it blocks re-entry before React re-renders
+  const processingRef = useRef(false);
 
   const inviteUrl = `${INVITE_BASE}/${user?.id ?? ""}`;
 
+  function resetScan() {
+    processingRef.current = false;
+    setScanned(false);
+    setSending(false);
+  }
+
   async function handleBarCodeScanned({ data }: { data: string }) {
-    if (scanned || sending) return;
+    if (processingRef.current) return;
+    processingRef.current = true;
+    // Unmount the camera immediately so it stops firing
     setScanned(true);
 
     // Extract userId from the scanned URL
@@ -46,7 +56,7 @@ export function QRModal({ visible, onClose }: Props) {
       const friendProfile = await getProfile(friendId);
       if (!friendProfile) {
         Alert.alert(t("common.error"), t("friends.userNotFound"), [
-          { text: t("common.ok"), onPress: () => setScanned(false) },
+          { text: t("common.ok"), onPress: resetScan },
         ]);
         return;
       }
@@ -54,7 +64,7 @@ export function QRModal({ visible, onClose }: Props) {
       // Check if already friends
       if (friendProfile.friends?.includes(user.id)) {
         Alert.alert(t("friends.alreadyFriends"), friendProfile.name, [
-          { text: t("common.ok"), onPress: () => setScanned(false) },
+          { text: t("common.ok"), onPress: resetScan },
         ]);
         return;
       }
@@ -76,12 +86,10 @@ export function QRModal({ visible, onClose }: Props) {
       ]);
     } catch {
       Alert.alert(t("common.error"), t("friends.requestError"), [
-        { text: t("common.ok"), onPress: () => setScanned(false) },
+        { text: t("common.ok"), onPress: resetScan },
       ]);
     } finally {
       setSending(false);
-      // Do NOT reset scanned here — only reset via Alert callbacks above
-      // to prevent the camera from re-firing while an Alert is visible
     }
   }
 
@@ -135,12 +143,17 @@ export function QRModal({ visible, onClose }: Props) {
                   <Text className="text-white font-bold">{t("friends.allowCamera")}</Text>
                 </TouchableOpacity>
               </View>
+            ) : scanned ? (
+              <View className="flex-1 items-center justify-center">
+                <ActivityIndicator size="large" color="#2563eb" />
+                <Text className="text-gray-500 text-sm mt-4">{t("friends.sending")}</Text>
+              </View>
             ) : (
               <View className="flex-1 relative">
                 <CameraView
                   style={{ flex: 1 }}
                   barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-                  onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                  onBarcodeScanned={handleBarCodeScanned}
                 />
                 {/* Scan frame overlay */}
                 <View className="absolute inset-0 items-center justify-center">
@@ -153,14 +166,9 @@ export function QRModal({ visible, onClose }: Props) {
                 </View>
                 <View className="absolute bottom-10 left-0 right-0 items-center">
                   <Text className="text-white text-sm font-medium bg-black/40 px-4 py-2 rounded-full">
-                    {sending ? t("friends.sending") : t("friends.scanHint")}
+                    {t("friends.scanHint")}
                   </Text>
                 </View>
-                {sending && (
-                  <View className="absolute inset-0 bg-black/30 items-center justify-center">
-                    <ActivityIndicator size="large" color="white" />
-                  </View>
-                )}
               </View>
             )}
           </View>
