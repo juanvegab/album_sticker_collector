@@ -1,4 +1,4 @@
-export type RequestStatus = "pending" | "accepted" | "rejected";
+export type RequestStatus = "pending" | "accepted" | "received" | "rejected";
 
 export interface StickerRequest {
   id: string;
@@ -6,6 +6,7 @@ export interface StickerRequest {
   fromUserName: string;
   toUserId: string;
   stickers: string[];
+  givenStickers?: string[];  // subset toUser confirmed to give
   status: RequestStatus;
   createdAt: number;
   updatedAt: number;

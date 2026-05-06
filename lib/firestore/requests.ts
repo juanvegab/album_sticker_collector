@@ -8,13 +8,14 @@ import {
   onSnapshot,
   writeBatch,
   increment,
+  arrayUnion,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { StickerRequest } from "@/types/request";
 
 const ALBUM_ID = "world-cup-2026";
 
-function collectionRef(userId: string) {
+function userCollectionRef(userId: string) {
   return doc(db, "users", userId, "collections", ALBUM_ID);
 }
 
@@ -29,6 +30,7 @@ export async function sendStickerRequest(
     fromUserName,
     toUserId,
     stickers,
+    givenStickers: [],
     status: "pending",
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -37,23 +39,24 @@ export async function sendStickerRequest(
 }
 
 /**
- * Accept a sticker request: mark as accepted and decrement each
- * duplicate count in the accepter's (toUser's) collection.
+ * toUser responds with a partial subset (givenStickers) of what was requested.
+ * Immediately decrements toUser's duplicate counts for confirmed stickers.
  */
 export async function acceptStickerRequest(
   requestId: string,
   toUserId: string,
-  stickers: string[]
+  givenStickers: string[]
 ): Promise<void> {
   const batch = writeBatch(db);
 
   batch.update(doc(db, "requests", requestId), {
     status: "accepted",
+    givenStickers,
     updatedAt: Date.now(),
   });
 
-  const colRef = collectionRef(toUserId);
-  for (const stickerId of stickers) {
+  const colRef = userCollectionRef(toUserId);
+  for (const stickerId of givenStickers) {
     batch.update(colRef, { [`duplicates.${stickerId}`]: increment(-1) });
   }
 
@@ -67,6 +70,31 @@ export async function rejectStickerRequest(requestId: string): Promise<void> {
   });
 }
 
+/**
+ * fromUser confirms physical receipt. Adds givenStickers to their owned array.
+ */
+export async function markRequestReceived(
+  requestId: string,
+  fromUserId: string,
+  givenStickers: string[]
+): Promise<void> {
+  const batch = writeBatch(db);
+
+  batch.update(doc(db, "requests", requestId), {
+    status: "received",
+    updatedAt: Date.now(),
+  });
+
+  if (givenStickers.length > 0) {
+    batch.update(userCollectionRef(fromUserId), {
+      owned: arrayUnion(...givenStickers),
+    });
+  }
+
+  await batch.commit();
+}
+
+/** Pending incoming requests to respond to (toUser) */
 export function subscribeToIncomingRequests(
   userId: string,
   onData: (requests: StickerRequest[]) => void
@@ -81,6 +109,22 @@ export function subscribeToIncomingRequests(
   });
 }
 
+/** Requests I sent that were accepted but not yet physically delivered (fromUser) */
+export function subscribeToMyPendingDeliveries(
+  userId: string,
+  onData: (requests: StickerRequest[]) => void
+): () => void {
+  const q = query(
+    collection(db, "requests"),
+    where("fromUserId", "==", userId),
+    where("status", "==", "accepted")
+  );
+  return onSnapshot(q, (snap) => {
+    onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)));
+  });
+}
+
+/** All outgoing requests (for history/tracking) */
 export function subscribeToOutgoingRequests(
   userId: string,
   onData: (requests: StickerRequest[]) => void
