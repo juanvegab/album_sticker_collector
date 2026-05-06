@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   Linking,
+  ActivityIndicator,
 } from "react-native";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
@@ -15,6 +16,7 @@ import { WORLD_CUP_2026 } from "@/lib/data/world-cup-2026";
 import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialBanner } from "@/components/premium/TrialBanner";
 import { changeLanguage } from "@/lib/i18n";
+import { deleteUserAccount } from "@/lib/firestore/users";
 import i18n from "i18next";
 
 type LangCode = "es" | "en";
@@ -25,6 +27,7 @@ export default function AccountScreen() {
   const { signOut } = useAuth();
   const { ownedSet, duplicates } = useCollection();
   const [lang, setLang] = useState<LangCode>((i18n.language as LangCode) ?? "es");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const totalStickers = WORLD_CUP_2026.totalStickers;
   const owned = ownedSet.size;
@@ -41,6 +44,29 @@ export default function AccountScreen() {
         onPress: () => signOut().catch(console.error),
       },
     ]);
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(t("account.deleteTitle"), t("account.deleteConfirm"), [
+      { text: t("common.cancel") },
+      {
+        text: t("account.deleteYes"),
+        style: "destructive",
+        onPress: confirmDeleteAccount,
+      },
+    ]);
+  }
+
+  async function confirmDeleteAccount() {
+    if (!user) return;
+    setDeletingAccount(true);
+    try {
+      await deleteUserAccount(user.id);
+      await user.delete();
+    } catch {
+      Alert.alert(t("common.error"), t("account.deleteError"));
+      setDeletingAccount(false);
+    }
   }
 
   async function handleLanguageChange(code: LangCode) {
@@ -177,6 +203,15 @@ export default function AccountScreen() {
             <Text className="text-gray-400">›</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            onPress={() => Linking.openURL("https://elalbum2026.com/privacy")}
+            className="flex-row items-center justify-between px-4 py-3 border-b border-gray-50"
+            activeOpacity={0.7}
+          >
+            <Text className="text-sm text-blue-600">{t("account.privacyPolicy")}</Text>
+            <Text className="text-gray-400">›</Text>
+          </TouchableOpacity>
+
           <View className="px-4 py-3">
             <Text className="text-xs text-gray-400">{t("account.version")}</Text>
             <Text className="text-sm text-gray-800 mt-0.5">1.0.0</Text>
@@ -184,13 +219,29 @@ export default function AccountScreen() {
         </View>
 
         {/* Sign out */}
-        <View className="mx-4 mt-4 mb-8">
+        <View className="mx-4 mt-4">
           <TouchableOpacity
             onPress={handleSignOut}
             className="bg-red-50 border border-red-200 rounded-2xl py-4 items-center"
             activeOpacity={0.8}
           >
             <Text className="text-red-600 font-semibold">{t("account.signOut")}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Delete account */}
+        <View className="mx-4 mt-3 mb-8">
+          <TouchableOpacity
+            onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+            className="py-3 items-center"
+            activeOpacity={0.7}
+          >
+            {deletingAccount ? (
+              <ActivityIndicator size="small" color="#9ca3af" />
+            ) : (
+              <Text className="text-gray-400 text-sm">{t("account.deleteAccount")}</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>

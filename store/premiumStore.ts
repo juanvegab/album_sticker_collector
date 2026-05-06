@@ -4,9 +4,11 @@ const TRIAL_DAYS = 3;
 
 interface PremiumState {
   isPremium: boolean;
+  isPurchasing: boolean;
   firstOpenDate: number | null;
   setIsPremium: (value: boolean) => void;
   setFirstOpenDate: (date: number) => void;
+  setIsPurchasing: (value: boolean) => void;
   trialDaysLeft: () => number;
   isTrialActive: () => boolean;
   showAds: () => boolean;
@@ -14,10 +16,12 @@ interface PremiumState {
 
 export const usePremiumStore = create<PremiumState>((set, get) => ({
   isPremium: false,
+  isPurchasing: false,
   firstOpenDate: null,
 
   setIsPremium: (value) => set({ isPremium: value }),
   setFirstOpenDate: (date) => set({ firstOpenDate: date }),
+  setIsPurchasing: (value) => set({ isPurchasing: value }),
 
   trialDaysLeft: () => {
     const { firstOpenDate } = get();

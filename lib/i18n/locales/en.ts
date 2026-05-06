@@ -79,6 +79,12 @@ const en = {
     signOutConfirm: "Are you sure you want to sign out?",
     signOutYes: "Sign out",
     userFallback: "User",
+    privacyPolicy: "Privacy Policy",
+    deleteAccount: "Delete my account",
+    deleteTitle: "Delete account",
+    deleteConfirm: "Are you sure you want to delete your account? All your data will be erased and cannot be recovered.",
+    deleteYes: "Delete account",
+    deleteError: "Could not delete account. Please try again.",
   },
   friends: {
     tab: "Friends",
@@ -214,6 +220,13 @@ const en = {
     trialEndedMsg:
       "You'll now see ads while using the app. Remove them forever with a single payment.",
     removeAdsCta: "🎯 Remove ads — $1.99",
+    restorePurchases: "Restore purchase",
+    restoreTitle: "Restore purchase",
+    restoreSuccess: "Purchase restored! You won't see ads anymore.",
+    restoreNotFound: "We couldn't find a previous purchase with this account.",
+    successTitle: "Purchase successful!",
+    successMsg: "Thank you! You won't see ads in the app anymore.",
+    purchaseError: "Could not complete the purchase. Please try again.",
   },
 } as const;
 

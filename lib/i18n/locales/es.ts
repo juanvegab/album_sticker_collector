@@ -79,6 +79,12 @@ const es = {
     signOutConfirm: "¿Seguro que quieres salir?",
     signOutYes: "Salir",
     userFallback: "Usuario",
+    privacyPolicy: "Política de privacidad",
+    deleteAccount: "Eliminar mi cuenta",
+    deleteTitle: "Eliminar cuenta",
+    deleteConfirm: "¿Seguro que quieres eliminar tu cuenta? Se borrarán todos tus datos y no se podrán recuperar.",
+    deleteYes: "Eliminar cuenta",
+    deleteError: "No se pudo eliminar la cuenta. Intenta de nuevo.",
   },
   friends: {
     tab: "Amigos",
@@ -214,6 +220,13 @@ const es = {
     trialEndedMsg:
       "Ahora verás anuncios mientras usas la app. Elimínalos de por vida con un solo pago.",
     removeAdsCta: "🎯 Quitar anuncios — $1.99",
+    restorePurchases: "Restaurar compra",
+    restoreTitle: "Restaurar compra",
+    restoreSuccess: "¡Compra restaurada! Ya no verás anuncios.",
+    restoreNotFound: "No encontramos ninguna compra anterior con esta cuenta.",
+    successTitle: "¡Compra exitosa!",
+    successMsg: "¡Gracias! Ya no verás anuncios en la app.",
+    purchaseError: "No se pudo completar la compra. Intenta de nuevo.",
   },
 } as const;
 

@@ -3,6 +3,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   arrayUnion,
   arrayRemove,
   onSnapshot,
@@ -89,5 +90,13 @@ export async function removeFriend(myUserId: string, friendId: string): Promise<
   const batch = writeBatch(db);
   batch.update(userRef(myUserId), { friends: arrayRemove(friendId) });
   batch.update(userRef(friendId), { friends: arrayRemove(myUserId) });
+  await batch.commit();
+}
+
+/** Delete all Firestore data for a user (profile, premium sub-doc) */
+export async function deleteUserAccount(userId: string): Promise<void> {
+  const batch = writeBatch(db);
+  batch.delete(doc(db, "users", userId, "profile", "premium"));
+  batch.delete(userRef(userId));
   await batch.commit();
 }
