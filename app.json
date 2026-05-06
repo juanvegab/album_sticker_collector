@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.juanvegab.controldepostales",
+      "bundleIdentifier": "com.vegaba.elalbum2026",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Necesitamos acceso a tu cámara para escanear códigos QR al agregar amigos."
       }
     },
     "android": {
-      "package": "com.juanvegab.controldepostales",
+      "package": "com.vegaba.elalbum2026",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
