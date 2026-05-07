@@ -25,6 +25,7 @@ export async function checkPremiumStatus(): Promise<boolean> {
 
 export async function purchaseNoAds(): Promise<boolean> {
   const offerings = await Purchases.getOfferings();
+  console.log("RC offerings:", JSON.stringify({ current: offerings.current?.identifier, packages: offerings.current?.availablePackages.map(p => p.identifier) }));
   const pkg = offerings.current?.availablePackages[0];
   if (!pkg) throw new Error("no_package");
   const { customerInfo } = await Purchases.purchasePackage(pkg);

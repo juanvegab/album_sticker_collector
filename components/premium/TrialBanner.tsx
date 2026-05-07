@@ -31,8 +31,9 @@ export function TrialBanner() {
         Alert.alert(t("premium.successTitle"), t("premium.successMsg"));
       }
     } catch (err: any) {
-      // User cancelled purchase — PurchasesErrorCode.purchaseCancelledError — don't show error
-      if (err?.code !== "1") {
+      console.error("Purchase error:", JSON.stringify({ code: err?.code, message: err?.message, underlyingErrorMessage: err?.underlyingErrorMessage }));
+      // PurchasesErrorCode.purchaseCancelledError = 1 (number)
+      if (err?.code !== 1 && err?.message !== "no_package") {
         Alert.alert(t("common.error"), t("premium.purchaseError"));
       }
     } finally {
