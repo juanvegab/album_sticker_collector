@@ -14,31 +14,39 @@ export function usePremium() {
     if (!user) return;
 
     const init = async () => {
-      // Load Firestore premium state
       const ref = doc(db, "users", user.id, "profile", "premium");
-      const snap = await getDoc(ref);
 
-      if (snap.exists()) {
-        const data = snap.data();
-        setFirstOpenDate(data.firstOpenDate);
-        setIsPremium(data.isPremium ?? false);
-      } else {
-        const firstOpenDate = Date.now();
-        await setDoc(ref, { firstOpenDate, isPremium: false });
-        setFirstOpenDate(firstOpenDate);
+      // Load Firestore premium state — may fail if Firebase Auth not ready yet
+      try {
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          setFirstOpenDate(data.firstOpenDate);
+          setIsPremium(data.isPremium ?? false);
+        } else {
+          const firstOpenDate = Date.now();
+          await setDoc(ref, { firstOpenDate, isPremium: false });
+          setFirstOpenDate(firstOpenDate);
+        }
+      } catch {
+        // Firebase Auth not ready — use default state and let RevenueCat be authoritative
+        setFirstOpenDate(Date.now());
       }
 
-      // Cross-check with RevenueCat (authoritative source for IAP state)
+      // RevenueCat is always initialized regardless of Firestore state
       try {
         await initPurchases(user.id);
         const premiumFromRC = await checkPremiumStatus();
         if (premiumFromRC) {
           setIsPremium(true);
-          // Sync back to Firestore if RevenueCat says premium but Firestore doesn't
-          await setDoc(ref, { isPremium: true }, { merge: true });
+          try {
+            await setDoc(ref, { isPremium: true }, { merge: true });
+          } catch {
+            // Firestore sync failed — RC state is still applied in-memory
+          }
         }
       } catch {
-        // RevenueCat unavailable (e.g. Expo Go, no network) — fall back to Firestore state
+        // RevenueCat unavailable (e.g. Expo Go, no network)
       }
     };
 
