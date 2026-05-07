@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── User profiles ────────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Any signed-in user can read profiles (needed to display friends list,
+      // friend search results, and request sender names).
+      allow read: if request.auth != null;
+
+      // Owner can create and delete their own profile.
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+
+      // Full update for owner.
+      // Any authenticated user may also update pendingFrom or friends arrays —
+      // required for sendFriendRequest (A writes to B's pendingFrom) and
+      // acceptFriendRequest / removeFriend (both sides write to each other's friends).
+      allow update: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['pendingFrom', 'friends'])
+      );
+
+      // ── Sticker collections ────────────────────────────────────────────────
+      match /collections/{albumId} {
+        // Friends can read each other's collections (for exchange / duplicates view).
+        allow read: if request.auth != null && (
+          request.auth.uid == userId ||
+          request.auth.uid in get(/databases/$(database)/documents/users/$(userId)).data.friends
+        );
+        // Only the owner can write their collection.
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // ── Premium sub-document ───────────────────────────────────────────────
+      match /profile/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // ── Sticker exchange requests ─────────────────────────────────────────────
+    match /requests/{requestId} {
+      // Only the sender and recipient can read a request.
+      allow read: if request.auth != null && (
+        resource.data.fromUserId == request.auth.uid ||
+        resource.data.toUserId == request.auth.uid
+      );
+
+      // Any authenticated user can create a request as the sender.
+      allow create: if request.auth != null &&
+        request.resource.data.fromUserId == request.auth.uid;
+
+      // Sender or recipient can update (accept, reject, mark received).
+      allow update: if request.auth != null && (
+        resource.data.fromUserId == request.auth.uid ||
+        resource.data.toUserId == request.auth.uid
+      );
+    }
+  }
+}
