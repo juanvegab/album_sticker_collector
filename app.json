@@ -23,6 +23,7 @@
     },
     "android": {
       "package": "com.vegaba.elalbum2026",
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
