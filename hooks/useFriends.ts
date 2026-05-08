@@ -13,10 +13,11 @@ export function useFriends() {
 
   useEffect(() => {
     if (!user || !firebaseReady) return;
-    const unsub = subscribeToProfile(user.id, (p) => {
-      setProfile(p);
-      setLoading(false);
-    });
+    const unsub = subscribeToProfile(
+      user.id,
+      (p) => { setProfile(p); setLoading(false); },
+      () => setLoading(false)
+    );
     return unsub;
   }, [user?.id, firebaseReady]);
 

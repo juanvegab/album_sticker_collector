@@ -45,11 +45,14 @@ export async function getProfile(userId: string): Promise<UserProfile | null> {
 
 export function subscribeToProfile(
   userId: string,
-  onData: (profile: UserProfile | null) => void
+  onData: (profile: UserProfile | null) => void,
+  onError?: (err: Error) => void
 ): () => void {
-  return onSnapshot(userRef(userId), (snap) => {
-    onData(snap.exists() ? (snap.data() as UserProfile) : null);
-  });
+  return onSnapshot(
+    userRef(userId),
+    (snap) => onData(snap.exists() ? (snap.data() as UserProfile) : null),
+    (err) => { console.error("subscribeToProfile error:", err); onError?.(err); }
+  );
 }
 
 export async function saveExpoPushToken(userId: string, token: string): Promise<void> {
