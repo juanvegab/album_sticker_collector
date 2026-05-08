@@ -9,6 +9,7 @@ import {
   writeBatch,
   increment,
   arrayUnion,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { StickerRequest } from "@/types/request";
@@ -57,7 +58,7 @@ export async function acceptStickerRequest(
 
   const colRef = userCollectionRef(toUserId);
   for (const stickerId of givenStickers) {
-    batch.update(colRef, { [`duplicates.${stickerId}`]: increment(-1) });
+    batch.set(colRef, { [`duplicates.${stickerId}`]: increment(-1), albumId: ALBUM_ID }, { merge: true });
   }
 
   await batch.commit();
@@ -86,9 +87,12 @@ export async function markRequestReceived(
   });
 
   if (givenStickers.length > 0) {
-    batch.update(userCollectionRef(fromUserId), {
-      owned: arrayUnion(...givenStickers),
-    });
+    // Use set+merge so it works even if the collection doc doesn't exist yet
+    batch.set(
+      userCollectionRef(fromUserId),
+      { owned: arrayUnion(...givenStickers), albumId: ALBUM_ID },
+      { merge: true }
+    );
   }
 
   await batch.commit();

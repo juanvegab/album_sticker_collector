@@ -98,8 +98,8 @@ export default function FriendsScreen() {
           t("requests.receivedBody")
         );
       }
-    } catch {
-      Alert.alert(t("common.error"));
+    } catch (e) {
+      console.error("[markReceived] error:", e); Alert.alert(t("common.error"));
     } finally {
       setActingOn(null);
     }
