@@ -1,25 +1,25 @@
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-expo";
-import { useFirebaseAuthReady } from "@/hooks/useFirebaseAuthReady";
+import { useFirebaseUser } from "@/hooks/useFirebaseUser";
 import { subscribeToProfile, getProfile } from "@/lib/firestore/users";
 import type { UserProfile } from "@/types/user";
 
 export function useFriends() {
   const { user } = useUser();
-  const firebaseReady = useFirebaseAuthReady();
+  const fbUser = useFirebaseUser();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [friendProfiles, setFriendProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || !firebaseReady) return;
+    if (!user || !fbUser) return;
     const unsub = subscribeToProfile(
       user.id,
       (p) => { setProfile(p); setLoading(false); },
       () => setLoading(false)
     );
     return unsub;
-  }, [user?.id, firebaseReady]);
+  }, [user?.id, fbUser?.uid]);
 
   // Load friend profiles whenever the friends list changes
   useEffect(() => {

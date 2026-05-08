@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useUser } from "@clerk/clerk-expo";
 import { useCollectionStore } from "@/store/collectionStore";
+import { useFirebaseUser } from "@/hooks/useFirebaseUser";
 import {
   subscribeToCollection,
   saveCollection,
@@ -11,24 +12,31 @@ const DEBOUNCE_MS = 800;
 
 export function useCollection() {
   const { user } = useUser();
+  const fbUser = useFirebaseUser();
   const { collection, setCollection, toggleOwned, setDuplicates } =
     useCollectionStore();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSyncingFromServer = useRef(false);
 
   useEffect(() => {
-    if (!user) return;
-    const unsub = subscribeToCollection(user.id, ALBUM_ID, (data) => {
-      isSyncingFromServer.current = true;
-      setCollection(
-        data ?? { albumId: ALBUM_ID, owned: [], duplicates: {}, updatedAt: 0 }
-      );
-      setTimeout(() => {
-        isSyncingFromServer.current = false;
-      }, 0);
-    });
+    // Wait for both Clerk and Firebase auth before reading Firestore
+    if (!user || !fbUser) return;
+    const unsub = subscribeToCollection(
+      user.id,
+      ALBUM_ID,
+      (data) => {
+        isSyncingFromServer.current = true;
+        setCollection(
+          data ?? { albumId: ALBUM_ID, owned: [], duplicates: {}, updatedAt: 0 }
+        );
+        setTimeout(() => {
+          isSyncingFromServer.current = false;
+        }, 0);
+      },
+      (err) => console.error("[useCollection] Firestore error:", err.message)
+    );
     return unsub;
-  }, [user?.id]);
+  }, [user?.id, fbUser?.uid]);
 
   const scheduleSave = useCallback(() => {
     if (!user || isSyncingFromServer.current) return;

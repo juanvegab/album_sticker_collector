@@ -1,6 +1,5 @@
 import {
   doc,
-  getDoc,
   setDoc,
   onSnapshot,
   Unsubscribe,
@@ -15,15 +14,17 @@ function collectionRef(userId: string, albumId: string) {
 export function subscribeToCollection(
   userId: string,
   albumId: string,
-  onUpdate: (data: UserCollection | null) => void
+  onUpdate: (data: UserCollection | null) => void,
+  onError?: (err: Error) => void
 ): Unsubscribe {
-  return onSnapshot(collectionRef(userId, albumId), (snap) => {
-    if (snap.exists()) {
-      onUpdate(snap.data() as UserCollection);
-    } else {
-      onUpdate(null);
+  return onSnapshot(
+    collectionRef(userId, albumId),
+    (snap) => onUpdate(snap.exists() ? (snap.data() as UserCollection) : null),
+    (err) => {
+      console.error("[Firestore] subscribeToCollection error:", err.message);
+      onError?.(err);
     }
-  });
+  );
 }
 
 export async function saveCollection(
