@@ -1,20 +1,15 @@
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-expo";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { useFirebaseAuthReady } from "@/hooks/useFirebaseAuthReady";
 import { subscribeToProfile, getProfile } from "@/lib/firestore/users";
 import type { UserProfile } from "@/types/user";
 
 export function useFriends() {
   const { user } = useUser();
-  const [firebaseReady, setFirebaseReady] = useState(false);
+  const firebaseReady = useFirebaseAuthReady();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [friendProfiles, setFriendProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, (fbUser) => setFirebaseReady(!!fbUser));
-  }, []);
 
   useEffect(() => {
     if (!user || !firebaseReady) return;

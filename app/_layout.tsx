@@ -6,6 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from "expo-secure-store";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { useFirebaseAuthReady } from "@/hooks/useFirebaseAuthReady";
 import { usePremium } from "@/hooks/usePremium";
 import { initI18n } from "@/lib/i18n";
 import { createOrUpdateProfile } from "@/lib/firestore/users";
@@ -29,6 +30,7 @@ const tokenCache = {
 
 function AppRoot() {
   useFirebaseAuth();
+  const firebaseReady = useFirebaseAuthReady();
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
   const segments = useSegments();
@@ -42,12 +44,12 @@ function AppRoot() {
     initI18n().finally(() => setI18nReady(true));
   }, []);
 
-  // Create/update Firestore user profile on sign-in
+  // Create/update Firestore user profile — wait for Firebase Auth to avoid permission errors
   useEffect(() => {
-    if (!user) return;
+    if (!user || !firebaseReady) return;
     const name = user.firstName ?? user.emailAddresses[0]?.emailAddress ?? "Usuario";
     createOrUpdateProfile(user.id, name, user.imageUrl ?? undefined).catch(console.error);
-  }, [user?.id]);
+  }, [user?.id, firebaseReady]);
 
   // GDPR/EU consent for AdMob — only runs in real builds (UMP SDK not available in Expo Go)
   useEffect(() => {
