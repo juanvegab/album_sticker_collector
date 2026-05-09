@@ -46,7 +46,7 @@ export const StickerCard = React.memo(({ sticker, sectionColor, onToggle, onSetD
   // count=0: dark card, section-colored badge
   // count=1: section-colored card (tengo)
   // count≥2: orange card — "duplicate" token #F2853A (semánticamente correcto)
-  const DUP_COLOR = "#F2853A";
+  const DUP_COLOR = "#F2853A"; // duplicate design token — distinct from all group colors now that F=#10B981
   const cardBg    = count === 0 ? "#15161B" : count === 1 ? sectionColor : DUP_COLOR;
   const darkCard  = count === 1 ? dark : false;           // orange is always light-text-friendly
   const badgeBg       = count === 0 ? sectionColor        : "rgba(0,0,0,0.2)";

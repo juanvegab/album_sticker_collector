@@ -4,6 +4,7 @@ import {
   TouchableOpacity, Image, ActivityIndicator, StatusBar,
   NativeSyntheticEvent, NativeScrollEvent,
 } from "react-native";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useTranslation } from "react-i18next";
 import { useCollection } from "@/hooks/useCollection";
 import { useCollectionStore } from "@/store/collectionStore";
@@ -308,26 +309,39 @@ export default function AlbumScreen() {
       <TrialBanner />
       <BannerAd />
 
+      {/* ══ FULL-WIDTH HEADER ══ */}
+      <View style={{
+        flexDirection: "row", alignItems: "center",
+        paddingHorizontal: 16, paddingBottom: 12, paddingTop: 8,
+        borderBottomWidth: 1, borderBottomColor: "rgba(245,244,238,0.07)",
+      }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 9, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" }}>
+            {t("album.title")}
+          </Text>
+          <Text style={{ color: "#F5F4EE", fontSize: 22, fontWeight: "800", lineHeight: 28, marginTop: 1 }}>
+            {pct}%
+            <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 14, fontWeight: "600" }}>
+              {" · "}{owned}/{total}
+            </Text>
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={{
+            width: 38, height: 38, borderRadius: 12,
+            backgroundColor: "#1C1D24",
+            alignItems: "center", justifyContent: "center",
+          }}
+          activeOpacity={0.7}
+        >
+          <FontAwesome name="search" size={15} color="rgba(245,244,238,0.55)" />
+        </TouchableOpacity>
+      </View>
+
       <View style={{ flex: 1, flexDirection: "row" }}>
 
         {/* ══ LEFT PANEL ══ */}
         <View style={{ width: 96, backgroundColor: "#0B0B0E", borderRightWidth: 1, borderRightColor: "rgba(245,244,238,0.07)" }}>
-
-          {/* Compact progress header */}
-          <View style={{
-            paddingTop: 12, paddingHorizontal: 10, paddingBottom: 10,
-            borderBottomWidth: 1, borderBottomColor: "rgba(245,244,238,0.07)",
-          }}>
-            <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 9, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" }}>
-              {t("album.title")}
-            </Text>
-            <Text style={{ color: "#F5F4EE", fontSize: 14, fontWeight: "800", marginTop: 2 }}>
-              {pct}%
-              <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 11, fontWeight: "600" }}>
-                {" "}· {owned}/{total}
-              </Text>
-            </Text>
-          </View>
 
           <ScrollView ref={leftScrollRef} showsVerticalScrollIndicator={false}>
             {LEFT_ITEMS.map((item, i) => {

@@ -2,7 +2,7 @@
 export const GROUP_COLORS: Record<string, string> = {
   FWC: "#F4C430",
   A: "#1FA7A0", B: "#E2453C", C: "#7FB832", D: "#2B6FE3",
-  E: "#5847C4", F: "#F2853A", G: "#D9457A", H: "#5BB3D6",
+  E: "#5847C4", F: "#10B981", G: "#D9457A", H: "#5BB3D6",
   I: "#3B8C5B", J: "#E55D4C", K: "#9333EA", L: "#0EA5E9",
 };
 
