@@ -302,7 +302,7 @@ export default function AlbumScreen() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0B0B0E" }}>
+    <View style={{ flex: 1, backgroundColor: "#0B0B0E", paddingTop: insets.top }}>
       <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
 
       <TrialBanner />
@@ -315,7 +315,7 @@ export default function AlbumScreen() {
 
           {/* Compact progress header */}
           <View style={{
-            paddingTop: insets.top + 12, paddingHorizontal: 10, paddingBottom: 10,
+            paddingTop: 12, paddingHorizontal: 10, paddingBottom: 10,
             borderBottomWidth: 1, borderBottomColor: "rgba(245,244,238,0.07)",
           }}>
             <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 9, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" }}>

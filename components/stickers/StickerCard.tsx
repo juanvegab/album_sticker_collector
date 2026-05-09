@@ -43,16 +43,19 @@ export const StickerCard = React.memo(({ sticker, sectionColor, onToggle, onSetD
   }, [dups, sticker.id, onToggle, onSetDups]);
 
   // ── Derived colors ───────────────────────────────────────────────────
-  // Not owned: dark card, section-colored badge
-  // Owned:     section-colored card, dark overlays
-  const cardBg        = isOwned ? sectionColor : "#15161B";
-  const badgeBg       = isOwned ? "rgba(0,0,0,0.2)"  : sectionColor;
-  const badgeText     = isOwned ? (dark ? "rgba(0,0,0,0.65)" : "#fff") : (dark ? "#0B0B0E" : "#fff");
-  const codeColor     = isOwned ? (dark ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.55)") : "rgba(245,244,238,0.35)";
-  const btnBg         = isOwned ? "rgba(0,0,0,0.18)" : "rgba(245,244,238,0.1)";
-  const btnText       = isOwned ? (dark ? "rgba(0,0,0,0.65)" : "#fff") : "rgba(245,244,238,0.55)";
-  const dupBadgeBg    = isOwned ? "rgba(0,0,0,0.35)" : "rgba(245,244,238,0.12)";
-  const dupBadgeText  = isOwned ? (dark ? "rgba(0,0,0,0.7)" : "#fff") : "rgba(245,244,238,0.55)";
+  // count=0: dark card, section-colored badge
+  // count=1: section-colored card (tengo)
+  // count≥2: orange card — "duplicate" token #F2853A (semánticamente correcto)
+  const DUP_COLOR = "#F2853A";
+  const cardBg    = count === 0 ? "#15161B" : count === 1 ? sectionColor : DUP_COLOR;
+  const darkCard  = count === 1 ? dark : false;           // orange is always light-text-friendly
+  const badgeBg       = count === 0 ? sectionColor        : "rgba(0,0,0,0.2)";
+  const badgeText     = count === 0 ? (dark ? "#0B0B0E" : "#fff") : (darkCard ? "rgba(0,0,0,0.65)" : "#fff");
+  const codeColor     = count === 0 ? "rgba(245,244,238,0.35)" : (darkCard ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.55)");
+  const btnBg         = count === 0 ? "rgba(245,244,238,0.1)" : "rgba(0,0,0,0.18)";
+  const btnText       = count === 0 ? "rgba(245,244,238,0.55)" : (darkCard ? "rgba(0,0,0,0.65)" : "#fff");
+  const dupBadgeBg    = count === 0 ? "rgba(245,244,238,0.12)" : "rgba(0,0,0,0.35)";
+  const dupBadgeText  = count === 0 ? "rgba(245,244,238,0.55)" : (darkCard ? "rgba(0,0,0,0.7)" : "#fff");
 
   return (
     <TouchableOpacity
