@@ -48,7 +48,7 @@ const es = {
     owned: "TENGO",
     missing: "FALTAN",
     repeated: "REPETIDAS",
-    bySectionTitle: "POR SECCIÓN",
+    bySectionTitle: "POR GRUPO",
     viewAll: "Ver todas",
     fwcName: "Mundial 26",
     group: "Grupo {{letter}}",

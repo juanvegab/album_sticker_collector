@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity,
-  Image, StatusBar, Platform,
+  Image, StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
@@ -157,14 +157,8 @@ export default function ResumenScreen() {
     <View style={{ flex: 1, backgroundColor: "#0B0B0E" }}>
       <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
 
-      <ScrollView
-        contentContainerStyle={{
-          paddingTop: insets.top + 16,
-          paddingHorizontal: 16,
-          paddingBottom: 120, // room for FAB + tab bar
-        }}
-        showsVerticalScrollIndicator={false}
-      >
+      {/* ══ FIXED TOP ══ */}
+      <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 16 }}>
         {/* ── Header ── */}
         <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 4 }}>
           <View style={{ flex: 1 }}>
@@ -253,7 +247,14 @@ export default function ResumenScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+      </View>
 
+      {/* ══ SCROLLABLE SECTION LIST ══ */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+      >
         {groups.map((g) => <SectionRow key={g.id} item={g} />)}
       </ScrollView>
     </View>

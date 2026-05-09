@@ -1,5 +1,6 @@
 import { Tabs, useRouter } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
 import { View, Text, TouchableOpacity, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -79,7 +80,7 @@ function SobreFAB() {
         }}
         activeOpacity={0.85}
       >
-        <FontAwesome name="envelope-o" size={22} color="#fff" />
+        <MaterialCommunityIcons name="email-open-outline" size={24} color="#fff" />
       </TouchableOpacity>
     </View>
   );

@@ -48,7 +48,7 @@ const en = {
     owned: "HAVE",
     missing: "MISSING",
     repeated: "REPEATED",
-    bySectionTitle: "BY SECTION",
+    bySectionTitle: "BY GROUP",
     viewAll: "View all",
     fwcName: "Mundial 26",
     group: "Group {{letter}}",
