@@ -75,7 +75,7 @@ function AppRoot() {
     const inTabsGroup = segments[0] === "(tabs)";
 
     if (isSignedIn && !inTabsGroup) {
-      router.replace("/(tabs)/album");
+      router.replace("/(tabs)/resumen");
     } else if (!isSignedIn && !inAuthGroup) {
       router.replace("/(auth)/sign-in");
     }
