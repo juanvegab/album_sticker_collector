@@ -13,7 +13,9 @@ import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 
 export default function FriendDetailScreen() {
   const { t } = useTranslation();
-  const { friendId } = useLocalSearchParams<{ friendId: string }>();
+  const params = useLocalSearchParams<{ friendId: string }>();
+  // Expo Router can return arrays on some nav patterns — always use the first value
+  const friendId = Array.isArray(params.friendId) ? params.friendId[0] : params.friendId;
   const { user } = useUser();
   const router = useRouter();
   const { friendProfiles } = useFriends();

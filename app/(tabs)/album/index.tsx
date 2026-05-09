@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
@@ -193,7 +194,7 @@ const StickerRow = React.memo(
 // ── Screen ────────────────────────────────────────────────────────────
 export default function AlbumScreen() {
   const { t } = useTranslation();
-  const { ownedSet, toggle, setDuplicates } = useCollection();
+  const { ownedSet, toggle, setDuplicates, collectionLoaded } = useCollection();
   const showAds = usePremiumStore((s) => s.showAds());
   const showAdsRef = useRef(showAds);
   useEffect(() => { showAdsRef.current = showAds; }, [showAds]);
@@ -389,24 +390,28 @@ export default function AlbumScreen() {
               rightPanelHeight.current = e.nativeEvent.layout.height;
             }}
           >
-            <FlatList
-              ref={rightListRef}
-              data={FLAT_ITEMS}
-              keyExtractor={keyExtractor}
-              renderItem={renderItem}
-              getItemLayout={getItemLayout}
-              contentContainerStyle={{ paddingTop: PADDING_TOP, paddingBottom: 16 }}
-              // ── Performance props ──────────────────────────────
-              windowSize={5}              // render 2 screens above + 2 below
-              initialNumToRender={12}     // enough for ~1 section on first paint
-              maxToRenderPerBatch={8}     // items rendered per JS batch
-              updateCellsBatchingPeriod={50}
-              removeClippedSubviews={true}
-              // ──────────────────────────────────────────────────
-              onScroll={handleScroll}
-              onScrollBeginDrag={handleScrollBeginDrag}
-              scrollEventThrottle={100}
-            />
+            {!collectionLoaded ? (
+              <View className="flex-1 items-center justify-center">
+                <ActivityIndicator size="large" color="#2563eb" />
+              </View>
+            ) : (
+              <FlatList
+                ref={rightListRef}
+                data={FLAT_ITEMS}
+                keyExtractor={keyExtractor}
+                renderItem={renderItem}
+                getItemLayout={getItemLayout}
+                contentContainerStyle={{ paddingTop: PADDING_TOP, paddingBottom: 16 }}
+                windowSize={5}
+                initialNumToRender={12}
+                maxToRenderPerBatch={8}
+                updateCellsBatchingPeriod={50}
+                removeClippedSubviews={true}
+                onScroll={handleScroll}
+                onScrollBeginDrag={handleScrollBeginDrag}
+                scrollEventThrottle={100}
+              />
+            )}
           </View>
 
         </View>

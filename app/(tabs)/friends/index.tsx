@@ -139,9 +139,17 @@ export default function FriendsScreen() {
         </TouchableOpacity>
 
         {loading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#2563eb" />
-          </View>
+          <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+            {[0, 1, 2].map((i) => (
+              <View key={i} className="bg-white mx-4 mt-4 rounded-2xl px-4 py-3.5 border border-gray-100 flex-row items-center">
+                <View className="w-10 h-10 rounded-full bg-gray-200 mr-3" />
+                <View className="flex-1">
+                  <View className="h-3.5 bg-gray-200 rounded-full w-32 mb-2" />
+                  <View className="h-2.5 bg-gray-100 rounded-full w-20" />
+                </View>
+              </View>
+            ))}
+          </ScrollView>
         ) : !hasSections ? (
           <View className="flex-1 items-center justify-center px-8">
             <Text className="text-5xl mb-3">👥</Text>

@@ -30,7 +30,7 @@ export function useFriendCollection(friendId: string | null) {
           return;
         }
         const dupsSet = new Set(
-          Object.entries(col.duplicates)
+          Object.entries(col.duplicates ?? {})
             .filter(([, count]) => count > 0)
             .map(([id]) => id)
         );

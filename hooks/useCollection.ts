@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useUser } from "@clerk/clerk-expo";
 import { useCollectionStore } from "@/store/collectionStore";
 import { useFirebaseUser } from "@/hooks/useFirebaseUser";
@@ -17,6 +17,7 @@ export function useCollection() {
     useCollectionStore();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSyncingFromServer = useRef(false);
+  const [collectionLoaded, setCollectionLoaded] = useState(false);
 
   useEffect(() => {
     // Wait for both Clerk and Firebase auth before reading Firestore
@@ -29,6 +30,7 @@ export function useCollection() {
         setCollection(
           data ?? { albumId: ALBUM_ID, owned: [], duplicates: {}, updatedAt: 0 }
         );
+        setCollectionLoaded(true);
         setTimeout(() => {
           isSyncingFromServer.current = false;
         }, 0);
@@ -71,6 +73,7 @@ export function useCollection() {
     collection,
     ownedSet,
     duplicates: collection?.duplicates ?? {},
+    collectionLoaded,
     isOwned: (id: string) => ownedSet.has(id),
     hasDuplicate: (id: string) => (collection?.duplicates[id] ?? 0) > 0,
     toggle,

@@ -8,6 +8,14 @@ const FIREBASE_TOKEN_URL =
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 3000;
 
+// Module-level debug state readable from any screen without React context
+export const firebaseAuthDebug = {
+  status: "idle" as "idle" | "running" | "success" | "failed",
+  lastError: "",
+  attempts: 0,
+  clerkTokenNull: false,
+};
+
 export function useFirebaseAuth() {
   const { getToken, isSignedIn } = useAuth();
   const attemptRef = useRef(0);
@@ -16,20 +24,26 @@ export function useFirebaseAuth() {
   useEffect(() => {
     if (!isSignedIn) {
       signOut(auth).catch(() => {});
+      firebaseAuthDebug.status = "idle";
       return;
     }
 
     let cancelled = false;
     attemptRef.current = 0;
+    firebaseAuthDebug.status = "running";
+    firebaseAuthDebug.lastError = "";
+    firebaseAuthDebug.clerkTokenNull = false;
 
     const attempt = async () => {
       if (cancelled) return;
       attemptRef.current += 1;
       const n = attemptRef.current;
+      firebaseAuthDebug.attempts = n;
       try {
         // Get regular Clerk session token (no template needed)
         const clerkToken = await getToken();
         if (!clerkToken) {
+          firebaseAuthDebug.clerkTokenNull = true;
           console.warn(`[Firebase] Clerk session token null (attempt ${n})`);
           if (n < MAX_RETRIES) timerRef.current = setTimeout(attempt, RETRY_DELAY_MS);
           return;
@@ -50,10 +64,13 @@ export function useFirebaseAuth() {
         if (cancelled) return;
 
         await signInWithCustomToken(auth, firebaseToken);
+        firebaseAuthDebug.status = "success";
         console.log(`[Firebase] Signed in via Cloud Function (attempt ${n})`);
       } catch (e: unknown) {
         if (cancelled) return;
         const msg = e instanceof Error ? e.message : String(e);
+        firebaseAuthDebug.lastError = msg;
+        if (n >= MAX_RETRIES) firebaseAuthDebug.status = "failed";
         console.error(`[Firebase] auth error (attempt ${n}):`, msg);
         if (n < MAX_RETRIES) timerRef.current = setTimeout(attempt, RETRY_DELAY_MS);
       }

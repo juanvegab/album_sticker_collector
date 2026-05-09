@@ -12,6 +12,8 @@ import {
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
 import { useCollection } from "@/hooks/useCollection";
+import { useFirebaseUser } from "@/hooks/useFirebaseUser";
+import { firebaseAuthDebug } from "@/hooks/useFirebaseAuth";
 import { WORLD_CUP_2026 } from "@/lib/data/world-cup-2026";
 import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialBanner } from "@/components/premium/TrialBanner";
@@ -26,6 +28,7 @@ export default function AccountScreen() {
   const { user } = useUser();
   const { signOut } = useAuth();
   const { ownedSet, duplicates } = useCollection();
+  const fbUser = useFirebaseUser();
   const [lang, setLang] = useState<LangCode>((i18n.language as LangCode) ?? "es");
   const [deletingAccount, setDeletingAccount] = useState(false);
 
@@ -157,12 +160,29 @@ export default function AccountScreen() {
             </Text>
           </View>
 
-          <View className="px-4 py-3">
+          <View className="px-4 py-3 border-b border-gray-50">
             <Text className="text-xs text-gray-400">{t("account.userId")}</Text>
             <Text className="text-xs text-gray-500 mt-0.5" numberOfLines={1}>
               {user?.id ?? "—"}
             </Text>
           </View>
+
+          <TouchableOpacity
+            className="px-4 py-3"
+            activeOpacity={0.7}
+            onPress={() => {
+              const debug = `status: ${firebaseAuthDebug.status}\nattempts: ${firebaseAuthDebug.attempts}\nclerkTokenNull: ${firebaseAuthDebug.clerkTokenNull}\nerror: ${firebaseAuthDebug.lastError || "none"}`;
+              Alert.alert("Firebase Auth Debug", debug);
+            }}
+          >
+            <Text className="text-xs text-gray-400">Firebase</Text>
+            <Text
+              className={`text-xs mt-0.5 ${fbUser ? "text-green-600" : "text-red-500"}`}
+              numberOfLines={1}
+            >
+              {fbUser ? fbUser.uid : `null — ${firebaseAuthDebug.status}`}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* About */}

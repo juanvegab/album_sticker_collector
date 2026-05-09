@@ -10,6 +10,7 @@ export function useFriends() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [friendProfiles, setFriendProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [friendProfilesLoading, setFriendProfilesLoading] = useState(false);
 
   useEffect(() => {
     if (!user || !fbUser) return;
@@ -28,8 +29,12 @@ export function useFriends() {
       return;
     }
     let cancelled = false;
+    setFriendProfilesLoading(true);
     Promise.all(profile.friends.map((id) => getProfile(id))).then((profiles) => {
-      if (!cancelled) setFriendProfiles(profiles.filter(Boolean) as UserProfile[]);
+      if (!cancelled) {
+        setFriendProfiles(profiles.filter(Boolean) as UserProfile[]);
+        setFriendProfilesLoading(false);
+      }
     });
     return () => { cancelled = true; };
   }, [profile?.friends?.join(",")]);
@@ -39,6 +44,6 @@ export function useFriends() {
     friends: profile?.friends ?? [],
     friendProfiles,
     pendingFrom: profile?.pendingFrom ?? [],
-    loading,
+    loading: loading || friendProfilesLoading,
   };
 }

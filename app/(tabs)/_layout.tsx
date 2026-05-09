@@ -73,16 +73,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="friends/index"
+        name="friends"
         options={{
           title: t("tabs.friends"),
           tabBarLabel: t("tabs.friends"),
           tabBarIcon: ({ color }) => <FriendsTabIcon color={color} />,
+          headerShown: false,
         }}
-      />
-      <Tabs.Screen
-        name="friends/[friendId]"
-        options={{ href: null }}
       />
       <Tabs.Screen
         name="account"
