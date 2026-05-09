@@ -10,6 +10,7 @@ import { useFirebaseUser } from "@/hooks/useFirebaseUser";
 import { usePremium } from "@/hooks/usePremium";
 import { initI18n } from "@/lib/i18n";
 import { createOrUpdateProfile } from "@/lib/firestore/users";
+import { SplashView } from "@/components/SplashView";
 
 const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -81,7 +82,7 @@ function AppRoot() {
     }
   }, [isLoaded, isSignedIn, i18nReady]);
 
-  if (!i18nReady) return null;
+  if (!i18nReady) return <SplashView />;
 
   return <Slot />;
 }
