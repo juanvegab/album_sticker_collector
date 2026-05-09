@@ -1,32 +1,53 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  KeyboardAvoidingView,
+  Image,
+  Dimensions,
+  StatusBar,
   Platform,
   Alert,
 } from "react-native";
-import { useSignIn, useOAuth } from "@clerk/clerk-expo";
-import { Link } from "expo-router";
+import { useOAuth } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useTranslation } from "react-i18next";
+import { WORLD_CUP_2026 } from "@/lib/data/world-cup-2026";
 
 WebBrowser.maybeCompleteAuthSession();
 
+// ── Grid constants ───────────────────────────────────────────────────
+const { width: SCREEN_W } = Dimensions.get("window");
+const COLS = 5;
+const ROWS = 4;
+const H_PAD = 14;
+const CARD_GAP = 8;
+const CARD_W = (SCREEN_W - H_PAD * 2 - CARD_GAP * (COLS - 1)) / COLS;
+const CARD_H = CARD_W * 1.25; // bottom of row 4 lands mid-way between headline lines
+
+// Colored positions matching the mockup (row-col → color)
+const CARD_COLORS: Record<string, string> = {
+  "0-2": "#E2453C",
+  "0-4": "#2B6FE3",
+  "1-2": "#1FA7A0",
+  "2-1": "#5847C4",
+  "2-4": "#E2453C",
+  "3-3": "#F2853A",
+};
+
+const ICON_TOP = Platform.OS === "ios" ? 58 : 38;
+const GRID_TOP = ICON_TOP + 90 + 12; // icon height + gap
+
 export default function SignInScreen() {
   const { t } = useTranslation();
-  const { signIn, setActive, isLoaded } = useSignIn();
   const { startOAuthFlow: startGoogleFlow } = useOAuth({ strategy: "oauth_google" });
   const { startOAuthFlow: startAppleFlow } = useOAuth({ strategy: "oauth_apple" });
+  const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
 
@@ -35,30 +56,13 @@ export default function SignInScreen() {
     return () => { WebBrowser.coolDownAsync(); };
   }, []);
 
-  async function handleSignIn() {
-    if (!isLoaded) return;
-    setLoading(true);
-    try {
-      const result = await signIn.create({ identifier: email, password });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-      }
-    } catch (err: any) {
-      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorSignIn"));
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleGoogle() {
     setGoogleLoading(true);
     try {
-      const { createdSessionId, setActive: setOAuthActive } = await startGoogleFlow({
+      const { createdSessionId, setActive } = await startGoogleFlow({
         redirectUrl: Linking.createURL("/(tabs)/album", { scheme: "controldepostales" }),
       });
-      if (createdSessionId && setOAuthActive) {
-        await setOAuthActive({ session: createdSessionId });
-      }
+      if (createdSessionId && setActive) await setActive({ session: createdSessionId });
     } catch (err: any) {
       Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorGoogle"));
     } finally {
@@ -69,12 +73,10 @@ export default function SignInScreen() {
   async function handleApple() {
     setAppleLoading(true);
     try {
-      const { createdSessionId, setActive: setOAuthActive } = await startAppleFlow({
+      const { createdSessionId, setActive } = await startAppleFlow({
         redirectUrl: Linking.createURL("/(tabs)/album", { scheme: "controldepostales" }),
       });
-      if (createdSessionId && setOAuthActive) {
-        await setOAuthActive({ session: createdSessionId });
-      }
+      if (createdSessionId && setActive) await setActive({ session: createdSessionId });
     } catch (err: any) {
       Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorApple"));
     } finally {
@@ -82,102 +84,190 @@ export default function SignInScreen() {
     }
   }
 
-  const anyLoading = loading || googleLoading || appleLoading;
+  const anyLoading = googleLoading || appleLoading;
+  const totalStickers = WORLD_CUP_2026.totalStickers;
+  const totalSections = WORLD_CUP_2026.sections.length;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-white"
-    >
-      <View className="flex-1 justify-center px-8">
-        <Text className="text-4xl mb-2">⚽</Text>
-        <Text className="text-3xl font-bold text-gray-900 mb-1">{t("auth.welcome")}</Text>
-        <Text className="text-gray-500 mb-8">{t("auth.tagline")}</Text>
+    <View style={{ flex: 1, backgroundColor: "#0B0B0E" }}>
+      <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
 
-        {/* Google */}
-        <TouchableOpacity
-          onPress={handleGoogle}
-          disabled={anyLoading}
-          className="border border-gray-300 rounded-xl py-3.5 items-center flex-row justify-center mb-3"
-          activeOpacity={0.8}
+      {/* ── App icon ── */}
+      <Image
+        source={require("../../assets/icon.png")}
+        style={{
+          position: "absolute",
+          top: ICON_TOP,
+          left: 20,
+          width: 80,
+          height: 80,
+          borderRadius: 18,
+        }}
+      />
+
+      {/* ── Sticker grid hero ── */}
+      <View style={{ position: "absolute", top: GRID_TOP, left: H_PAD, right: H_PAD }}>
+        {Array.from({ length: ROWS }).map((_, row) => (
+          <View key={row} style={{ flexDirection: "row", marginBottom: CARD_GAP }}>
+            {Array.from({ length: COLS }).map((_, col) => {
+              const color = CARD_COLORS[`${row}-${col}`];
+              return (
+                <View
+                  key={col}
+                  style={{
+                    width: CARD_W,
+                    height: CARD_H,
+                    marginRight: col < COLS - 1 ? CARD_GAP : 0,
+                    borderRadius: 12,
+                    backgroundColor: color ?? "#1C1D24",
+                    ...(color
+                      ? {}
+                      : {
+                          borderWidth: 1,
+                          borderStyle: "dashed",
+                          borderColor: "rgba(245,244,238,0.18)",
+                        }),
+                  }}
+                />
+              );
+            })}
+          </View>
+        ))}
+      </View>
+
+      {/* ── Bottom content (transparent so grid shows through) ── */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          paddingHorizontal: 22,
+          paddingBottom: Platform.OS === "ios" ? 50 : 28,
+        }}
+      >
+        {/* Headline */}
+        <Text
+          style={{
+            color: "#F5F4EE",
+            fontSize: 36,
+            fontWeight: "800",
+            lineHeight: 42,
+            marginBottom: 10,
+          }}
         >
-          {googleLoading ? (
-            <ActivityIndicator color="#4285F4" />
-          ) : (
-            <>
-              <FontAwesome name="google" size={18} color="#4285F4" />
-              <Text className="text-gray-700 font-semibold text-base ml-3">
-                {t("auth.continueGoogle")}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
+          {"Tu álbum del\nMundial 2026,\n"}
+          <Text style={{ color: "#F4C430" }}>{"siempre contigo."}</Text>
+        </Text>
+
+        {/* Subtitle */}
+        <Text
+          style={{
+            color: "rgba(245,244,238,0.55)",
+            fontSize: 13,
+            lineHeight: 18,
+            marginBottom: 28,
+          }}
+        >
+          {`${totalStickers} postales · ${totalSections} selecciones. Marca lo que tienes, intercambia repetidas, completa tu colección.`}
+        </Text>
 
         {/* Apple */}
         <TouchableOpacity
           onPress={handleApple}
           disabled={anyLoading}
-          className="bg-black rounded-xl py-3.5 items-center flex-row justify-center mb-6"
-          activeOpacity={0.8}
+          style={{
+            backgroundColor: "#FFFFFF",
+            borderRadius: 999,
+            height: 54,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 12,
+          }}
+          activeOpacity={0.85}
         >
           {appleLoading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color="#000" />
           ) : (
             <>
-              <FontAwesome name="apple" size={20} color="white" />
-              <Text className="text-white font-semibold text-base ml-3">
+              <FontAwesome name="apple" size={21} color="#000000" />
+              <Text
+                style={{
+                  color: "#000000",
+                  fontWeight: "700",
+                  fontSize: 17,
+                  marginLeft: 10,
+                }}
+              >
                 {t("auth.continueApple")}
               </Text>
             </>
           )}
         </TouchableOpacity>
 
-        {/* Divider */}
-        <View className="flex-row items-center mb-6">
-          <View className="flex-1 h-px bg-gray-200" />
-          <Text className="mx-3 text-gray-400 text-sm">{t("auth.orEmail")}</Text>
-          <View className="flex-1 h-px bg-gray-200" />
-        </View>
-
-        <TextInput
-          className="border border-gray-300 rounded-xl px-4 py-3 mb-4 text-gray-900 text-base"
-          placeholder={t("auth.email")}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          autoComplete="email"
-        />
-        <TextInput
-          className="border border-gray-300 rounded-xl px-4 py-3 mb-6 text-gray-900 text-base"
-          placeholder={t("auth.password")}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-
+        {/* Google */}
         <TouchableOpacity
-          onPress={handleSignIn}
+          onPress={handleGoogle}
           disabled={anyLoading}
-          className="bg-blue-600 rounded-xl py-4 items-center mb-6"
-          activeOpacity={0.8}
+          style={{
+            backgroundColor: "#15161B",
+            borderRadius: 999,
+            height: 54,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 12,
+            borderWidth: 1,
+            borderColor: "rgba(245,244,238,0.18)",
+          }}
+          activeOpacity={0.85}
         >
-          {loading ? (
-            <ActivityIndicator color="white" />
+          {googleLoading ? (
+            <ActivityIndicator color="#F5F4EE" />
           ) : (
-            <Text className="text-white font-semibold text-base">{t("auth.signIn")}</Text>
+            <>
+              <FontAwesome name="google" size={18} color="#F5F4EE" />
+              <Text
+                style={{
+                  color: "#F5F4EE",
+                  fontWeight: "700",
+                  fontSize: 17,
+                  marginLeft: 10,
+                }}
+              >
+                {t("auth.continueGoogle")}
+              </Text>
+            </>
           )}
         </TouchableOpacity>
 
-        <View className="flex-row justify-center">
-          <Text className="text-gray-500">{t("auth.noAccount")}</Text>
-          <Link href="/(auth)/sign-up" asChild>
-            <TouchableOpacity>
-              <Text className="text-blue-600 font-semibold">{t("auth.signUp")}</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
+        {/* Email y contraseña */}
+        <TouchableOpacity
+          onPress={() => router.push("/(auth)/sign-up")}
+          disabled={anyLoading}
+          style={{
+            borderRadius: 999,
+            height: 54,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1,
+            borderColor: "rgba(245,244,238,0.28)",
+          }}
+          activeOpacity={0.85}
+        >
+          <Text
+            style={{
+              color: "rgba(245,244,238,0.62)",
+              fontWeight: "600",
+              fontSize: 17,
+            }}
+          >
+            {t("auth.emailPassword")}
+          </Text>
+        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
