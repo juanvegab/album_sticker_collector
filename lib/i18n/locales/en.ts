@@ -30,6 +30,7 @@ const en = {
     errorRegister: "Could not create account",
     errorCode: "Invalid code",
     tryAgain: "Try again",
+    emailPassword: "Email and password",
   },
   tabs: {
     collection: "Collection",

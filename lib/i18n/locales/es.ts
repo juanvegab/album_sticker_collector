@@ -30,6 +30,7 @@ const es = {
     errorRegister: "No se pudo registrar",
     errorCode: "Código inválido",
     tryAgain: "Intenta de nuevo",
+    emailPassword: "Email y contraseña",
   },
   tabs: {
     collection: "Colección",
