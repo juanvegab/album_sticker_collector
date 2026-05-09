@@ -10,6 +10,7 @@ import {
   Alert,
   ScrollView,
   StatusBar,
+  Image,
 } from "react-native";
 import { useSignUp, useSignIn } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
@@ -195,12 +196,18 @@ export default function SignUpScreen() {
         {/* Back to landing */}
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{ marginBottom: 32, alignSelf: "flex-start", flexDirection: "row", alignItems: "center" }}
+          style={{ marginBottom: 28, alignSelf: "flex-start", flexDirection: "row", alignItems: "center" }}
           activeOpacity={0.7}
         >
           <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 15 }}>‹ </Text>
           <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 15 }}>{t("common.back")}</Text>
         </TouchableOpacity>
+
+        {/* App icon */}
+        <Image
+          source={require("../../assets/icon.png")}
+          style={{ width: 64, height: 64, borderRadius: 14, marginBottom: 24 }}
+        />
 
         {/* Mode toggle */}
         <View

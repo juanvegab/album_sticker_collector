@@ -135,7 +135,7 @@ export default function SignInScreen() {
         ))}
       </View>
 
-      {/* ── Bottom content ── */}
+      {/* ── Bottom content (transparent so grid shows through) ── */}
       <View
         style={{
           position: "absolute",
@@ -144,7 +144,6 @@ export default function SignInScreen() {
           right: 0,
           paddingHorizontal: 22,
           paddingBottom: Platform.OS === "ios" ? 50 : 28,
-          backgroundColor: "#0B0B0E",
         }}
       >
         {/* Headline */}
@@ -157,7 +156,7 @@ export default function SignInScreen() {
             marginBottom: 10,
           }}
         >
-          {"Tu álbum de\nMundial 2026,\n"}
+          {"Tu álbum del\nMundial 2026,\n"}
           <Text style={{ color: "#F4C430" }}>{"siempre contigo."}</Text>
         </Text>
 
