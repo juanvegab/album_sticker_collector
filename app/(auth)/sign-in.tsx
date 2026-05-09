@@ -27,7 +27,7 @@ const ROWS = 4;
 const H_PAD = 14;
 const CARD_GAP = 8;
 const CARD_W = (SCREEN_W - H_PAD * 2 - CARD_GAP * (COLS - 1)) / COLS;
-const CARD_H = CARD_W * 1.05; // ~20px shorter than 1.35 ratio
+const CARD_H = CARD_W * 1.25; // bottom of row 4 lands mid-way between headline lines
 
 // Colored positions matching the mockup (row-col → color)
 const CARD_COLORS: Record<string, string> = {
