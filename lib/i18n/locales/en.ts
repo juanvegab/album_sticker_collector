@@ -73,6 +73,8 @@ const en = {
       writing: "Type the code…",
       nueva: "NEW",
       repetida: "DUPLICATE",
+      packFull: "Pack complete!",
+      packFullHint: "Tap Done to see your results",
     },
     result: {
       title: "Your pack",

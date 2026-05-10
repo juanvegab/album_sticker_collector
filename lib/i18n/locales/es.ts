@@ -73,6 +73,8 @@ const es = {
       writing: "Escribí el código…",
       nueva: "NUEVA",
       repetida: "REPETIDA",
+      packFull: "¡Sobre completo!",
+      packFullHint: "Tocá Listo para ver el resumen",
     },
     result: {
       title: "Tu sobre",
