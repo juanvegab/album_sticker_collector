@@ -157,15 +157,9 @@ export default function ResumenScreen() {
     <View style={{ flex: 1, backgroundColor: "#0B0B0E" }}>
       <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
 
-      <ScrollView
-        contentContainerStyle={{
-          paddingTop: insets.top + 16,
-          paddingHorizontal: 16,
-          paddingBottom: 120, // room for FAB + tab bar
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Header ── */}
+      {/* ── Fixed top section ── */}
+      <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 16 }}>
+        {/* Header */}
         <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 4 }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 14, fontWeight: "500" }}>
@@ -195,7 +189,7 @@ export default function ResumenScreen() {
           )}
         </View>
 
-        {/* ── Progress card ── */}
+        {/* Progress card */}
         <View style={{
           backgroundColor: "#15161B", borderRadius: 16,
           padding: 16, marginTop: 16, marginBottom: 12,
@@ -224,7 +218,6 @@ export default function ResumenScreen() {
             </Text>
           </View>
 
-          {/* Progress bar */}
           <View style={{ height: 6, backgroundColor: "rgba(245,244,238,0.1)",
             borderRadius: 99, overflow: "hidden" }}>
             <View style={{
@@ -234,14 +227,14 @@ export default function ResumenScreen() {
           </View>
         </View>
 
-        {/* ── Stats row ── */}
-        <View style={{ flexDirection: "row", gap: 8, marginBottom: 24 }}>
+        {/* Stats row */}
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
           <StatCard value={owned} label={t("resumen.owned")} valueColor="#22C55E" />
           <StatCard value={missing} label={t("resumen.missing")} valueColor="#F5F4EE" />
           <StatCard value={duplicateCount} label={t("resumen.repeated")} valueColor="#F2853A" />
         </View>
 
-        {/* ── Por sección ── */}
+        {/* Section title row */}
         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
           <Text style={{ flex: 1, color: "rgba(245,244,238,0.38)", fontSize: 11,
             fontWeight: "700", letterSpacing: 1 }}>
@@ -253,7 +246,16 @@ export default function ResumenScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+      </View>
 
+      {/* ── Scrollable groups list ── */}
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: 120,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         {groups.map((g) => <SectionRow key={g.id} item={g} />)}
       </ScrollView>
     </View>

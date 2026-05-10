@@ -1,18 +1,16 @@
 import { Stack } from "expo-router";
-import { useTranslation } from "react-i18next";
 
 export default function FriendsLayout() {
-  const { t } = useTranslation();
-
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: "#fff" },
-        headerTitleStyle: { fontWeight: "700", color: "#111827" },
+        headerShown: false,
+        contentStyle: { backgroundColor: "#0B0B0E" },
+        animation: "slide_from_right",
       }}
     >
-      <Stack.Screen name="index" options={{ title: t("tabs.friends") }} />
-      <Stack.Screen name="[friendId]" options={{ title: "" }} />
+      <Stack.Screen name="index" />
+      <Stack.Screen name="[friendId]" />
     </Stack>
   );
 }

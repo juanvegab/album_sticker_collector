@@ -1,44 +1,97 @@
 import { useState, useEffect } from "react";
 import {
-  View, Text, FlatList, TouchableOpacity, ActivityIndicator,
-  Alert, Share, ScrollView,
+  View, Text, TouchableOpacity, ActivityIndicator,
+  Alert, Share, ScrollView, StatusBar,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useRouter } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFriends } from "@/hooks/useFriends";
 import { useStickerRequests } from "@/hooks/useStickerRequests";
-import { acceptFriendRequest, rejectFriendRequest, getProfile, saveExpoPushToken } from "@/lib/firestore/users";
+import {
+  acceptFriendRequest, rejectFriendRequest,
+  getProfile, saveExpoPushToken,
+} from "@/lib/firestore/users";
 import { markRequestReceived } from "@/lib/firestore/requests";
 import { sendPushNotification, registerForPushNotifications } from "@/lib/notifications";
-import { ALL_STICKERS_MAP } from "@/lib/data/world-cup-2026";
 import { RequestCard } from "@/components/friends/RequestCard";
 import { QRModal } from "@/components/friends/QRModal";
-import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialBanner } from "@/components/premium/TrialBanner";
 import type { UserProfile } from "@/types/user";
 import type { StickerRequest } from "@/types/request";
 
+// ── Design tokens ──────────────────────────────────────────────────────
+const BG       = "#0B0B0E";
+const SURFACE  = "#15161B";
+const ELEVATED = "#1C1D24";
+const INK      = "#F5F4EE";
+const DIM      = "rgba(245,244,238,0.38)";
+const DIM3     = "rgba(245,244,238,0.08)";
+const BRAND    = "#F4C430";
+const GREEN    = "#22C55E";
+const RED      = "#EF4444";
+const ORANGE   = "#F2853A";
+
 const INVITE_BASE = "https://elalbum2026.com/invite";
 
+// Deterministic avatar color from name
+const AVATAR_PALETTE = ["#5847C4", "#1FA7A0", "#D9457A", "#2B6FE3", "#10B981", "#E55D4C"];
+function avatarBg(name: string) {
+  return AVATAR_PALETTE[(name.charCodeAt(0) || 0) % AVATAR_PALETTE.length];
+}
+
+// ── Section label ──────────────────────────────────────────────────────
+function SectionLabel({ text, count }: { text: string; count: number }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, marginTop: 20, marginBottom: 10 }}>
+      <Text style={{ color: DIM, fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" }}>
+        {text}
+      </Text>
+      <View style={{
+        marginLeft: 6, backgroundColor: ELEVATED,
+        borderRadius: 99, paddingHorizontal: 7, paddingVertical: 2,
+      }}>
+        <Text style={{ color: DIM, fontSize: 10, fontWeight: "700" }}>{count}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ── Avatar ─────────────────────────────────────────────────────────────
+function Avatar({ name, size = 40 }: { name: string; size?: number }) {
+  const bg = avatarBg(name);
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: size / 2,
+      backgroundColor: bg, alignItems: "center", justifyContent: "center",
+    }}>
+      <Text style={{ color: "#fff", fontSize: size * 0.4, fontWeight: "800" }}>
+        {name[0]?.toUpperCase() ?? "?"}
+      </Text>
+    </View>
+  );
+}
+
+// ── Main screen ────────────────────────────────────────────────────────
 export default function FriendsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user } = useUser();
   const { friendProfiles, pendingFrom, loading } = useFriends();
   const { incoming, pendingDeliveries } = useStickerRequests();
   const [qrVisible, setQrVisible] = useState(false);
+  const [actingOn, setActingOn] = useState<string | null>(null);
+  const [pendingProfiles, setPendingProfiles] = useState<Record<string, UserProfile>>({});
 
-  // Request push permission when user first visits Friends — contextually appropriate
-  // since notifications here are only for friend requests and sticker exchanges.
   useEffect(() => {
     if (!user) return;
     registerForPushNotifications().then((token) => {
       if (token) saveExpoPushToken(user.id, token).catch(console.error);
     });
   }, [user?.id]);
-  const [actingOn, setActingOn] = useState<string | null>(null);
-  const [pendingProfiles, setPendingProfiles] = useState<Record<string, UserProfile>>({});
 
   async function loadPendingProfile(userId: string) {
     if (pendingProfiles[userId]) return;
@@ -66,21 +119,15 @@ export default function FriendsScreen() {
           t("friends.acceptedBody")
         );
       }
-    } catch {
-      Alert.alert(t("common.error"));
-    } finally {
-      setActingOn(null);
-    }
+    } catch { Alert.alert(t("common.error")); }
+    finally { setActingOn(null); }
   }
 
   async function handleRejectFriend(requesterId: string) {
     if (!user) return;
     setActingOn(requesterId);
-    try {
-      await rejectFriendRequest(user.id, requesterId);
-    } finally {
-      setActingOn(null);
-    }
+    try { await rejectFriendRequest(user.id, requesterId); }
+    finally { setActingOn(null); }
   }
 
   async function handleMarkReceived(req: StickerRequest) {
@@ -88,7 +135,6 @@ export default function FriendsScreen() {
     setActingOn(req.id);
     try {
       await markRequestReceived(req.id, user.id, req.givenStickers ?? []);
-      // Notify the giver
       const giverProfile = await getProfile(req.toUserId);
       if (giverProfile?.expoPushToken) {
         const myName = user.firstName ?? user.emailAddresses[0]?.emailAddress ?? t("account.userFallback");
@@ -99,243 +145,253 @@ export default function FriendsScreen() {
         );
       }
     } catch (e) {
-      console.error("[markReceived] error:", e); Alert.alert(t("common.error"));
-    } finally {
-      setActingOn(null);
-    }
+      console.error("[markReceived]", e);
+      Alert.alert(t("common.error"));
+    } finally { setActingOn(null); }
   }
 
-  const totalBadge = pendingFrom.length + incoming.length + pendingDeliveries.length;
-
   const hasSections =
-    pendingFrom.length > 0 ||
-    incoming.length > 0 ||
-    pendingDeliveries.length > 0 ||
-    friendProfiles.length > 0;
+    pendingFrom.length > 0 || incoming.length > 0 ||
+    pendingDeliveries.length > 0 || friendProfiles.length > 0;
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: t("friends.tab"),
-          headerRight: () => (
-            <TouchableOpacity onPress={() => setQrVisible(true)} className="mr-4 p-1">
-              <Text className="text-blue-600 text-2xl">👥</Text>
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      <View className="flex-1 bg-gray-50">
-        <TrialBanner />
-        <BannerAd />
+    <View style={{ flex: 1, backgroundColor: BG, paddingTop: insets.top }}>
+      <StatusBar barStyle="light-content" backgroundColor={BG} />
 
-        {/* Invite FAB */}
+      {/* ── Header ── */}
+      <View style={{
+        flexDirection: "row", alignItems: "center",
+        paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8,
+      }}>
+        <Text style={{ flex: 1, color: INK, fontSize: 32, fontWeight: "800", letterSpacing: -0.5 }}>
+          {t("tabs.friends")}
+        </Text>
         <TouchableOpacity
-          onPress={handleShare}
-          className="absolute bottom-6 right-6 bg-blue-600 rounded-full w-14 h-14 items-center justify-center shadow-lg z-10"
-          activeOpacity={0.8}
+          onPress={() => setQrVisible(true)}
+          style={{
+            width: 40, height: 40, borderRadius: 20,
+            backgroundColor: ELEVATED,
+            alignItems: "center", justifyContent: "center",
+          }}
+          activeOpacity={0.7}
         >
-          <Text className="text-white text-2xl">+</Text>
+          <FontAwesome name="search" size={16} color={INK} />
         </TouchableOpacity>
+      </View>
 
-        {loading ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-            {[0, 1, 2].map((i) => (
-              <View key={i} className="bg-white mx-4 mt-4 rounded-2xl px-4 py-3.5 border border-gray-100 flex-row items-center">
-                <View className="w-10 h-10 rounded-full bg-gray-200 mr-3" />
-                <View className="flex-1">
-                  <View className="h-3.5 bg-gray-200 rounded-full w-32 mb-2" />
-                  <View className="h-2.5 bg-gray-100 rounded-full w-20" />
-                </View>
+      <TrialBanner />
+
+      {/* ── Content ── */}
+      {loading ? (
+        // Skeleton
+        <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={{
+              backgroundColor: SURFACE, marginHorizontal: 16, marginTop: 12,
+              borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center",
+              borderWidth: 1, borderColor: DIM3,
+            }}>
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: ELEVATED, marginRight: 12 }} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <View style={{ height: 12, backgroundColor: ELEVATED, borderRadius: 6, width: "55%" }} />
+                <View style={{ height: 10, backgroundColor: ELEVATED, borderRadius: 6, width: "35%" }} />
               </View>
-            ))}
-          </ScrollView>
-        ) : !hasSections ? (
-          <View className="flex-1 items-center justify-center px-8">
-            <Text className="text-5xl mb-3">👥</Text>
-            <Text className="text-gray-500 text-base text-center font-semibold mb-1">
-              {t("friends.noFriends")}
+            </View>
+          ))}
+        </ScrollView>
+      ) : !hasSections ? (
+        // Empty
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+          <Text style={{ fontSize: 56, marginBottom: 16 }}>👥</Text>
+          <Text style={{ color: INK, fontSize: 18, fontWeight: "700", textAlign: "center", marginBottom: 8 }}>
+            {t("friends.noFriends")}
+          </Text>
+          <Text style={{ color: DIM, fontSize: 14, textAlign: "center", lineHeight: 20 }}>
+            {t("friends.noFriendsHint")}
+          </Text>
+          <TouchableOpacity
+            onPress={handleShare}
+            style={{
+              marginTop: 24, backgroundColor: BRAND, borderRadius: 16,
+              paddingHorizontal: 28, paddingVertical: 14,
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={{ color: BG, fontSize: 15, fontWeight: "800" }}>
+              {t("friends.invite")}
             </Text>
-            <Text className="text-gray-400 text-sm text-center">{t("friends.noFriendsHint")}</Text>
-          </View>
-        ) : (
-          <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
 
-            {/* ── Pending friend requests ── */}
-            {pendingFrom.length > 0 && (
-              <View className="mt-4">
-                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 mb-2">
-                  {t("friends.pendingRequests")} ({pendingFrom.length})
-                </Text>
-                {pendingFrom.map((requesterId) => {
-                  loadPendingProfile(requesterId);
-                  const profile = pendingProfiles[requesterId];
-                  const isActing = actingOn === requesterId;
-                  return (
-                    <View
-                      key={requesterId}
-                      className="bg-white mx-4 mb-3 rounded-2xl p-4 shadow-sm border border-blue-100"
-                    >
-                      <View className="flex-row items-center mb-3">
-                        <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-3">
-                          <Text className="text-blue-600 font-bold">
-                            {(profile?.name ?? "?")[0]?.toUpperCase()}
-                          </Text>
-                        </View>
-                        <View className="flex-1">
-                          <Text className="font-semibold text-gray-800">
-                            {profile?.name ?? requesterId}
-                          </Text>
-                          <Text className="text-xs text-gray-400">{t("friends.wantsToConnect")}</Text>
-                        </View>
-                      </View>
-                      <View className="flex-row gap-3">
-                        <TouchableOpacity
-                          onPress={() => handleRejectFriend(requesterId)}
-                          disabled={!!isActing}
-                          className="flex-1 bg-gray-100 rounded-xl py-2.5 items-center"
-                        >
-                          <Text className="text-gray-600 font-semibold text-sm">{t("friends.reject")}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => handleAcceptFriend(requesterId)}
-                          disabled={!!isActing}
-                          className="flex-1 bg-blue-600 rounded-xl py-2.5 items-center"
-                        >
-                          {isActing ? (
-                            <ActivityIndicator color="white" size="small" />
-                          ) : (
-                            <Text className="text-white font-bold text-sm">{t("friends.accept")}</Text>
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-
-            {/* ── Incoming sticker requests (to respond to) ── */}
-            {incoming.length > 0 && (
-              <View className="mt-4">
-                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 mb-2">
-                  {t("requests.incoming")} ({incoming.length})
-                </Text>
-                {incoming.map((req) => (
-                  <RequestCard key={req.id} request={req} />
-                ))}
-              </View>
-            )}
-
-            {/* ── Pending deliveries (my requests that were accepted) ── */}
-            {pendingDeliveries.length > 0 && (
-              <View className="mt-4">
-                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 mb-2">
-                  {t("requests.pendingDelivery")} ({pendingDeliveries.length})
-                </Text>
-                {pendingDeliveries.map((req) => {
-                  const given = req.givenStickers ?? [];
-                  const preview = given
-                    .slice(0, 3)
-                    .map((id) => ALL_STICKERS_MAP.get(id)?.name ?? id)
-                    .join(", ");
-                  const more = given.length - 3;
-                  const isActing = actingOn === req.id;
-
-                  return (
-                    <View
-                      key={req.id}
-                      className="bg-white mx-4 mb-3 rounded-2xl p-4 shadow-sm border border-green-100"
-                    >
-                      {/* Header */}
-                      <View className="flex-row items-center mb-2">
-                        <View className="w-8 h-8 rounded-full bg-green-100 items-center justify-center mr-2">
-                          <Text className="text-green-600 font-bold text-sm">
-                            {req.fromUserName[0]?.toUpperCase()}
-                          </Text>
-                        </View>
-                        <View className="flex-1">
-                          <Text className="font-semibold text-gray-800 text-sm">{req.fromUserName}</Text>
-                          <Text className="text-xs text-gray-400">
-                            {t("requests.waitingDelivery", { count: given.length })}
-                          </Text>
-                        </View>
-                        <View className="bg-amber-100 px-2 py-0.5 rounded-full">
-                          <Text className="text-amber-600 text-xs font-semibold">
-                            {t("requests.pendingLabel")}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Sticker list */}
-                      {given.length > 0 ? (
-                        <Text className="text-xs text-gray-600 mb-3" numberOfLines={2}>
-                          {preview}
-                          {more > 0 && t("trades.more", { count: more })}
-                        </Text>
-                      ) : (
-                        <Text className="text-xs text-gray-400 mb-3 italic">
-                          {t("requests.noStickersGiven")}
-                        </Text>
-                      )}
-
-                      {/* Mark as received */}
-                      <TouchableOpacity
-                        onPress={() => handleMarkReceived(req)}
-                        disabled={isActing || given.length === 0}
-                        className={`rounded-xl py-2.5 items-center ${
-                          given.length > 0 && !isActing ? "bg-green-600" : "bg-gray-200"
-                        }`}
-                        activeOpacity={0.8}
-                      >
-                        {isActing ? (
-                          <ActivityIndicator color="white" size="small" />
-                        ) : (
-                          <Text
-                            className={`font-bold text-sm ${
-                              given.length > 0 ? "text-white" : "text-gray-400"
-                            }`}
-                          >
-                            {t("requests.markReceived")}
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-
-            {/* ── Friends list ── */}
-            {friendProfiles.length > 0 && (
-              <View className="mt-4">
-                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 mb-2">
-                  {t("friends.myFriends")} ({friendProfiles.length})
-                </Text>
-                {friendProfiles.map((item: UserProfile) => (
-                  <TouchableOpacity
-                    key={item.userId}
-                    onPress={() => router.push(`/(tabs)/friends/${item.userId}`)}
-                    className="bg-white mx-4 mb-3 rounded-2xl px-4 py-3.5 shadow-sm border border-gray-100 flex-row items-center"
-                    activeOpacity={0.75}
-                  >
-                    <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-3">
-                      <Text className="text-blue-600 font-bold text-base">
-                        {item.name[0]?.toUpperCase()}
+          {/* ── Friend requests ── */}
+          {pendingFrom.length > 0 && (
+            <>
+              <SectionLabel text={t("friends.pendingRequests")} count={pendingFrom.length} />
+              {pendingFrom.map((requesterId) => {
+                loadPendingProfile(requesterId);
+                const profile = pendingProfiles[requesterId];
+                const name = profile?.name ?? requesterId;
+                const isActing = actingOn === requesterId;
+                return (
+                  <View key={requesterId} style={{
+                    backgroundColor: SURFACE, marginHorizontal: 16, marginBottom: 8,
+                    borderRadius: 16, padding: 14,
+                    borderWidth: 1, borderColor: DIM3,
+                    flexDirection: "row", alignItems: "center",
+                  }}>
+                    <Avatar name={name} />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{ color: INK, fontSize: 15, fontWeight: "700" }} numberOfLines={1}>
+                        {name}
+                      </Text>
+                      <Text style={{ color: DIM, fontSize: 12, marginTop: 2 }}>
+                        {t("friends.wantsToConnect")}
                       </Text>
                     </View>
-                    <Text className="flex-1 font-semibold text-gray-800">{item.name}</Text>
-                    <Text className="text-gray-400 text-lg">›</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+                    {/* Reject */}
+                    <TouchableOpacity
+                      onPress={() => handleRejectFriend(requesterId)}
+                      disabled={!!isActing}
+                      style={{
+                        width: 38, height: 38, borderRadius: 19,
+                        backgroundColor: "rgba(239,68,68,0.15)",
+                        borderWidth: 1.5, borderColor: RED,
+                        alignItems: "center", justifyContent: "center",
+                        marginRight: 8,
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ color: RED, fontSize: 16, fontWeight: "800", lineHeight: 20 }}>✕</Text>
+                    </TouchableOpacity>
+                    {/* Accept */}
+                    <TouchableOpacity
+                      onPress={() => handleAcceptFriend(requesterId)}
+                      disabled={!!isActing}
+                      style={{
+                        width: 38, height: 38, borderRadius: 19,
+                        backgroundColor: GREEN,
+                        alignItems: "center", justifyContent: "center",
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      {isActing
+                        ? <ActivityIndicator color="#fff" size="small" />
+                        : <Text style={{ color: "#fff", fontSize: 16, fontWeight: "800" }}>✓</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </>
+          )}
 
-          </ScrollView>
-        )}
+          {/* ── Incoming sticker requests ── */}
+          {incoming.length > 0 && (
+            <>
+              <SectionLabel text={t("requests.incoming")} count={incoming.length} />
+              {incoming.map((req) => (
+                <RequestCard key={req.id} request={req} />
+              ))}
+            </>
+          )}
 
-        <QRModal visible={qrVisible} onClose={() => setQrVisible(false)} />
-      </View>
-    </>
+          {/* ── Pending deliveries ── */}
+          {pendingDeliveries.length > 0 && (
+            <>
+              <SectionLabel text={t("requests.pendingDelivery")} count={pendingDeliveries.length} />
+              {pendingDeliveries.map((req) => {
+                const given = req.givenStickers ?? [];
+                const preview = given.slice(0, 4).join(" · ");
+                const more = given.length - 4;
+                const isActing = actingOn === req.id;
+                return (
+                  <View key={req.id} style={{
+                    backgroundColor: SURFACE, marginHorizontal: 16, marginBottom: 8,
+                    borderRadius: 16, padding: 14,
+                    borderWidth: 1, borderColor: DIM3,
+                  }}>
+                    {/* Header row */}
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                      <Avatar name={req.fromUserName} />
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={{ color: INK, fontSize: 15, fontWeight: "700" }} numberOfLines={1}>
+                          {req.fromUserName} · {t("requests.waitingDelivery", { count: given.length })}
+                        </Text>
+                        {given.length > 0 && (
+                          <Text style={{ color: DIM, fontSize: 11, marginTop: 2 }} numberOfLines={1}>
+                            {preview}{more > 0 ? ` +${more}` : ""}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={{
+                        backgroundColor: "rgba(242,133,58,0.15)",
+                        borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5,
+                        borderWidth: 1, borderColor: ORANGE,
+                      }}>
+                        <Text style={{ color: ORANGE, fontSize: 10, fontWeight: "800", letterSpacing: 0.5 }}>
+                          {t("requests.pendingLabel").toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Mark received */}
+                    <TouchableOpacity
+                      onPress={() => handleMarkReceived(req)}
+                      disabled={isActing || given.length === 0}
+                      style={{
+                        borderRadius: 12, paddingVertical: 13, alignItems: "center",
+                        backgroundColor: given.length > 0 && !isActing ? GREEN : ELEVATED,
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      {isActing
+                        ? <ActivityIndicator color="#fff" size="small" />
+                        : <Text style={{
+                            color: given.length > 0 ? "#fff" : DIM,
+                            fontSize: 14, fontWeight: "700",
+                          }}>
+                            {t("requests.markReceived")}
+                          </Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </>
+          )}
+
+          {/* ── Friends list ── */}
+          {friendProfiles.length > 0 && (
+            <>
+              <SectionLabel text={t("friends.myFriends")} count={friendProfiles.length} />
+              {friendProfiles.map((item: UserProfile) => (
+                <TouchableOpacity
+                  key={item.userId}
+                  onPress={() => router.push(`/(tabs)/friends/${item.userId}`)}
+                  style={{
+                    backgroundColor: SURFACE, marginHorizontal: 16, marginBottom: 8,
+                    borderRadius: 16, padding: 14,
+                    borderWidth: 1, borderColor: DIM3,
+                    flexDirection: "row", alignItems: "center",
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Avatar name={item.name} />
+                  <Text style={{ flex: 1, color: INK, fontSize: 15, fontWeight: "600", marginLeft: 12 }}>
+                    {item.name}
+                  </Text>
+                  <FontAwesome name="chevron-right" size={12} color={DIM} />
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
+
+        </ScrollView>
+      )}
+
+      <QRModal visible={qrVisible} onClose={() => setQrVisible(false)} />
+    </View>
   );
 }
