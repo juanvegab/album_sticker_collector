@@ -127,6 +127,8 @@ const es = {
     signOutYes: "Salir",
     userFallback: "Usuario",
     privacyPolicy: "Política de privacidad",
+    notifications: "Notificaciones",
+    notificationsEnabled: "Activadas",
     deleteAccount: "Eliminar mi cuenta",
     deleteTitle: "Eliminar cuenta",
     deleteConfirm: "¿Seguro que quieres eliminar tu cuenta? Se borrarán todos tus datos y no se podrán recuperar.",

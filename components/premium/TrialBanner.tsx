@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useUser } from "@clerk/clerk-expo";
 import { doc, setDoc } from "firebase/firestore";
@@ -7,6 +7,8 @@ import { usePremium } from "@/hooks/usePremium";
 import { usePremiumStore } from "@/store/premiumStore";
 import { purchaseNoAds, restorePurchases } from "@/lib/purchases";
 
+// Compact dark chip shown at the top of screens (friends, etc.)
+// Account screen handles premium state inline inside the gradient card.
 export function TrialBanner() {
   const { t } = useTranslation();
   const { user } = useUser();
@@ -25,14 +27,11 @@ export function TrialBanner() {
       if (success) {
         setIsPremium(true);
         if (user) {
-          const ref = doc(db, "users", user.id, "profile", "premium");
-          await setDoc(ref, { isPremium: true }, { merge: true });
+          await setDoc(doc(db, "users", user.id, "profile", "premium"), { isPremium: true }, { merge: true });
         }
         Alert.alert(t("premium.successTitle"), t("premium.successMsg"));
       }
     } catch (err: any) {
-      console.error("Purchase error:", JSON.stringify({ code: err?.code, message: err?.message, underlyingErrorMessage: err?.underlyingErrorMessage }));
-      // PurchasesErrorCode.purchaseCancelledError = 1 (number)
       if (err?.code !== 1 && err?.message !== "no_package") {
         Alert.alert(t("common.error"), t("premium.purchaseError"));
       }
@@ -48,8 +47,7 @@ export function TrialBanner() {
       if (hasPremium) {
         setIsPremium(true);
         if (user) {
-          const ref = doc(db, "users", user.id, "profile", "premium");
-          await setDoc(ref, { isPremium: true }, { merge: true });
+          await setDoc(doc(db, "users", user.id, "profile", "premium"), { isPremium: true }, { merge: true });
         }
         Alert.alert(t("premium.successTitle"), t("premium.restoreSuccess"));
       } else {
@@ -62,49 +60,73 @@ export function TrialBanner() {
     }
   }
 
+  // Trial active → compact chip
   if (trialActive) {
     return (
-      <View className="bg-amber-500 px-4 py-3 flex-row items-center justify-between">
-        <View className="flex-1">
-          <Text className="text-white font-bold text-sm">
-            {days === 1 ? t("premium.lastDay") : t("premium.daysLeft", { days })}
-          </Text>
-          <Text className="text-amber-100 text-xs mt-0.5">{t("premium.afterTrial")}</Text>
-        </View>
-        <TouchableOpacity
-          onPress={handlePurchase}
-          disabled={isPurchasing}
-          className="bg-white rounded-xl px-4 py-2 ml-3"
-          activeOpacity={0.8}
-        >
-          {isPurchasing ? (
-            <ActivityIndicator size="small" color="#d97706" />
-          ) : (
-            <Text className="text-amber-600 font-bold text-sm">{t("premium.removeAds")}</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <View className="bg-red-600 px-4 py-4">
-      <Text className="text-white font-bold text-base mb-1">{t("premium.trialEnded")}</Text>
-      <Text className="text-red-100 text-sm mb-3">{t("premium.trialEndedMsg")}</Text>
       <TouchableOpacity
         onPress={handlePurchase}
         disabled={isPurchasing}
-        className="bg-white rounded-xl py-3 items-center mb-2"
+        activeOpacity={0.85}
+        style={{
+          marginHorizontal: 16, marginBottom: 10,
+          backgroundColor: "rgba(244,196,48,0.10)",
+          borderRadius: 99, borderWidth: 1,
+          borderColor: "rgba(244,196,48,0.30)",
+          paddingHorizontal: 14, paddingVertical: 9,
+          flexDirection: "row", alignItems: "center",
+        }}
+      >
+        <View style={{
+          width: 6, height: 6, borderRadius: 99,
+          backgroundColor: "#F4C430", marginRight: 8,
+        }} />
+        <Text style={{ color: "#F4C430", fontSize: 12, fontWeight: "700", flex: 1 }}>
+          {days === 1 ? t("premium.lastDay") : t("premium.daysLeft", { days })}
+        </Text>
+        {isPurchasing ? (
+          <ActivityIndicator color="#F4C430" size="small" />
+        ) : (
+          <Text style={{ color: "#F4C430", fontSize: 12, fontWeight: "800" }}>
+            {t("premium.removeAds")} →
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+  }
+
+  // Trial ended → slightly more prominent dark bar
+  return (
+    <View style={{
+      marginHorizontal: 16, marginBottom: 10,
+      backgroundColor: "rgba(239,68,68,0.10)",
+      borderRadius: 12, borderWidth: 1,
+      borderColor: "rgba(239,68,68,0.25)",
+      paddingHorizontal: 14, paddingVertical: 10,
+    }}>
+      <Text style={{ color: "#EF4444", fontSize: 12, fontWeight: "700", marginBottom: 6 }}>
+        {t("premium.trialEnded")}
+      </Text>
+      <TouchableOpacity
+        onPress={handlePurchase}
+        disabled={isPurchasing}
+        style={{
+          backgroundColor: "#EF4444", borderRadius: 10,
+          paddingVertical: 10, alignItems: "center", marginBottom: 6,
+        }}
         activeOpacity={0.8}
       >
         {isPurchasing ? (
-          <ActivityIndicator size="small" color="#dc2626" />
+          <ActivityIndicator color="#fff" size="small" />
         ) : (
-          <Text className="text-red-600 font-bold text-base">{t("premium.removeAdsCta")}</Text>
+          <Text style={{ color: "#fff", fontSize: 13, fontWeight: "800" }}>
+            {t("premium.removeAdsCta")}
+          </Text>
         )}
       </TouchableOpacity>
       <TouchableOpacity onPress={handleRestore} disabled={isPurchasing} activeOpacity={0.7}>
-        <Text className="text-red-200 text-xs text-center">{t("premium.restorePurchases")}</Text>
+        <Text style={{ color: "rgba(239,68,68,0.6)", fontSize: 11, textAlign: "center" }}>
+          {t("premium.restorePurchases")}
+        </Text>
       </TouchableOpacity>
     </View>
   );

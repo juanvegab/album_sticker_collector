@@ -127,6 +127,8 @@ const en = {
     signOutYes: "Sign out",
     userFallback: "User",
     privacyPolicy: "Privacy Policy",
+    notifications: "Notifications",
+    notificationsEnabled: "Enabled",
     deleteAccount: "Delete my account",
     deleteTitle: "Delete account",
     deleteConfirm: "Are you sure you want to delete your account? All your data will be erased and cannot be recovered.",
