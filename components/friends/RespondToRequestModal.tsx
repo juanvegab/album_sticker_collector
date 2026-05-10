@@ -12,6 +12,16 @@ import { getProfile } from "@/lib/firestore/users";
 import { sendPushNotification } from "@/lib/notifications";
 import type { StickerRequest } from "@/types/request";
 
+// ── Design tokens ──────────────────────────────────────────────────────
+const BG       = "#0B0B0E";
+const SURFACE  = "#15161B";
+const ELEVATED = "#1C1D24";
+const INK      = "#F5F4EE";
+const DIM      = "rgba(245,244,238,0.38)";
+const DIM3     = "rgba(245,244,238,0.08)";
+const GREEN    = "#22C55E";
+const BRAND    = "#F4C430";
+
 interface Props {
   request: StickerRequest | null;
   onClose: () => void;
@@ -26,7 +36,6 @@ export function RespondToRequestModal({ request, onClose }: Props) {
 
   if (!request) return null;
 
-  // Only show stickers from the request that I still have as duplicates
   const available = request.stickers.filter((id) => (duplicates[id] ?? 0) > 0);
   const unavailable = request.stickers.filter((id) => (duplicates[id] ?? 0) === 0);
 
@@ -41,7 +50,6 @@ export function RespondToRequestModal({ request, onClose }: Props) {
     setActing(true);
     try {
       await acceptStickerRequest(request.id, user.id, selected);
-
       const senderProfile = await getProfile(request.fromUserId);
       if (senderProfile?.expoPushToken) {
         const myName = user.firstName ?? user.emailAddresses[0]?.emailAddress ?? t("account.userFallback");
@@ -81,27 +89,43 @@ export function RespondToRequestModal({ request, onClose }: Props) {
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-white">
+      <View style={{ flex: 1, backgroundColor: BG }}>
         {/* Header */}
-        <View className="flex-row items-center justify-between px-4 pt-6 pb-3 border-b border-gray-100">
-          <View className="flex-1">
-            <Text className="text-lg font-bold text-gray-800">
+        <View style={{
+          flexDirection: "row", alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16,
+          borderBottomWidth: 1, borderBottomColor: DIM3,
+        }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: INK, fontSize: 18, fontWeight: "800" }}>
               {t("requests.respondTitle")}
             </Text>
-            <Text className="text-sm text-gray-400">
+            <Text style={{ color: DIM, fontSize: 13, marginTop: 3 }}>
               {t("requests.respondSubtitle", { name: request.fromUserName })}
             </Text>
           </View>
-          <TouchableOpacity onPress={onClose} className="p-2">
-            <Text className="text-gray-400 text-2xl">✕</Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              width: 36, height: 36, borderRadius: 18,
+              backgroundColor: ELEVATED,
+              alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <Text style={{ color: DIM, fontSize: 16 }}>✕</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
-          {/* Available stickers (I can give these) */}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+          {/* Available stickers */}
           {available.length > 0 ? (
             <>
-              <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              <Text style={{
+                color: DIM, fontSize: 11, fontWeight: "700",
+                letterSpacing: 1.2, textTransform: "uppercase",
+                marginBottom: 10,
+              }}>
                 {t("requests.youCanGive", { count: available.length })}
               </Text>
               {available.map((id) => {
@@ -112,44 +136,61 @@ export function RespondToRequestModal({ request, onClose }: Props) {
                   <TouchableOpacity
                     key={id}
                     onPress={() => toggle(id)}
-                    className={`flex-row items-center rounded-xl mb-2 px-3 py-3.5 border ${
-                      isSelected ? "bg-green-50 border-green-400" : "bg-white border-gray-100"
-                    }`}
+                    style={{
+                      flexDirection: "row", alignItems: "center",
+                      borderRadius: 12, marginBottom: 8,
+                      paddingHorizontal: 12, paddingVertical: 14,
+                      backgroundColor: isSelected ? "rgba(34,197,94,0.12)" : SURFACE,
+                      borderWidth: 1,
+                      borderColor: isSelected ? GREEN : DIM3,
+                    }}
                     activeOpacity={0.7}
                   >
-                    <View
-                      className={`w-5 h-5 rounded border-2 mr-3 items-center justify-center flex-shrink-0 ${
-                        isSelected ? "bg-green-600 border-green-600" : "border-gray-300"
-                      }`}
-                    >
+                    <View style={{
+                      width: 20, height: 20, borderRadius: 4,
+                      borderWidth: 2,
+                      backgroundColor: isSelected ? GREEN : "transparent",
+                      borderColor: isSelected ? GREEN : DIM,
+                      marginRight: 12,
+                      alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
                       {isSelected && (
-                        <Text className="text-white font-bold" style={{ fontSize: 10 }}>✓</Text>
+                        <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>✓</Text>
                       )}
                     </View>
-                    <Text className="text-xs text-gray-400 w-14" numberOfLines={1}>{id}</Text>
-                    <Text className="flex-1 text-gray-800 text-sm" numberOfLines={1}>
+                    <Text style={{ color: DIM, fontSize: 11, width: 52 }} numberOfLines={1}>{id}</Text>
+                    <Text style={{ color: INK, fontSize: 13, flex: 1 }} numberOfLines={1}>
                       {sticker?.name ?? id}
                     </Text>
-                    <View className="bg-blue-100 rounded-full px-2 py-0.5">
-                      <Text className="text-blue-600 text-xs font-semibold">×{dupCount}</Text>
+                    <View style={{
+                      backgroundColor: ELEVATED,
+                      borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3,
+                    }}>
+                      <Text style={{ color: BRAND, fontSize: 11, fontWeight: "700" }}>×{dupCount}</Text>
                     </View>
                   </TouchableOpacity>
                 );
               })}
             </>
           ) : (
-            <View className="items-center py-8">
-              <Text className="text-4xl mb-3">😔</Text>
-              <Text className="text-gray-500 text-base text-center">
+            <View style={{ alignItems: "center", paddingVertical: 48 }}>
+              <Text style={{ fontSize: 40, marginBottom: 12 }}>😔</Text>
+              <Text style={{ color: DIM, fontSize: 15, textAlign: "center" }}>
                 {t("requests.noneAvailable")}
               </Text>
             </View>
           )}
 
-          {/* Unavailable stickers (I don't have these anymore) */}
+          {/* Unavailable stickers */}
           {unavailable.length > 0 && (
             <>
-              <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 mt-5">
+              <Text style={{
+                color: DIM, fontSize: 11, fontWeight: "700",
+                letterSpacing: 1.2, textTransform: "uppercase",
+                marginTop: 20, marginBottom: 10,
+                opacity: 0.6,
+              }}>
                 {t("requests.youDontHave", { count: unavailable.length })}
               </Text>
               {unavailable.map((id) => {
@@ -157,14 +198,25 @@ export function RespondToRequestModal({ request, onClose }: Props) {
                 return (
                   <View
                     key={id}
-                    className="flex-row items-center rounded-xl mb-2 px-3 py-3.5 bg-gray-50 border border-gray-100"
+                    style={{
+                      flexDirection: "row", alignItems: "center",
+                      borderRadius: 12, marginBottom: 8,
+                      paddingHorizontal: 12, paddingVertical: 14,
+                      backgroundColor: ELEVATED,
+                      borderWidth: 1, borderColor: DIM3,
+                      opacity: 0.5,
+                    }}
                   >
-                    <View className="w-5 h-5 rounded border-2 border-gray-200 mr-3 flex-shrink-0" />
-                    <Text className="text-xs text-gray-300 w-14" numberOfLines={1}>{id}</Text>
-                    <Text className="flex-1 text-gray-400 text-sm" numberOfLines={1}>
+                    <View style={{
+                      width: 20, height: 20, borderRadius: 4,
+                      borderWidth: 2, borderColor: DIM3,
+                      marginRight: 12, flexShrink: 0,
+                    }} />
+                    <Text style={{ color: DIM, fontSize: 11, width: 52 }} numberOfLines={1}>{id}</Text>
+                    <Text style={{ color: DIM, fontSize: 13, flex: 1 }} numberOfLines={1}>
                       {sticker?.name ?? id}
                     </Text>
-                    <Text className="text-xs text-gray-300">{t("requests.notAvailable")}</Text>
+                    <Text style={{ color: DIM, fontSize: 11 }}>{t("requests.notAvailable")}</Text>
                   </View>
                 );
               })}
@@ -173,24 +225,29 @@ export function RespondToRequestModal({ request, onClose }: Props) {
         </ScrollView>
 
         {/* Bottom actions */}
-        <View className="bg-white border-t border-gray-100 px-4 py-4 gap-3">
+        <View style={{
+          backgroundColor: SURFACE,
+          borderTopWidth: 1, borderTopColor: DIM3,
+          paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28,
+          gap: 10,
+        }}>
           {available.length > 0 && (
             <TouchableOpacity
               onPress={handleConfirm}
               disabled={acting || selected.length === 0}
-              className={`rounded-2xl py-4 items-center ${
-                selected.length > 0 && !acting ? "bg-green-600" : "bg-gray-200"
-              }`}
+              style={{
+                borderRadius: 14, paddingVertical: 16, alignItems: "center",
+                backgroundColor: selected.length > 0 && !acting ? GREEN : ELEVATED,
+              }}
               activeOpacity={0.8}
             >
               {acting ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color="#fff" />
               ) : (
-                <Text
-                  className={`font-bold text-base ${
-                    selected.length > 0 ? "text-white" : "text-gray-400"
-                  }`}
-                >
+                <Text style={{
+                  fontSize: 15, fontWeight: "800",
+                  color: selected.length > 0 ? "#fff" : DIM,
+                }}>
                   {selected.length > 0
                     ? t("requests.confirmGive", { count: selected.length })
                     : t("requests.selectToGive")}
@@ -201,10 +258,15 @@ export function RespondToRequestModal({ request, onClose }: Props) {
           <TouchableOpacity
             onPress={handleReject}
             disabled={acting}
-            className="rounded-2xl py-3.5 items-center bg-gray-100"
+            style={{
+              borderRadius: 14, paddingVertical: 14, alignItems: "center",
+              backgroundColor: ELEVATED,
+            }}
             activeOpacity={0.8}
           >
-            <Text className="text-gray-600 font-semibold">{t("requests.cantGiveAny")}</Text>
+            <Text style={{ color: DIM, fontSize: 14, fontWeight: "600" }}>
+              {t("requests.cantGiveAny")}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

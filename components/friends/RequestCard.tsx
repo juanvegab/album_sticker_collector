@@ -1,9 +1,21 @@
 import { useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useTranslation } from "react-i18next";
-import { ALL_STICKERS_MAP } from "@/lib/data/world-cup-2026";
 import { RespondToRequestModal } from "./RespondToRequestModal";
 import type { StickerRequest } from "@/types/request";
+
+// ── Design tokens ──────────────────────────────────────────────────────
+const SURFACE  = "#15161B";
+const ELEVATED = "#1C1D24";
+const INK      = "#F5F4EE";
+const DIM      = "rgba(245,244,238,0.38)";
+const DIM3     = "rgba(245,244,238,0.08)";
+const BRAND    = "#F4C430";
+
+const AVATAR_PALETTE = ["#5847C4", "#1FA7A0", "#D9457A", "#2B6FE3", "#10B981", "#E55D4C"];
+function avatarBg(name: string) {
+  return AVATAR_PALETTE[(name.charCodeAt(0) || 0) % AVATAR_PALETTE.length];
+}
 
 interface Props {
   request: StickerRequest;
@@ -13,40 +25,65 @@ export function RequestCard({ request }: Props) {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
 
-  const preview = request.stickers
-    .slice(0, 3)
-    .map((id) => ALL_STICKERS_MAP.get(id)?.name ?? id)
-    .join(", ");
-  const more = request.stickers.length - 3;
+  const preview = request.stickers.slice(0, 4).join(" · ");
+  const more = request.stickers.length - 4;
 
   return (
     <>
-      <View className="bg-white mx-4 mb-3 rounded-2xl p-4 shadow-sm border border-gray-100">
-        <View className="flex-row items-center mb-2">
-          <View className="w-8 h-8 rounded-full bg-blue-100 items-center justify-center mr-2">
-            <Text className="text-blue-600 font-bold text-sm">
-              {request.fromUserName[0]?.toUpperCase()}
+      <View style={{
+        backgroundColor: SURFACE,
+        marginHorizontal: 16, marginBottom: 8,
+        borderRadius: 16, padding: 14,
+        borderWidth: 1, borderColor: DIM3,
+      }}>
+        {/* Header row */}
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+          {/* Avatar */}
+          <View style={{
+            width: 40, height: 40, borderRadius: 20,
+            backgroundColor: avatarBg(request.fromUserName),
+            alignItems: "center", justifyContent: "center",
+          }}>
+            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "800" }}>
+              {request.fromUserName[0]?.toUpperCase() ?? "?"}
             </Text>
           </View>
-          <View className="flex-1">
-            <Text className="font-semibold text-gray-800 text-sm">{request.fromUserName}</Text>
-            <Text className="text-xs text-gray-400">
+
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={{ color: INK, fontSize: 15, fontWeight: "700" }} numberOfLines={1}>
+              {request.fromUserName}
+            </Text>
+            <Text style={{ color: DIM, fontSize: 12, marginTop: 2 }}>
               {t("requests.wantsStickers", { count: request.stickers.length })}
             </Text>
           </View>
         </View>
 
-        <Text className="text-xs text-gray-600 mb-3" numberOfLines={2}>
-          {preview}
-          {more > 0 && t("trades.more", { count: more })}
-        </Text>
+        {/* Sticker IDs preview */}
+        {request.stickers.length > 0 && (
+          <View style={{
+            backgroundColor: ELEVATED,
+            borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
+            marginBottom: 12,
+          }}>
+            <Text style={{ color: DIM, fontSize: 12 }} numberOfLines={1}>
+              {preview}{more > 0 ? ` +${more}` : ""}
+            </Text>
+          </View>
+        )}
 
+        {/* Respond button */}
         <TouchableOpacity
           onPress={() => setModalOpen(true)}
-          className="bg-blue-600 rounded-xl py-2.5 items-center"
+          style={{
+            borderRadius: 12, paddingVertical: 13,
+            alignItems: "center", backgroundColor: BRAND,
+          }}
           activeOpacity={0.8}
         >
-          <Text className="text-white font-bold text-sm">{t("requests.respond")}</Text>
+          <Text style={{ color: "#0B0B0E", fontSize: 14, fontWeight: "800" }}>
+            {t("requests.respond")}
+          </Text>
         </TouchableOpacity>
       </View>
 

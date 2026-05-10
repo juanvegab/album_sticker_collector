@@ -1,31 +1,48 @@
 import { useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import {
+  View, Text, TouchableOpacity, ActivityIndicator, Alert, StatusBar,
+} from "react-native";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFriendCollection } from "@/hooks/useFriendCollection";
 import { useFriends } from "@/hooks/useFriends";
 import { sendStickerRequest } from "@/lib/firestore/requests";
 import { getProfile } from "@/lib/firestore/users";
 import { sendPushNotification } from "@/lib/notifications";
 import { StickerPickerPanel } from "@/components/stickers/StickerPickerPanel";
-import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+
+// ── Design tokens ──────────────────────────────────────────────────────
+const BG       = "#0B0B0E";
+const SURFACE  = "#15161B";
+const ELEVATED = "#1C1D24";
+const INK      = "#F5F4EE";
+const DIM      = "rgba(245,244,238,0.38)";
+const DIM3     = "rgba(245,244,238,0.08)";
+const BRAND    = "#F4C430";
+const GREEN    = "#22C55E";
+
+// Deterministic avatar color from name
+const AVATAR_PALETTE = ["#5847C4", "#1FA7A0", "#D9457A", "#2B6FE3", "#10B981", "#E55D4C"];
+function avatarBg(name: string) {
+  return AVATAR_PALETTE[(name.charCodeAt(0) || 0) % AVATAR_PALETTE.length];
+}
 
 export default function FriendDetailScreen() {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ friendId: string }>();
-  // Expo Router can return arrays on some nav patterns — always use the first value
   const friendId = Array.isArray(params.friendId) ? params.friendId[0] : params.friendId;
   const { user } = useUser();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { friendProfiles } = useFriends();
   const { duplicateStickers, loading } = useFriendCollection(friendId ?? null);
 
   const [selected, setSelected] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
 
-  // Reset selection every time this screen comes into focus
-  // (covers same-friend re-entry where friendId hasn't changed)
   useFocusEffect(useCallback(() => {
     setSelected([]);
   }, []));
@@ -44,7 +61,6 @@ export default function FriendDetailScreen() {
       const myName = user.firstName ?? user.emailAddresses[0]?.emailAddress ?? t("account.userFallback");
       await sendStickerRequest(user.id, myName, friendId, selected);
 
-      // Notify friend
       const friendProfile = friend ?? await getProfile(friendId);
       if (friendProfile?.expoPushToken) {
         await sendPushNotification(
@@ -67,72 +83,102 @@ export default function FriendDetailScreen() {
     }
   }
 
+  // ── Loading ──
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#2563eb" />
+      <View style={{ flex: 1, backgroundColor: BG, alignItems: "center", justifyContent: "center" }}>
+        <StatusBar barStyle="light-content" backgroundColor={BG} />
+        <ActivityIndicator size="large" color={BRAND} />
       </View>
     );
   }
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: t("friends.wantFrom", { name: friendName }),
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} className="pl-1 pr-3 py-1">
-              <Text className="text-blue-600 text-base font-semibold">‹ {t("common.back")}</Text>
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      <View className="flex-1 bg-white">
+    <View style={{ flex: 1, backgroundColor: BG, paddingTop: insets.top }}>
+      <StatusBar barStyle="light-content" backgroundColor={BG} />
 
-        <BannerAd />
+      {/* ── Custom header ── */}
+      <View style={{
+        flexDirection: "row", alignItems: "center",
+        paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12,
+        borderBottomWidth: 1, borderBottomColor: DIM3,
+      }}>
+        {/* Back button */}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            width: 36, height: 36, borderRadius: 18,
+            backgroundColor: ELEVATED,
+            alignItems: "center", justifyContent: "center",
+            marginRight: 12,
+          }}
+          activeOpacity={0.7}
+        >
+          <FontAwesome name="chevron-left" size={14} color={INK} />
+        </TouchableOpacity>
 
-        {/* Header banner */}
-        <View className="bg-blue-600 px-4 py-3">
-          <Text className="text-white font-bold text-base">{friendName}</Text>
-          <Text className="text-blue-200 text-xs">
-            {t("friends.duplicatesCount", { count: duplicateStickers.length })}
+        {/* Avatar + name */}
+        <View style={{
+          width: 36, height: 36, borderRadius: 18,
+          backgroundColor: avatarBg(friendName),
+          alignItems: "center", justifyContent: "center",
+          marginRight: 10,
+        }}>
+          <Text style={{ color: "#fff", fontSize: 14, fontWeight: "800" }}>
+            {friendName[0]?.toUpperCase() ?? "?"}
           </Text>
         </View>
 
-        {/* Sticker picker */}
-        <StickerPickerPanel
-          pool={duplicateStickers}
-          selected={selected}
-          onToggle={toggle}
-          emptyText={t("friends.noDuplicates", { name: friendName })}
-        />
-
-        {/* Bottom action */}
-        {duplicateStickers.length > 0 && (
-          <View className="bg-white border-t border-gray-100 px-4 py-4">
-            <TouchableOpacity
-              onPress={handleSendRequest}
-              disabled={sending || selected.length === 0}
-              className={`rounded-2xl py-4 items-center ${
-                selected.length > 0 && !sending ? "bg-green-600" : "bg-gray-200"
-              }`}
-              activeOpacity={0.8}
-            >
-              {sending ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text
-                  className={`font-bold text-base ${selected.length > 0 ? "text-white" : "text-gray-400"}`}
-                >
-                  {selected.length > 0
-                    ? t("friends.sendRequest", { count: selected.length })
-                    : t("friends.selectToRequest")}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: INK, fontSize: 16, fontWeight: "700" }} numberOfLines={1}>
+            {friendName}
+          </Text>
+          <Text style={{ color: DIM, fontSize: 12, marginTop: 1 }}>
+            {t("friends.duplicatesCount", { count: duplicateStickers.length })}
+          </Text>
+        </View>
       </View>
-    </>
+
+      {/* ── Sticker picker ── */}
+      <StickerPickerPanel
+        pool={duplicateStickers}
+        selected={selected}
+        onToggle={toggle}
+        emptyText={t("friends.noDuplicates", { name: friendName })}
+      />
+
+      {/* ── Bottom action ── */}
+      {duplicateStickers.length > 0 && (
+        <View style={{
+          backgroundColor: SURFACE,
+          borderTopWidth: 1, borderTopColor: DIM3,
+          paddingHorizontal: 16, paddingTop: 12,
+          paddingBottom: insets.bottom + 12,
+        }}>
+          <TouchableOpacity
+            onPress={handleSendRequest}
+            disabled={sending || selected.length === 0}
+            style={{
+              borderRadius: 14, paddingVertical: 16, alignItems: "center",
+              backgroundColor: selected.length > 0 && !sending ? GREEN : ELEVATED,
+            }}
+            activeOpacity={0.8}
+          >
+            {sending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={{
+                fontSize: 15, fontWeight: "800",
+                color: selected.length > 0 ? "#fff" : DIM,
+              }}>
+                {selected.length > 0
+                  ? t("friends.sendRequest", { count: selected.length })
+                  : t("friends.selectToRequest")}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
 }
