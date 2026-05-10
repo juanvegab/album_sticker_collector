@@ -262,7 +262,11 @@ export default function SobreScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.back()} style={{ alignItems: "center" }} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={() => router.navigate("/(tabs)/album")}
+            style={{ alignItems: "center" }}
+            activeOpacity={0.7}
+          >
             <Text style={{ color: "rgba(245,244,238,0.45)", fontSize: 14, fontWeight: "500" }}>
               {t("sobre.landing.oneByOne")}
             </Text>
@@ -283,7 +287,7 @@ export default function SobreScreen() {
         {/* ── Header ── */}
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }}>
           <TouchableOpacity
-            onPress={() => { setStep("landing"); setEntries([]); setKb({ phase: "letter" }); }}
+            onPress={() => { setEntries([]); setKb({ phase: "letter" }); router.back(); }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 22 }}>✕</Text>
@@ -294,7 +298,7 @@ export default function SobreScreen() {
           </Text>
 
           <TouchableOpacity
-            onPress={() => setStep("result")}
+            onPress={() => { saveEntries(entries); setStep("result"); }}
             disabled={entries.length === 0}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
@@ -703,7 +707,7 @@ export default function SobreScreen() {
       }}>
         <TouchableOpacity
           onPress={() => {
-            saveEntries(entries);
+            // Already saved when "Listo" was tapped — just reset for next pack
             setEntries([]);
             setKb({ phase: "letter" });
             setStep("input");
@@ -720,10 +724,7 @@ export default function SobreScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => {
-            saveEntries(entries);
-            router.back();
-          }}
+          onPress={() => router.navigate("/(tabs)/album")}
           style={{
             flex: 2, backgroundColor: "#F4C430", borderRadius: 16,
             paddingVertical: 17, alignItems: "center",
