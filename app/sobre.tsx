@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useCollection } from "@/hooks/useCollection";
-import { WORLD_CUP_2026, TEAM_GROUP } from "@/lib/data/world-cup-2026";
+import { WORLD_CUP_2026, TEAM_GROUP, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
 import { colorForSection, needsDarkText } from "@/lib/design/groupColors";
 import type { AlbumSection, AlbumSticker } from "@/types/album";
 
@@ -110,7 +110,8 @@ function ResultCard({ entry }: { entry: Entry }) {
   const dark = needsDarkText(color);
   const textColor = dark ? "rgba(0,0,0,0.7)" : "#fff";
   const subColor = dark ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.6)";
-  const cardW = (W - 32 - 12) / 4;
+  // 3 cards per row, 2px margin each side → (16+16) padding + (2+2+2+2) inner margins = 44px
+  const cardW = (W - 44) / 3;
 
   return (
     <View style={{
@@ -460,18 +461,27 @@ export default function SobreScreen() {
                   {(SECTIONS_BY_LETTER.get(kb.letter) ?? []).map((section) => {
                     const color = colorForSection(section.id, TEAM_GROUP);
                     const dark = needsDarkText(color);
+                    const iso = FIFA_TO_ISO[section.id];
                     return (
                       <TouchableOpacity
                         key={section.id}
                         onPress={() => setKb({ phase: "number", section })}
                         style={{
-                          flexDirection: "row", alignItems: "center", gap: 8,
+                          flexDirection: "row", alignItems: "center", gap: 10,
                           backgroundColor: color, borderRadius: 99,
                           paddingHorizontal: 16, paddingVertical: 12,
                         }}
                         activeOpacity={0.75}
                       >
-                        <Text style={{ fontSize: 20 }}>{section.emoji}</Text>
+                        {iso ? (
+                          <Image
+                            source={{ uri: `https://flagcdn.com/w40/${iso}.png` }}
+                            style={{ width: 28, height: 19, borderRadius: 3 }}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Text style={{ fontSize: 20 }}>{section.emoji}</Text>
+                        )}
                         <View>
                           <Text style={{
                             color: dark ? "#0B0B0E" : "#fff",
@@ -500,6 +510,7 @@ export default function SobreScreen() {
             const numbers = getNumbers(section.id);
             const sectionColor = colorForSection(section.id, TEAM_GROUP);
             const sectionDark = needsDarkText(sectionColor);
+            const sectionIso = FIFA_TO_ISO[section.id];
 
             return (
               <View style={{ flex: 1 }}>
@@ -515,7 +526,15 @@ export default function SobreScreen() {
                     backgroundColor: sectionColor, borderRadius: 99,
                     paddingHorizontal: 12, paddingVertical: 6,
                   }}>
-                    <Text style={{ fontSize: 16 }}>{section.emoji}</Text>
+                    {sectionIso ? (
+                      <Image
+                        source={{ uri: `https://flagcdn.com/w40/${sectionIso}.png` }}
+                        style={{ width: 24, height: 16, borderRadius: 2 }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={{ fontSize: 16 }}>{section.emoji}</Text>
+                    )}
                     <Text style={{
                       color: sectionDark ? "#0B0B0E" : "#fff",
                       fontSize: 13, fontWeight: "800",
@@ -643,11 +662,20 @@ export default function SobreScreen() {
           )}
         </View>
 
-        {/* Sticker cards grid */}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -2 }}>
-          {validEntries.map((entry, i) => (
-            <ResultCard key={i} entry={entry} />
-          ))}
+        {/* Sticker cards grid — 3 per row, last card centered if alone */}
+        <View style={{ marginHorizontal: -2 }}>
+          {Array.from({ length: Math.ceil(validEntries.length / 3) }, (_, rowIdx) => {
+            const row = validEntries.slice(rowIdx * 3, rowIdx * 3 + 3);
+            const isLast = rowIdx === Math.ceil(validEntries.length / 3) - 1 && row.length < 3;
+            return (
+              <View
+                key={rowIdx}
+                style={{ flexDirection: "row", justifyContent: isLast ? "center" : "flex-start" }}
+              >
+                {row.map((entry, i) => <ResultCard key={`${rowIdx}-${i}`} entry={entry} />)}
+              </View>
+            );
+          })}
         </View>
       </ScrollView>
 
