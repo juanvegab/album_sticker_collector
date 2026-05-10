@@ -124,7 +124,12 @@ export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭
                       resizeMode="cover"
                     />
                   ) : (
-                    <Text style={{ fontSize: 14, marginRight: 6 }}>⭐</Text>
+                    <View style={{
+                      width: 22, height: 15, borderRadius: 2, marginRight: 6,
+                      backgroundColor: BRAND, alignItems: "center", justifyContent: "center",
+                    }}>
+                      <Text style={{ color: BG, fontSize: 6, fontWeight: "900", letterSpacing: 0.2 }}>FWC</Text>
+                    </View>
                   )}
                   <Text
                     style={{
@@ -189,7 +194,14 @@ export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭
                   style={{ width: 22, height: 15, borderRadius: 2, marginRight: 8 }}
                   resizeMode="cover"
                 />
-              ) : null}
+              ) : (
+                <View style={{
+                  width: 22, height: 15, borderRadius: 2, marginRight: 8,
+                  backgroundColor: BRAND, alignItems: "center", justifyContent: "center",
+                }}>
+                  <Text style={{ color: BG, fontSize: 6, fontWeight: "900", letterSpacing: 0.2 }}>FWC</Text>
+                </View>
+              )}
               <Text style={{ color: INK, fontSize: 12, fontWeight: "700", flex: 1 }}>{section.name}</Text>
               {selCount > 0 && (
                 <Text style={{ color: BRAND, fontSize: 11, fontWeight: "700" }}>
