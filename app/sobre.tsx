@@ -320,30 +320,31 @@ export default function SobreScreen() {
           ))}
         </View>
 
-        {/* ── Pack slots ── */}
-        <View style={{ flexDirection: "row", paddingHorizontal: 12, gap: 5, marginBottom: 12 }}>
-          {Array.from({ length: PACK_SIZE }).map((_, i) => {
+        {/* ── Pack slots — 3 / 3 / 1 grid ── */}
+        {(() => {
+          // Card width: 3 per row, 12px h-padding each side, 8px gap × 2
+          const SLOT_W = Math.floor((W - 24 - 16) / 3);
+          const SLOT_H = 76;
+
+          const renderSlot = (i: number) => {
             const entry = entries[i];
+            const isNext = i === entries.length && !packFull;
 
             if (!entry) {
               return (
                 <View
                   key={i}
                   style={{
-                    flex: 1, height: 58, borderRadius: 10,
+                    width: SLOT_W, height: SLOT_H, borderRadius: 12,
                     borderWidth: 1.5,
-                    borderColor: i === entries.length && !packFull
-                      ? "rgba(244,196,48,0.5)"
-                      : "rgba(245,244,238,0.1)",
+                    borderColor: isNext ? "rgba(244,196,48,0.5)" : "rgba(245,244,238,0.1)",
                     borderStyle: "dashed",
                     alignItems: "center", justifyContent: "center",
                   }}
                 >
                   <Text style={{
-                    color: i === entries.length && !packFull
-                      ? "rgba(244,196,48,0.5)"
-                      : "rgba(245,244,238,0.18)",
-                    fontSize: 11, fontWeight: "700",
+                    color: isNext ? "rgba(244,196,48,0.5)" : "rgba(245,244,238,0.18)",
+                    fontSize: 13, fontWeight: "700",
                   }}>
                     {i + 1}
                   </Text>
@@ -361,32 +362,48 @@ export default function SobreScreen() {
                 key={i}
                 onPress={() => removeEntry(i)}
                 style={{
-                  flex: 1, height: 58, borderRadius: 10,
+                  width: SLOT_W, height: SLOT_H, borderRadius: 12,
                   backgroundColor: cardColor,
                   alignItems: "center", justifyContent: "center",
                   overflow: "hidden",
                 }}
                 activeOpacity={0.75}
               >
-                <Text style={{ fontSize: 7, fontWeight: "800", color: tc, letterSpacing: 0.3 }}>
+                <Text style={{ fontSize: 9, fontWeight: "800", color: tc, letterSpacing: 0.4 }}>
                   {entry.sticker.sectionId}
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: "800", color: tc }}>
+                <Text style={{ fontSize: 20, fontWeight: "800", color: tc, lineHeight: 24 }}>
                   {displayNum(entry.sticker.sectionId, entry.sticker.number)}
                 </Text>
-                {/* Delete hint */}
                 <View style={{
-                  position: "absolute", top: 3, right: 3,
-                  width: 13, height: 13, borderRadius: 7,
+                  position: "absolute", top: 4, right: 4,
+                  width: 16, height: 16, borderRadius: 8,
                   backgroundColor: "rgba(0,0,0,0.28)",
                   alignItems: "center", justifyContent: "center",
                 }}>
-                  <Text style={{ color: "#fff", fontSize: 7, lineHeight: 10 }}>✕</Text>
+                  <Text style={{ color: "#fff", fontSize: 8, lineHeight: 11 }}>✕</Text>
                 </View>
               </TouchableOpacity>
             );
-          })}
-        </View>
+          };
+
+          return (
+            <View style={{ paddingHorizontal: 12, gap: 8, marginBottom: 12 }}>
+              {/* Row 1: slots 0-2 */}
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {[0, 1, 2].map(renderSlot)}
+              </View>
+              {/* Row 2: slots 3-5 */}
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {[3, 4, 5].map(renderSlot)}
+              </View>
+              {/* Row 3: slot 6 — centered */}
+              <View style={{ flexDirection: "row", justifyContent: "center" }}>
+                {renderSlot(6)}
+              </View>
+            </View>
+          );
+        })()}
 
         {/* ── Keyboard area ── */}
         <View style={{ flex: 1, paddingHorizontal: 16, paddingBottom: insets.bottom + 8 }}>
