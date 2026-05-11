@@ -1,15 +1,17 @@
 import React, { useCallback } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useCollectionStore } from "@/store/collectionStore";
+import { needsDarkText } from "@/lib/design/groupColors";
 import type { AlbumSticker } from "@/types/album";
 
 interface Props {
   sticker: AlbumSticker;
+  sectionColor: string;           // pre-computed by album screen
   onToggle: (id: string) => void;
   onSetDups: (id: string, count: number) => void;
 }
 
-export const StickerCard = React.memo(({ sticker, onToggle, onSetDups }: Props) => {
+export const StickerCard = React.memo(({ sticker, sectionColor, onToggle, onSetDups }: Props) => {
   const count = useCollectionStore(
     useCallback(
       (state) => {
@@ -25,108 +27,129 @@ export const StickerCard = React.memo(({ sticker, onToggle, onSetDups }: Props) 
 
   const isOwned = count > 0;
   const dups = Math.max(0, count - 1);
+  const dark = needsDarkText(sectionColor);
 
-  // Gray card tap → mark as owned
   const handleCardPress = useCallback(() => {
     if (!isOwned) onToggle(sticker.id);
   }, [isOwned, sticker.id, onToggle]);
 
-  // + increments duplicates (only shown when owned)
   const handleIncrement = useCallback(() => {
     onSetDups(sticker.id, dups + 1);
   }, [dups, sticker.id, onSetDups]);
 
-  // − decrements duplicates, or removes owned when at 1
   const handleDecrement = useCallback(() => {
     if (dups > 0) onSetDups(sticker.id, dups - 1);
     else onToggle(sticker.id);
   }, [dups, sticker.id, onToggle, onSetDups]);
 
-  const containerClass =
-    count === 0
-      ? "bg-gray-100 border-gray-200"
-      : count === 1
-      ? "bg-green-600 border-green-700"
-      : "bg-yellow-400 border-yellow-500";
-
-  const idClass =
-    count === 0 ? "text-gray-400" : count === 1 ? "text-white" : "text-yellow-900";
-
-  const nameClass =
-    count === 0 ? "text-gray-400" : count === 1 ? "text-green-100" : "text-yellow-800";
-
-  const btnClass =
-    count === 0 ? "text-gray-600" : count === 1 ? "text-white" : "text-yellow-900";
-
-  const btnBg = count <= 1 ? "rgba(0,0,0,0.15)" : "rgba(0,0,0,0.18)";
+  // ── Derived colors ───────────────────────────────────────────────────
+  // count=0: dark card, section-colored badge
+  // count=1: section-colored card (tengo)
+  // count≥2: orange card — "duplicate" token #F2853A (semánticamente correcto)
+  const DUP_COLOR = "#F2853A"; // duplicate design token — distinct from all group colors now that F=#10B981
+  const cardBg    = count === 0 ? "#15161B" : count === 1 ? sectionColor : DUP_COLOR;
+  const darkCard  = count === 1 ? dark : false;           // orange is always light-text-friendly
+  const badgeBg       = count === 0 ? sectionColor        : "rgba(0,0,0,0.2)";
+  const badgeText     = count === 0 ? (dark ? "#0B0B0E" : "#fff") : (darkCard ? "rgba(0,0,0,0.65)" : "#fff");
+  const codeColor     = count === 0 ? "rgba(245,244,238,0.35)" : (darkCard ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.55)");
+  const btnBg         = count === 0 ? "rgba(245,244,238,0.1)" : "rgba(0,0,0,0.18)";
+  const btnText       = count === 0 ? "rgba(245,244,238,0.55)" : (darkCard ? "rgba(0,0,0,0.65)" : "#fff");
+  const dupBadgeBg    = count === 0 ? "rgba(245,244,238,0.12)" : "rgba(0,0,0,0.35)";
+  const dupBadgeText  = count === 0 ? "rgba(245,244,238,0.55)" : (darkCard ? "rgba(0,0,0,0.7)" : "#fff");
 
   return (
     <TouchableOpacity
-      className={`flex-1 m-1 rounded-lg border ${containerClass}`}
-      style={{ minHeight: 84 }}
+      style={{
+        flex: 1,
+        margin: 3,
+        borderRadius: 12,
+        backgroundColor: cardBg,
+        // dashed border when not owned
+        ...(isOwned ? {} : {
+          borderWidth: 1,
+          borderColor: "rgba(245,244,238,0.13)",
+          borderStyle: "dashed",
+        }),
+      }}
       onPress={handleCardPress}
-      activeOpacity={isOwned ? 1 : 0.65}
+      activeOpacity={isOwned ? 1 : 0.7}
     >
-      {/* ID + total-count badge (shown when ≥ 2) */}
-      <View className="flex-row justify-between items-center px-1.5 pt-1.5">
-        <Text className={`text-xs font-bold ${idClass}`} numberOfLines={1}>
-          {sticker.id}
-        </Text>
+      {/* ── TOP: section badge + dup count ── */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", padding: 7 }}>
+        {/* Section badge */}
+        <View style={{
+          backgroundColor: badgeBg,
+          borderRadius: 5,
+          paddingHorizontal: 5,
+          paddingVertical: 2,
+        }}>
+          <Text style={{ color: badgeText, fontSize: 9, fontWeight: "800", letterSpacing: 0.3 }}>
+            {sticker.sectionId}
+          </Text>
+        </View>
+
+        {/* Duplicate count badge — only when count ≥ 2 */}
         {count >= 2 && (
-          <View className="bg-black/20 rounded-full px-1.5">
-            <Text className="text-xs font-bold text-yellow-900">{count}</Text>
+          <View style={{
+            backgroundColor: dupBadgeBg,
+            borderRadius: 99,
+            minWidth: 20, height: 20,
+            paddingHorizontal: 4,
+            alignItems: "center", justifyContent: "center",
+          }}>
+            <Text style={{ color: dupBadgeText, fontSize: 9, fontWeight: "800" }}>
+              ×{count}
+            </Text>
           </View>
         )}
       </View>
 
-      {/* Sticker name */}
-      <View className="flex-1 items-center justify-center px-1">
-        <Text className={`text-xs text-center ${nameClass}`} numberOfLines={2}>
-          {sticker.name}
+      {/* ── CENTER: sticker code — always centered, never hidden ── */}
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}>
+        <Text
+          style={{ color: codeColor, fontSize: 12, fontWeight: "700", letterSpacing: 0.2 }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {sticker.id}
         </Text>
       </View>
 
-      {/* +/− controls — only rendered when owned */}
+      {/* ── BOTTOM: toggle (owned) or spacer (not owned) ── */}
       {isOwned ? (
-        <View className="flex-row items-center justify-between px-1 pb-1.5 mt-1">
+        <View style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingHorizontal: 7,
+          paddingBottom: 7,
+        }}>
           <TouchableOpacity
             onPress={handleDecrement}
             hitSlop={{ top: 8, bottom: 8, left: 10, right: 6 }}
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
+              width: 26, height: 26, borderRadius: 13,
               backgroundColor: btnBg,
-              alignItems: "center",
-              justifyContent: "center",
+              alignItems: "center", justifyContent: "center",
             }}
           >
-            <Text className={`text-xl font-bold leading-none ${btnClass}`}>−</Text>
+            <Text style={{ color: btnText, fontSize: 18, fontWeight: "800", lineHeight: 22 }}>−</Text>
           </TouchableOpacity>
-
-          {/* Total count (1 in album + extras) — only shown when ≥ 2 */}
-          {count >= 2 && (
-            <Text className={`text-xs font-semibold ${idClass}`}>{count}</Text>
-          )}
 
           <TouchableOpacity
             onPress={handleIncrement}
             hitSlop={{ top: 8, bottom: 8, left: 6, right: 10 }}
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
+              width: 26, height: 26, borderRadius: 13,
               backgroundColor: btnBg,
-              alignItems: "center",
-              justifyContent: "center",
+              alignItems: "center", justifyContent: "center",
             }}
           >
-            <Text className={`text-xl font-bold leading-none ${btnClass}`}>+</Text>
+            <Text style={{ color: btnText, fontSize: 18, fontWeight: "800", lineHeight: 22 }}>+</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        // Spacer to keep card height consistent when buttons are hidden
-        <View style={{ height: 34 }} />
+        <View style={{ height: 40 }} />
       )}
     </TouchableOpacity>
   );

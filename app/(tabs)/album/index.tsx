@@ -1,16 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
+  View, Text, ScrollView, FlatList,
+  TouchableOpacity, Image, ActivityIndicator, StatusBar,
+  NativeSyntheticEvent, NativeScrollEvent,
 } from "react-native";
-import { Stack } from "expo-router";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useTranslation } from "react-i18next";
 import { useCollection } from "@/hooks/useCollection";
 import { useCollectionStore } from "@/store/collectionStore";
@@ -19,19 +13,28 @@ import { NativeAdCard, AD_HEIGHT } from "@/components/ads/NativeAdCard";
 import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialBanner } from "@/components/premium/TrialBanner";
 import { WORLD_CUP_2026, TEAM_GROUP, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
+import { GROUP_COLORS, colorForSection, needsDarkText } from "@/lib/design/groupColors";
 import { usePremiumStore } from "@/store/premiumStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AlbumSection, AlbumSticker } from "@/types/album";
 
-// ── Layout constants (must match rendered heights exactly) ────────────
-const SECTION_HEADER_HEIGHT = 43;
-const ROW_HEIGHT = 96;
+// ── Layout constants ──────────────────────────────────────────────────
+const SECTION_HEADER_HEIGHT = 56;
+const ROW_HEIGHT = 104;  // card height ≈ 98px after 3px top+bottom margin
+const STICKERS_PER_ROW = 3;
 const PADDING_TOP = 6;
 
-// ── Flat item list for the right panel ───────────────────────────────
+// Pre-computed section colors (module level, stable)
+const SECTION_COLOR_MAP = new Map<string, string>();
+for (const section of WORLD_CUP_2026.sections) {
+  SECTION_COLOR_MAP.set(section.id, colorForSection(section.id, TEAM_GROUP));
+}
+
+// ── Flat item list ────────────────────────────────────────────────────
 type FlatItem =
   | { type: "header"; sectionId: string; section: AlbumSection }
-  | { type: "row"; sectionId: string; stickers: AlbumSticker[] }
-  | { type: "ad"; sectionId: string; adIndex: number };
+  | { type: "row";    sectionId: string; stickers: AlbumSticker[] }
+  | { type: "ad";     sectionId: string; adIndex: number };
 
 const FLAT_ITEMS: FlatItem[] = [];
 const SECTION_FIRST_IDX = new Map<string, number>();
@@ -40,19 +43,17 @@ let _adCounter = 0;
 for (const section of WORLD_CUP_2026.sections) {
   SECTION_FIRST_IDX.set(section.id, FLAT_ITEMS.length);
   FLAT_ITEMS.push({ type: "header", sectionId: section.id, section });
-  // Native ad injected right after each section header
   FLAT_ITEMS.push({ type: "ad", sectionId: section.id, adIndex: _adCounter++ });
-  for (let i = 0; i < section.stickers.length; i += 2) {
+  for (let i = 0; i < section.stickers.length; i += STICKERS_PER_ROW) {
     FLAT_ITEMS.push({
       type: "row",
       sectionId: section.id,
-      stickers: section.stickers.slice(i, i + 2),
+      stickers: section.stickers.slice(i, i + STICKERS_PER_ROW),
     });
   }
 }
 
-// Pre-computed cumulative offsets — two variants: with ads (non-premium) and without ads (trial/premium).
-// NativeAdCard renders null (0px) when showAds() is false, so offsets diverge per ad item.
+// ── Pre-computed offsets ──────────────────────────────────────────────
 type SectionBound = { sectionId: string; start: number; end: number };
 
 function buildOffsets(adH: number): { offsets: number[]; bounds: SectionBound[] } {
@@ -67,31 +68,27 @@ function buildOffsets(adH: number): { offsets: number[]; bounds: SectionBound[] 
     if (FLAT_ITEMS[i].type === "header") {
       let j = i + 1;
       while (j < FLAT_ITEMS.length && FLAT_ITEMS[j].type !== "header") j++;
-      const end =
-        j < FLAT_ITEMS.length ? offsets[j] : offsets[FLAT_ITEMS.length - 1] + ROW_HEIGHT;
+      const end = j < FLAT_ITEMS.length
+        ? offsets[j]
+        : offsets[FLAT_ITEMS.length - 1] + ROW_HEIGHT;
       bounds.push({ sectionId: FLAT_ITEMS[i].sectionId, start: offsets[i], end });
     }
   }
   return { offsets, bounds };
 }
 
-const { offsets: FLAT_OFFSETS_ADS, bounds: SECTION_BOUNDS_ADS } = buildOffsets(AD_HEIGHT);
+const { offsets: FLAT_OFFSETS_ADS,  bounds: SECTION_BOUNDS_ADS  } = buildOffsets(AD_HEIGHT);
 const { offsets: FLAT_OFFSETS_FREE, bounds: SECTION_BOUNDS_FREE } = buildOffsets(0);
 
-// Returns the section occupying the most pixels in [scrollY, scrollY+viewH].
 function sectionWithMostPixels(scrollY: number, viewH: number, bounds: SectionBound[]): string {
-  const vpTop = scrollY;
   const vpBottom = scrollY + Math.max(viewH, 1);
   let bestId = bounds[0].sectionId;
   let bestPx = -1;
   for (const { sectionId, start, end } of bounds) {
     if (start >= vpBottom) break;
-    if (end <= vpTop) continue;
-    const px = Math.min(vpBottom, end) - Math.max(vpTop, start);
-    if (px > bestPx) {
-      bestPx = px;
-      bestId = sectionId;
-    }
+    if (end <= scrollY) continue;
+    const px = Math.min(vpBottom, end) - Math.max(scrollY, start);
+    if (px > bestPx) { bestPx = px; bestId = sectionId; }
   }
   return bestId;
 }
@@ -120,10 +117,6 @@ const LEFT_ITEMS = buildLeftItems();
 
 // ── Memoized sub-components ───────────────────────────────────────────
 
-/**
- * Section header — reads its own owned-count from the Zustand store so the
- * parent's renderItem doesn't need ownedSet in scope.
- */
 const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
   const ownedCount = useCollectionStore(
     useCallback(
@@ -131,62 +124,84 @@ const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
         const owned = state.collection?.owned ?? [];
         return section.stickers.filter((s) => owned.includes(s.id)).length;
       },
-      // section is module-level static data — reference is stable
       [section]
     )
   );
 
   const iso = FIFA_TO_ISO[section.id];
   const total = section.stickers.length;
+  const color = SECTION_COLOR_MAP.get(section.id) ?? "#9CA3AF";
+  const dark = needsDarkText(color);
+  const textMain = dark ? "rgba(0,0,0,0.85)" : "#F5F4EE";
+  const textSub  = dark ? "rgba(0,0,0,0.5)"  : "rgba(245,244,238,0.6)";
+
+  const isFWC = section.id === "FWC";
+  const subtitle = isFWC
+    ? `Sección especial · ${total}`
+    : (() => {
+        const group = TEAM_GROUP[section.id];
+        return group ? `Grupo ${group}` : section.name;
+      })();
 
   return (
     <View
-      style={{ height: SECTION_HEADER_HEIGHT }}
-      className="flex-row items-center bg-gray-100 px-3 border-b border-gray-200"
+      style={{ height: SECTION_HEADER_HEIGHT, backgroundColor: color, flexDirection: "row", alignItems: "center", paddingHorizontal: 12 }}
     >
+      {/* Flag or emoji */}
       {iso ? (
         <Image
           source={{ uri: `https://flagcdn.com/w40/${iso}.png` }}
-          style={{ width: 28, height: 19, borderRadius: 2, marginRight: 7 }}
+          style={{ width: 28, height: 19, borderRadius: 3, marginRight: 9 }}
           resizeMode="cover"
         />
       ) : (
-        <Text className="text-lg mr-2">{section.emoji}</Text>
+        <Text style={{ fontSize: 20, marginRight: 8 }}>{section.emoji}</Text>
       )}
-      <Text className="text-sm font-bold text-gray-800 flex-1" numberOfLines={1}>
-        {section.name}
-      </Text>
-      <Text className="text-xs text-gray-500">
-        {ownedCount}/{total} · {Math.round((ownedCount / total) * 100)}%
+
+      {/* Name + subtitle */}
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: textMain, fontSize: 15, fontWeight: "700", lineHeight: 19 }} numberOfLines={1}>
+          {section.name}
+        </Text>
+        <Text style={{ color: textSub, fontSize: 11, fontWeight: "500" }}>
+          {subtitle}
+        </Text>
+      </View>
+
+      {/* Count */}
+      <Text style={{ color: textSub, fontSize: 13, fontWeight: "600" }}>
+        {ownedCount}/{total}
       </Text>
     </View>
   );
 });
 
-/**
- * Sticker row — stable props so React.memo inside StickerCard can short-circuit.
- * All state reading is handled inside StickerCard via per-sticker Zustand selectors.
- */
 const StickerRow = React.memo(
   ({
     stickers,
+    sectionColor,
     onToggle,
     onSetDups,
   }: {
     stickers: AlbumSticker[];
+    sectionColor: string;
     onToggle: (id: string) => void;
     onSetDups: (id: string, count: number) => void;
   }) => (
-    <View className="flex-row" style={{ height: ROW_HEIGHT }}>
+    <View style={{ flexDirection: "row", height: ROW_HEIGHT }}>
       {stickers.map((sticker) => (
         <StickerCard
           key={sticker.id}
           sticker={sticker}
+          sectionColor={sectionColor}
           onToggle={onToggle}
           onSetDups={onSetDups}
         />
       ))}
-      {stickers.length < 2 && <View className="flex-1 m-1" />}
+      {/* Fill empty slots in last row */}
+      {Array.from({ length: STICKERS_PER_ROW - stickers.length }).map((_, i) => (
+        <View key={i} style={{ flex: 1, margin: 3 }} />
+      ))}
     </View>
   )
 );
@@ -194,6 +209,7 @@ const StickerRow = React.memo(
 // ── Screen ────────────────────────────────────────────────────────────
 export default function AlbumScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { ownedSet, toggle, setDuplicates, collectionLoaded } = useCollection();
   const showAds = usePremiumStore((s) => s.showAds());
   const showAdsRef = useRef(showAds);
@@ -235,13 +251,9 @@ export default function AlbumScreen() {
     updateActive(section.id, true);
     const idx = SECTION_FIRST_IDX.get(section.id) ?? 0;
     programmaticTarget.current = section.id;
-
     const offsets = showAdsRef.current ? FLAT_OFFSETS_ADS : FLAT_OFFSETS_FREE;
     rightListRef.current?.scrollToOffset({ offset: offsets[idx] ?? 0, animated: true });
-
-    setTimeout(() => {
-      programmaticTarget.current = null;
-    }, 1500);
+    setTimeout(() => { programmaticTarget.current = null; }, 1500);
   }
 
   const handleScrollBeginDrag = useCallback(() => {
@@ -253,26 +265,18 @@ export default function AlbumScreen() {
     const scrollY = e.nativeEvent.contentOffset.y;
     const viewH = rightPanelHeight.current > 0 ? rightPanelHeight.current : ROW_HEIGHT * 6;
     const bounds = showAdsRef.current ? SECTION_BOUNDS_ADS : SECTION_BOUNDS_FREE;
-    const id = sectionWithMostPixels(scrollY, viewH, bounds);
-    updateActive(id, true);
+    updateActive(sectionWithMostPixels(scrollY, viewH, bounds), true);
   }, []);
 
-  /**
-   * renderItem is memoized with stable deps (toggle/setDuplicates never change
-   * while logged in). FlatList won't re-render cells just because AlbumScreen
-   * re-renders (e.g. when ownedSet changes for the left panel).
-   */
   const renderItem = useCallback(
     ({ item }: { item: FlatItem }) => {
-      if (item.type === "header") {
-        return <SectionHeader section={item.section} />;
-      }
-      if (item.type === "ad") {
-        return <NativeAdCard adIndex={item.adIndex} />;
-      }
+      if (item.type === "header") return <SectionHeader section={item.section} />;
+      if (item.type === "ad")    return <NativeAdCard adIndex={item.adIndex} />;
+      const sectionColor = SECTION_COLOR_MAP.get(item.sectionId) ?? "#9CA3AF";
       return (
         <StickerRow
           stickers={item.stickers}
+          sectionColor={sectionColor}
           onToggle={toggle}
           onSetDups={setDuplicates}
         />
@@ -283,7 +287,7 @@ export default function AlbumScreen() {
 
   const keyExtractor = useCallback((item: FlatItem, i: number) => {
     if (item.type === "header") return `hdr-${item.sectionId}`;
-    if (item.type === "ad") return `ad-${item.sectionId}`;
+    if (item.type === "ad")     return `ad-${item.sectionId}`;
     return `row-${item.stickers[0].id}-${i}`;
   }, []);
 
@@ -291,131 +295,160 @@ export default function AlbumScreen() {
     const item = FLAT_ITEMS[index];
     const ads = showAdsRef.current;
     const length =
-      item?.type === "header"
-        ? SECTION_HEADER_HEIGHT
-        : item?.type === "ad"
-        ? (ads ? AD_HEIGHT : 0)
-        : ROW_HEIGHT;
+      item?.type === "header" ? SECTION_HEADER_HEIGHT :
+      item?.type === "ad"     ? (ads ? AD_HEIGHT : 0) :
+      ROW_HEIGHT;
     const offsets = ads ? FLAT_OFFSETS_ADS : FLAT_OFFSETS_FREE;
     return { length, offset: offsets[index] ?? 0, index };
   }, []);
 
   return (
-    <>
-      <Stack.Screen options={{ title: t("album.title") }} />
-      <View className="flex-1 bg-gray-50">
+    <View style={{ flex: 1, backgroundColor: "#0B0B0E", paddingTop: insets.top }}>
+      <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
 
-        {/* Global progress banner */}
-        <View className="bg-blue-600 px-4 py-3">
-          <Text className="text-white text-base font-bold">⚽ FIFA World Cup 2026™</Text>
-          <Text className="text-blue-200 text-xs mb-2">
-            {owned} / {total} · {pct}%
+      <TrialBanner />
+      <BannerAd />
+
+      {/* ══ FULL-WIDTH HEADER ══ */}
+      <View style={{
+        flexDirection: "row", alignItems: "center",
+        paddingHorizontal: 16, paddingBottom: 12, paddingTop: 8,
+        borderBottomWidth: 1, borderBottomColor: "rgba(245,244,238,0.07)",
+      }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 9, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" }}>
+            {t("album.title")}
           </Text>
-          <View className="h-2 bg-blue-400 rounded-full overflow-hidden">
-            <View className="h-full bg-white rounded-full" style={{ width: `${pct}%` }} />
-          </View>
+          <Text style={{ color: "#F5F4EE", fontSize: 22, fontWeight: "800", lineHeight: 28, marginTop: 1 }}>
+            {pct}%
+            <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 14, fontWeight: "600" }}>
+              {" · "}{owned}/{total}
+            </Text>
+          </Text>
         </View>
+        <TouchableOpacity
+          style={{
+            width: 38, height: 38, borderRadius: 12,
+            backgroundColor: "#1C1D24",
+            alignItems: "center", justifyContent: "center",
+          }}
+          activeOpacity={0.7}
+        >
+          <FontAwesome name="search" size={15} color="rgba(245,244,238,0.55)" />
+        </TouchableOpacity>
+      </View>
 
-        <TrialBanner />
-        <BannerAd />
+      <View style={{ flex: 1, flexDirection: "row" }}>
 
-        <View className="flex-1 flex-row">
+        {/* ══ LEFT PANEL ══ */}
+        <View style={{ width: 96, backgroundColor: "#0B0B0E", borderRightWidth: 1, borderRightColor: "rgba(245,244,238,0.07)" }}>
 
-          {/* ── Left panel: country list ── */}
-          <View style={{ width: 120 }} className="border-r border-gray-200 bg-white">
-            <ScrollView ref={leftScrollRef} showsVerticalScrollIndicator={false}>
-              {LEFT_ITEMS.map((item, i) => {
-                if (item.type === "header") {
-                  return (
-                    <View key={`hdr-${i}`} className="px-2 pt-3 pb-1">
-                      <Text className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+          <ScrollView ref={leftScrollRef} showsVerticalScrollIndicator={false}>
+            {LEFT_ITEMS.map((item, i) => {
+              if (item.type === "header") {
+                // ── GROUP CHIP ──
+                const color = GROUP_COLORS[item.group] ?? "#9CA3AF";
+                const dark  = needsDarkText(color);
+                return (
+                  <View key={`hdr-${i}`} style={{ paddingHorizontal: 8, paddingTop: 10, paddingBottom: 4 }}>
+                    <View style={{ backgroundColor: color, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 }}>
+                      <Text style={{
+                        color: dark ? "rgba(0,0,0,0.7)" : "#fff",
+                        fontSize: 9, fontWeight: "800", letterSpacing: 1,
+                        textTransform: "uppercase",
+                      }}>
                         {t("album.group", { letter: item.group })}
                       </Text>
                     </View>
-                  );
-                }
-                const { section } = item;
-                const sOwned = section.stickers.filter((s) => ownedSet.has(s.id)).length;
-                const sPct = Math.round((sOwned / section.stickers.length) * 100);
-                const isActive = section.id === activeSectionId;
-                const iso = FIFA_TO_ISO[section.id];
-                return (
-                  <TouchableOpacity
-                    key={section.id}
-                    onLayout={(e) => {
-                      const y = e.nativeEvent.layout.y;
-                      leftItemYRef.current.set(section.id, y);
-                      scrollLeftTo(section.id, y);
-                    }}
-                    onPress={() => handleSelectSection(section)}
-                    className={`px-3 py-3 ${isActive ? "bg-blue-50" : ""}`}
-                    activeOpacity={0.7}
-                  >
-                    <View className="flex-row items-center">
-                      {iso ? (
-                        <Image
-                          source={{ uri: `https://flagcdn.com/w40/${iso}.png` }}
-                          style={{ width: 30, height: 20, borderRadius: 3, marginRight: 7 }}
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <Text className="text-xl mr-1.5">{section.emoji}</Text>
-                      )}
-                      <Text
-                        className={`text-sm font-medium flex-1 ${
-                          isActive ? "text-blue-700" : "text-gray-700"
-                        }`}
-                        numberOfLines={1}
-                      >
-                        {section.id === "FWC" ? "FWC" : section.id}
-                      </Text>
-                    </View>
-                    <View className="h-1 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
-                      <View
-                        className="h-full bg-blue-400 rounded-full"
-                        style={{ width: `${sPct}%` }}
-                      />
-                    </View>
-                  </TouchableOpacity>
+                  </View>
                 );
-              })}
-              <View className="h-4" />
-            </ScrollView>
-          </View>
+              }
 
-          {/* ── Right panel: virtualized FlatList ── */}
-          <View
-            className="flex-1"
-            onLayout={(e) => {
-              rightPanelHeight.current = e.nativeEvent.layout.height;
-            }}
-          >
-            {!collectionLoaded ? (
-              <View className="flex-1 items-center justify-center">
-                <ActivityIndicator size="large" color="#2563eb" />
-              </View>
-            ) : (
-              <FlatList
-                ref={rightListRef}
-                data={FLAT_ITEMS}
-                keyExtractor={keyExtractor}
-                renderItem={renderItem}
-                getItemLayout={getItemLayout}
-                contentContainerStyle={{ paddingTop: PADDING_TOP, paddingBottom: 16 }}
-                windowSize={5}
-                initialNumToRender={12}
-                maxToRenderPerBatch={8}
-                updateCellsBatchingPeriod={50}
-                removeClippedSubviews={true}
-                onScroll={handleScroll}
-                onScrollBeginDrag={handleScrollBeginDrag}
-                scrollEventThrottle={100}
-              />
-            )}
-          </View>
+              // ── SECTION ITEM ──
+              const { section } = item;
+              const sOwned  = section.stickers.filter((s) => ownedSet.has(s.id)).length;
+              const sPct    = Math.round((sOwned / section.stickers.length) * 100);
+              const isActive = section.id === activeSectionId;
+              const iso     = FIFA_TO_ISO[section.id];
+              const color   = SECTION_COLOR_MAP.get(section.id) ?? "#9CA3AF";
 
+              return (
+                <TouchableOpacity
+                  key={section.id}
+                  onLayout={(e) => {
+                    const y = e.nativeEvent.layout.y;
+                    leftItemYRef.current.set(section.id, y);
+                    scrollLeftTo(section.id, y);
+                  }}
+                  onPress={() => handleSelectSection(section)}
+                  style={{
+                    paddingHorizontal: 8, paddingVertical: 8,
+                    backgroundColor: isActive ? "rgba(245,244,238,0.06)" : "transparent",
+                    borderLeftWidth: isActive ? 2 : 0,
+                    borderLeftColor: color,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  {/* Flag + section ID */}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    {iso ? (
+                      <Image
+                        source={{ uri: `https://flagcdn.com/w40/${iso}.png` }}
+                        style={{ width: 22, height: 15, borderRadius: 2 }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={{ fontSize: 14 }}>{section.emoji}</Text>
+                    )}
+                    <Text style={{
+                      color: isActive ? "#F5F4EE" : "rgba(245,244,238,0.55)",
+                      fontSize: 11, fontWeight: "700", flex: 1,
+                    }} numberOfLines={1}>
+                      {section.id === "FWC" ? "FWC" : section.id}
+                    </Text>
+                  </View>
+
+                  {/* Mini progress bar */}
+                  <View style={{ height: 2, backgroundColor: "rgba(245,244,238,0.1)", borderRadius: 99, marginTop: 5, overflow: "hidden" }}>
+                    <View style={{ height: 2, backgroundColor: color, borderRadius: 99, width: `${sPct}%` }} />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+            <View style={{ height: 120 }} />
+          </ScrollView>
         </View>
+
+        {/* ══ RIGHT PANEL ══ */}
+        <View
+          style={{ flex: 1 }}
+          onLayout={(e) => { rightPanelHeight.current = e.nativeEvent.layout.height; }}
+        >
+          {!collectionLoaded ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator size="large" color="#F4C430" />
+            </View>
+          ) : (
+            <FlatList
+              ref={rightListRef}
+              data={FLAT_ITEMS}
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              getItemLayout={getItemLayout}
+              contentContainerStyle={{ paddingTop: PADDING_TOP, paddingBottom: 120 }}
+              windowSize={5}
+              initialNumToRender={12}
+              maxToRenderPerBatch={8}
+              updateCellsBatchingPeriod={50}
+              removeClippedSubviews
+              onScroll={handleScroll}
+              onScrollBeginDrag={handleScrollBeginDrag}
+              scrollEventThrottle={100}
+            />
+          )}
+        </View>
+
       </View>
-    </>
+    </View>
   );
 }

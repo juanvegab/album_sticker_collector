@@ -4,6 +4,15 @@ import { useTranslation } from "react-i18next";
 import { WORLD_CUP_2026, TEAM_GROUP, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
 import type { AlbumSticker } from "@/types/album";
 
+// ── Design tokens ──────────────────────────────────────────────────────
+const BG       = "#0B0B0E";
+const SURFACE  = "#15161B";
+const ELEVATED = "#1C1D24";
+const INK      = "#F5F4EE";
+const DIM      = "rgba(245,244,238,0.38)";
+const DIM3     = "rgba(245,244,238,0.08)";
+const BRAND    = "#F4C430";
+
 interface PoolSection {
   sectionId: string;
   name: string;
@@ -24,6 +33,7 @@ interface Props {
 
 export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭", emptyText }: Props) {
   const { t } = useTranslation();
+
   const poolBySection = new Map<string, AlbumSticker[]>();
   for (const sticker of pool) {
     if (!poolBySection.has(sticker.sectionId)) poolBySection.set(sticker.sectionId, []);
@@ -68,9 +78,9 @@ export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭
 
   if (pool.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center px-6">
-        <Text className="text-4xl mb-3">{emptyIcon}</Text>
-        <Text className="text-gray-400 text-base text-center">
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 }}>
+        <Text style={{ fontSize: 40, marginBottom: 12 }}>{emptyIcon}</Text>
+        <Text style={{ color: DIM, fontSize: 15, textAlign: "center" }}>
           {emptyText ?? t("friends.noDuplicatesGeneric")}
         </Text>
       </View>
@@ -78,14 +88,15 @@ export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭
   }
 
   return (
-    <View className="flex-1 flex-row">
-      <View style={{ width: 120 }} className="border-r border-gray-200 bg-white">
+    <View style={{ flex: 1, flexDirection: "row" }}>
+      {/* Left sidebar */}
+      <View style={{ width: 112, borderRightWidth: 1, borderRightColor: DIM3, backgroundColor: SURFACE }}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {leftItems.map((item, i) => {
             if (item.type === "header") {
               return (
-                <View key={`hdr-${i}`} className="px-2 pt-3 pb-1">
-                  <Text className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+                <View key={`hdr-${i}`} style={{ paddingHorizontal: 10, paddingTop: 14, paddingBottom: 4 }}>
+                  <Text style={{ color: BRAND, fontSize: 10, fontWeight: "800", letterSpacing: 1.2, textTransform: "uppercase" }}>
                     {item.label}
                   </Text>
                 </View>
@@ -97,49 +108,73 @@ export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭
               <TouchableOpacity
                 key={item.sectionId}
                 onPress={() => handleSelectSection(item.sectionId)}
-                className={`px-3 py-3 ${isActive ? "bg-blue-50" : ""}`}
+                style={{
+                  paddingHorizontal: 10, paddingVertical: 10,
+                  backgroundColor: isActive ? "rgba(244,196,48,0.10)" : "transparent",
+                  borderLeftWidth: isActive ? 2 : 2,
+                  borderLeftColor: isActive ? BRAND : "transparent",
+                }}
                 activeOpacity={0.7}
               >
-                <View className="flex-row items-center">
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
                   {iso ? (
                     <Image
                       source={{ uri: `https://flagcdn.com/w40/${iso}.png` }}
-                      style={{ width: 24, height: 16, borderRadius: 2, marginRight: 6 }}
+                      style={{ width: 22, height: 15, borderRadius: 2, marginRight: 6 }}
                       resizeMode="cover"
                     />
                   ) : (
-                    <Text className="text-base mr-1.5">⭐</Text>
+                    <View style={{
+                      width: 22, height: 15, borderRadius: 2, marginRight: 6,
+                      backgroundColor: BRAND, alignItems: "center", justifyContent: "center",
+                    }}>
+                      <Text style={{ color: BG, fontSize: 6, fontWeight: "900", letterSpacing: 0.2 }}>FWC</Text>
+                    </View>
                   )}
                   <Text
-                    className={`text-xs font-medium flex-1 ${isActive ? "text-blue-700" : "text-gray-700"}`}
+                    style={{
+                      fontSize: 11, fontWeight: "600", flex: 1,
+                      color: isActive ? INK : DIM,
+                    }}
                     numberOfLines={1}
                   >
                     {item.sectionId}
                   </Text>
                   {item.selectedCount > 0 && (
-                    <View className="bg-blue-600 rounded-full w-4 h-4 items-center justify-center">
-                      <Text className="text-white" style={{ fontSize: 9 }}>{item.selectedCount}</Text>
+                    <View style={{
+                      backgroundColor: BRAND, borderRadius: 99,
+                      width: 16, height: 16,
+                      alignItems: "center", justifyContent: "center",
+                    }}>
+                      <Text style={{ color: BG, fontSize: 9, fontWeight: "800" }}>{item.selectedCount}</Text>
                     </View>
                   )}
                 </View>
-                <View className="h-1 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
-                  <View
-                    className="h-full bg-blue-400 rounded-full"
-                    style={{ width: `${Math.round((item.selectedCount / item.total) * 100)}%` }}
-                  />
+                {/* Progress bar */}
+                <View style={{
+                  height: 2, backgroundColor: DIM3, borderRadius: 99,
+                  marginTop: 5, overflow: "hidden",
+                }}>
+                  <View style={{
+                    height: "100%",
+                    backgroundColor: isActive ? BRAND : DIM,
+                    borderRadius: 99,
+                    width: `${Math.round((item.selectedCount / item.total) * 100)}%`,
+                  }} />
                 </View>
               </TouchableOpacity>
             );
           })}
-          <View className="h-20" />
+          <View style={{ height: 80 }} />
         </ScrollView>
       </View>
 
+      {/* Right sticker list */}
       <SectionList
         ref={listRef}
         sections={sections}
         keyExtractor={(sticker) => sticker.id}
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: BG }}
         contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 6 }}
         stickySectionHeadersEnabled
         onScrollToIndexFailed={() => {}}
@@ -147,17 +182,29 @@ export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭
           const iso = FIFA_TO_ISO[section.sectionId];
           const selCount = section.data.filter((s) => selected.includes(s.id)).length;
           return (
-            <View className="flex-row items-center bg-gray-100 py-2 px-1 border-b border-gray-200">
+            <View style={{
+              flexDirection: "row", alignItems: "center",
+              backgroundColor: ELEVATED,
+              paddingVertical: 8, paddingHorizontal: 10,
+              borderBottomWidth: 1, borderBottomColor: DIM3,
+            }}>
               {iso ? (
                 <Image
                   source={{ uri: `https://flagcdn.com/w40/${iso}.png` }}
-                  style={{ width: 22, height: 15, borderRadius: 2, marginRight: 6 }}
+                  style={{ width: 22, height: 15, borderRadius: 2, marginRight: 8 }}
                   resizeMode="cover"
                 />
-              ) : null}
-              <Text className="text-xs font-bold text-gray-700 flex-1">{section.name}</Text>
+              ) : (
+                <View style={{
+                  width: 22, height: 15, borderRadius: 2, marginRight: 8,
+                  backgroundColor: BRAND, alignItems: "center", justifyContent: "center",
+                }}>
+                  <Text style={{ color: BG, fontSize: 6, fontWeight: "900", letterSpacing: 0.2 }}>FWC</Text>
+                </View>
+              )}
+              <Text style={{ color: INK, fontSize: 12, fontWeight: "700", flex: 1 }}>{section.name}</Text>
               {selCount > 0 && (
-                <Text className="text-xs text-blue-600 font-semibold">
+                <Text style={{ color: BRAND, fontSize: 11, fontWeight: "700" }}>
                   {t("friends.selCount", { count: selCount })}
                 </Text>
               )}
@@ -169,20 +216,31 @@ export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭
           return (
             <TouchableOpacity
               onPress={() => onToggle(sticker.id)}
-              className={`flex-row items-center rounded-xl mb-2 px-3 py-3.5 border ${
-                isSelected ? "bg-blue-50 border-blue-400" : "bg-white border-gray-100"
-              }`}
+              style={{
+                flexDirection: "row", alignItems: "center",
+                borderRadius: 12, marginBottom: 6,
+                paddingHorizontal: 12, paddingVertical: 12,
+                backgroundColor: isSelected ? "rgba(244,196,48,0.10)" : SURFACE,
+                borderWidth: 1,
+                borderColor: isSelected ? BRAND : DIM3,
+              }}
               activeOpacity={0.7}
             >
-              <View
-                className={`w-5 h-5 rounded border-2 mr-3 items-center justify-center flex-shrink-0 ${
-                  isSelected ? "bg-blue-600 border-blue-600" : "border-gray-300"
-                }`}
-              >
-                {isSelected && <Text className="text-white font-bold" style={{ fontSize: 10 }}>✓</Text>}
+              <View style={{
+                width: 20, height: 20, borderRadius: 4,
+                borderWidth: 2,
+                backgroundColor: isSelected ? BRAND : "transparent",
+                borderColor: isSelected ? BRAND : DIM,
+                marginRight: 10,
+                alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                {isSelected && (
+                  <Text style={{ color: BG, fontSize: 10, fontWeight: "800" }}>✓</Text>
+                )}
               </View>
-              <Text className="text-xs text-gray-400 w-14" numberOfLines={1}>{sticker.id}</Text>
-              <Text className="flex-1 text-gray-800 text-sm" numberOfLines={1}>{sticker.name}</Text>
+              <Text style={{ color: DIM, fontSize: 11, width: 52 }} numberOfLines={1}>{sticker.id}</Text>
+              <Text style={{ color: INK, fontSize: 13, flex: 1 }} numberOfLines={1}>{sticker.name}</Text>
             </TouchableOpacity>
           );
         }}

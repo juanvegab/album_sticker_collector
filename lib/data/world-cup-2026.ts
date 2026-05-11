@@ -40,7 +40,7 @@ function makeTeamSection(
 // ── Opening / FWC section (20 stickers) ──────────────────────────
 const openingSection: AlbumSection = {
   id: "FWC",
-  name: "FIFA World Cup 2026",
+  name: "World Cup 2026",
   emoji: "🏆",
   stickers: [
     makeSticker("FWC", 0,  "Panini Logo", "special"),          // P00
