@@ -297,18 +297,8 @@ export default function SobreScreen() {
             {t("sobre.input.title", { n: entries.length, total: PACK_SIZE })}
           </Text>
 
-          <TouchableOpacity
-            onPress={() => { saveEntries(entries); setStep("result"); }}
-            disabled={entries.length === 0}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={{
-              color: entries.length > 0 ? "#F4C430" : "rgba(245,244,238,0.25)",
-              fontSize: 15, fontWeight: "700",
-            }}>
-              {t("sobre.input.done")}
-            </Text>
-          </TouchableOpacity>
+          {/* Spacer replacing the removed "Listo" button */}
+          <View style={{ width: 38 }} />
         </View>
 
         {/* ── Segmented progress bar ── */}
@@ -408,6 +398,27 @@ export default function SobreScreen() {
             </View>
           );
         })()}
+
+        {/* ── Completar button (Fix 3) ── */}
+        <TouchableOpacity
+          onPress={() => { saveEntries(entries); setStep("result"); }}
+          disabled={entries.length === 0}
+          activeOpacity={0.85}
+          style={{
+            marginHorizontal: 16, marginBottom: 10, borderRadius: 14,
+            backgroundColor: entries.length > 0 ? "#F4C430" : "rgba(245,244,238,0.08)",
+            paddingVertical: 13, alignItems: "center",
+          }}
+        >
+          <Text style={{
+            color: entries.length > 0 ? "#0B0B0E" : "rgba(245,244,238,0.25)",
+            fontSize: 15, fontWeight: "800",
+          }}>
+            {entries.length === PACK_SIZE
+              ? t("sobre.input.complete")
+              : t("sobre.input.completeN", { n: entries.length })}
+          </Text>
+        </TouchableOpacity>
 
         {/* ── Keyboard area ── */}
         <View style={{ flex: 1, paddingHorizontal: 16, paddingBottom: insets.bottom + 8 }}>

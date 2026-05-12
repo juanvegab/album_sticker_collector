@@ -13,7 +13,7 @@ const DEBOUNCE_MS = 800;
 export function useCollection() {
   const { user } = useUser();
   const fbUser = useFirebaseUser();
-  const { collection, setCollection, toggleOwned, setDuplicates } =
+  const { collection, setCollection, toggleOwned, setDuplicates, bulkOwn } =
     useCollectionStore();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSyncingFromServer = useRef(false);
@@ -67,6 +67,14 @@ export function useCollection() {
     [setDuplicates, scheduleSave]
   );
 
+  const bulkOwnAndSave = useCallback(
+    (ids: string[]) => {
+      bulkOwn(ids);
+      scheduleSave();
+    },
+    [bulkOwn, scheduleSave]
+  );
+
   const ownedSet = new Set(collection?.owned ?? []);
 
   return {
@@ -78,5 +86,7 @@ export function useCollection() {
     hasDuplicate: (id: string) => (collection?.duplicates[id] ?? 0) > 0,
     toggle,
     setDuplicates: setDups,
+    bulkOwn: bulkOwnAndSave,
+    scheduleSave,
   };
 }

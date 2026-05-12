@@ -1,11 +1,12 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   View, Text, ScrollView, FlatList,
   TouchableOpacity, Image, ActivityIndicator, StatusBar,
-  NativeSyntheticEvent, NativeScrollEvent,
+  NativeSyntheticEvent, NativeScrollEvent, Modal, Pressable,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useTranslation } from "react-i18next";
+import { useLocalSearchParams } from "expo-router";
 import { useCollection } from "@/hooks/useCollection";
 import { useCollectionStore } from "@/store/collectionStore";
 import { StickerCard } from "@/components/stickers/StickerCard";
@@ -115,6 +116,9 @@ function buildLeftItems(): LeftItem[] {
 }
 const LEFT_ITEMS = buildLeftItems();
 
+// ── Module-level save trigger (set by AlbumScreen, used by SectionHeader) ──
+const _scheduleSaveRef = { current: () => {} };
+
 // ── Memoized sub-components ───────────────────────────────────────────
 
 const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
@@ -142,6 +146,14 @@ const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
         const group = TEAM_GROUP[section.id];
         return group ? `Grupo ${group}` : section.name;
       })();
+
+  const isComplete = ownedCount >= total;
+
+  function handleMarkAll() {
+    const ids = section.stickers.map((s) => s.id);
+    useCollectionStore.getState().bulkOwn(ids);
+    _scheduleSaveRef.current();
+  }
 
   return (
     <View
@@ -172,6 +184,22 @@ const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
       <Text style={{ color: textSub, fontSize: 13, fontWeight: "600" }}>
         {ownedCount}/{total}
       </Text>
+
+      {/* Mark all button */}
+      {!isComplete && (
+        <TouchableOpacity
+          onPress={handleMarkAll}
+          activeOpacity={0.7}
+          style={{
+            marginLeft: 8,
+            backgroundColor: "rgba(0,0,0,0.18)",
+            borderRadius: 6,
+            paddingHorizontal: 7, paddingVertical: 3,
+          }}
+        >
+          <Text style={{ color: textSub, fontSize: 10, fontWeight: "700" }}>✓ Todo</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 });
@@ -207,16 +235,39 @@ const StickerRow = React.memo(
 );
 
 // ── Screen ────────────────────────────────────────────────────────────
+type FilterType = "all" | "owned" | "missing" | "repeated";
+
 export default function AlbumScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { ownedSet, toggle, setDuplicates, collectionLoaded } = useCollection();
+  const { ownedSet, duplicates, toggle, setDuplicates, bulkOwn, scheduleSave, collectionLoaded } = useCollection();
+
+  // Wire save trigger for SectionHeader's "Mark all" button
+  useEffect(() => {
+    _scheduleSaveRef.current = scheduleSave;
+  }, [scheduleSave]);
   const showAds = usePremiumStore((s) => s.showAds());
   const showAdsRef = useRef(showAds);
   useEffect(() => { showAdsRef.current = showAds; }, [showAds]);
 
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [filterVisible, setFilterVisible] = useState(false);
+
   const [activeSectionId, setActiveSectionId] = useState(fwcSection.id);
   const activeSectionIdRef = useRef(fwcSection.id);
+
+  // ── Fix 4: scroll to section from Resumen ──
+  const { scrollTo } = useLocalSearchParams<{ scrollTo?: string }>();
+  useEffect(() => {
+    if (!scrollTo || !collectionLoaded) return;
+    if (scrollTo === "FWC") {
+      handleSelectSection(fwcSection);
+      return;
+    }
+    const first = WORLD_CUP_2026.sections.find((s) => TEAM_GROUP[s.id] === scrollTo);
+    if (first) handleSelectSection(first);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollTo, collectionLoaded]);
 
   const rightListRef = useRef<FlatList<FlatItem>>(null);
   const rightPanelHeight = useRef(0);
@@ -227,6 +278,27 @@ export default function AlbumScreen() {
 
   const total = WORLD_CUP_2026.totalStickers;
   const owned = ownedSet.size;
+  const missing = total - owned;
+  const repeatedCount = Object.keys(duplicates).length;
+
+  // ── Filtered flat items (Fix 2) ───────────────────────────────────────
+  const displayItems = useMemo<FlatItem[]>(() => {
+    if (activeFilter === "all") return FLAT_ITEMS;
+    const items: FlatItem[] = [];
+    for (const section of WORLD_CUP_2026.sections) {
+      const filtered = section.stickers.filter((s) => {
+        if (activeFilter === "owned")    return ownedSet.has(s.id);
+        if (activeFilter === "missing")  return !ownedSet.has(s.id);
+        if (activeFilter === "repeated") return (duplicates[s.id] ?? 0) > 0;
+        return true;
+      });
+      if (filtered.length === 0) continue;
+      items.push({ type: "header", sectionId: section.id, section });
+      for (let i = 0; i < filtered.length; i += STICKERS_PER_ROW)
+        items.push({ type: "row", sectionId: section.id, stickers: filtered.slice(i, i + STICKERS_PER_ROW) });
+    }
+    return items;
+  }, [activeFilter, ownedSet, duplicates]);
   const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
 
   function updateActive(id: string, animated = false) {
@@ -327,14 +399,22 @@ export default function AlbumScreen() {
           </Text>
         </View>
         <TouchableOpacity
+          onPress={() => setFilterVisible(true)}
           style={{
             width: 38, height: 38, borderRadius: 12,
-            backgroundColor: "#1C1D24",
+            backgroundColor: activeFilter !== "all" ? "rgba(244,196,48,0.15)" : "#1C1D24",
             alignItems: "center", justifyContent: "center",
           }}
           activeOpacity={0.7}
         >
-          <FontAwesome name="search" size={15} color="rgba(245,244,238,0.55)" />
+          <FontAwesome name="sliders" size={15} color={activeFilter !== "all" ? "#F4C430" : "rgba(245,244,238,0.55)"} />
+          {activeFilter !== "all" && (
+            <View style={{
+              position: "absolute", top: 6, right: 6,
+              width: 7, height: 7, borderRadius: 99,
+              backgroundColor: "#F4C430",
+            }} />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -431,10 +511,10 @@ export default function AlbumScreen() {
           ) : (
             <FlatList
               ref={rightListRef}
-              data={FLAT_ITEMS}
+              data={displayItems}
               keyExtractor={keyExtractor}
               renderItem={renderItem}
-              getItemLayout={getItemLayout}
+              getItemLayout={activeFilter === "all" ? getItemLayout : undefined}
               contentContainerStyle={{ paddingTop: PADDING_TOP, paddingBottom: 120 }}
               windowSize={5}
               initialNumToRender={12}
@@ -449,6 +529,78 @@ export default function AlbumScreen() {
         </View>
 
       </View>
+
+      {/* ── Filter Modal (Fix 2) ── */}
+      <Modal
+        visible={filterVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFilterVisible(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}
+          onPress={() => setFilterVisible(false)}
+        />
+        <View style={{
+          backgroundColor: "#15161B",
+          borderTopLeftRadius: 20, borderTopRightRadius: 20,
+          paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32,
+        }}>
+          {/* Handle */}
+          <View style={{
+            width: 36, height: 4, borderRadius: 99,
+            backgroundColor: "rgba(245,244,238,0.15)",
+            alignSelf: "center", marginBottom: 20,
+          }} />
+
+          <Text style={{
+            color: "rgba(245,244,238,0.38)", fontSize: 11,
+            fontWeight: "700", letterSpacing: 1.2, marginBottom: 14,
+          }}>
+            FILTRAR POSTALES
+          </Text>
+
+          {([
+            { key: "all",      label: "Todas",     count: total },
+            { key: "owned",    label: "Tengo",     count: owned },
+            { key: "missing",  label: "Faltan",    count: missing },
+            { key: "repeated", label: "Repetidas", count: repeatedCount },
+          ] as { key: FilterType; label: string; count: number }[]).map(({ key, label, count }) => {
+            const isActive = activeFilter === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                onPress={() => { setActiveFilter(key); setFilterVisible(false); }}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: "row", alignItems: "center",
+                  backgroundColor: isActive ? "rgba(244,196,48,0.1)" : "transparent",
+                  borderWidth: 1,
+                  borderColor: isActive ? "#F4C430" : "rgba(245,244,238,0.08)",
+                  borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+                  marginBottom: 8,
+                }}
+              >
+                <Text style={{
+                  flex: 1, color: isActive ? "#F4C430" : "#F5F4EE",
+                  fontSize: 15, fontWeight: "600",
+                }}>
+                  {label}
+                </Text>
+                <Text style={{
+                  color: isActive ? "#F4C430" : "rgba(245,244,238,0.38)",
+                  fontSize: 13, fontWeight: "700",
+                }}>
+                  {count}
+                </Text>
+                {isActive && (
+                  <FontAwesome name="check" size={12} color="#F4C430" style={{ marginLeft: 10 }} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </Modal>
     </View>
   );
 }

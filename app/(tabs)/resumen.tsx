@@ -47,16 +47,19 @@ function StatCard({ value, label, valueColor }: {
 }
 
 // ── SectionRow ────────────────────────────────────────────────────────
-function SectionRow({ item }: { item: SectionGroup }) {
+function SectionRow({ item, onPress }: { item: SectionGroup; onPress: () => void }) {
   const pct = item.total > 0 ? item.owned / item.total : 0;
   const isFwc = item.id === "FWC";
 
   return (
-    <View style={{
-      flexDirection: "row", alignItems: "center",
-      backgroundColor: "#15161B", borderRadius: 12,
-      paddingHorizontal: 12, paddingVertical: 12, marginBottom: 8,
-    }}>
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      style={{
+        flexDirection: "row", alignItems: "center",
+        backgroundColor: "#15161B", borderRadius: 12,
+        paddingHorizontal: 12, paddingVertical: 12, marginBottom: 8,
+      }}>
       {/* Badge */}
       <View style={{
         width: 40, height: 40, borderRadius: 10,
@@ -91,7 +94,7 @@ function SectionRow({ item }: { item: SectionGroup }) {
         fontWeight: "600", marginLeft: 12 }}>
         {item.owned}/{item.total}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -256,7 +259,13 @@ export default function ResumenScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {groups.map((g) => <SectionRow key={g.id} item={g} />)}
+        {groups.map((g) => (
+          <SectionRow
+            key={g.id}
+            item={g}
+            onPress={() => router.navigate({ pathname: "/(tabs)/album", params: { scrollTo: g.id } })}
+          />
+        ))}
       </ScrollView>
     </View>
   );

@@ -70,6 +70,8 @@ const en = {
       close: "Close",
       title: "Pack · {{n}}/{{total}}",
       done: "Done",
+      complete: "Complete",
+      completeN: "Complete with {{n}}",
       writing: "Type the code…",
       nueva: "NEW",
       repetida: "DUPLICATE",

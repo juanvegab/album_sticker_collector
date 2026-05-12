@@ -70,6 +70,8 @@ const es = {
       close: "Cerrar",
       title: "Sobre · {{n}}/{{total}}",
       done: "Listo",
+      complete: "Completar",
+      completeN: "Completar con {{n}}",
       writing: "Escribí el código…",
       nueva: "NUEVA",
       repetida: "REPETIDA",

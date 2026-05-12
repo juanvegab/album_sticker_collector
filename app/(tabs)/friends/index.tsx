@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   View, Text, TouchableOpacity, ActivityIndicator,
-  Alert, Share, ScrollView, StatusBar,
+  Alert, Share, ScrollView, StatusBar, TextInput,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
@@ -83,6 +83,8 @@ export default function FriendsScreen() {
   const { friendProfiles, pendingFrom, loading } = useFriends();
   const { incoming, pendingDeliveries } = useStickerRequests();
   const [qrVisible, setQrVisible] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [pendingProfiles, setPendingProfiles] = useState<Record<string, UserProfile>>({});
 
@@ -150,6 +152,11 @@ export default function FriendsScreen() {
     } finally { setActingOn(null); }
   }
 
+  const filteredFriends = searchQuery.trim()
+    ? friendProfiles.filter((f) =>
+        f.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : friendProfiles;
+
   const hasSections =
     pendingFrom.length > 0 || incoming.length > 0 ||
     pendingDeliveries.length > 0 || friendProfiles.length > 0;
@@ -167,17 +174,43 @@ export default function FriendsScreen() {
           {t("tabs.friends")}
         </Text>
         <TouchableOpacity
-          onPress={() => setQrVisible(true)}
+          onPress={() => {
+            if (searchVisible) {
+              setSearchVisible(false);
+              setSearchQuery("");
+            } else {
+              setSearchVisible(true);
+            }
+          }}
           style={{
             width: 40, height: 40, borderRadius: 20,
-            backgroundColor: ELEVATED,
+            backgroundColor: searchVisible ? "rgba(244,196,48,0.15)" : ELEVATED,
             alignItems: "center", justifyContent: "center",
           }}
           activeOpacity={0.7}
         >
-          <FontAwesome name="search" size={16} color={INK} />
+          <FontAwesome name={searchVisible ? "times" : "search"} size={16} color={searchVisible ? BRAND : INK} />
         </TouchableOpacity>
       </View>
+
+      {/* ── Search bar ── */}
+      {searchVisible && (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
+          <TextInput
+            autoFocus
+            placeholder="Buscar amigo..."
+            placeholderTextColor="rgba(245,244,238,0.35)"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+            style={{
+              backgroundColor: ELEVATED, borderRadius: 12,
+              paddingHorizontal: 14, paddingVertical: 10,
+              color: INK, fontSize: 15,
+            }}
+          />
+        </View>
+      )}
 
       <TrialBanner />
 
@@ -365,8 +398,8 @@ export default function FriendsScreen() {
           {/* ── Friends list ── */}
           {friendProfiles.length > 0 && (
             <>
-              <SectionLabel text={t("friends.myFriends")} count={friendProfiles.length} />
-              {friendProfiles.map((item: UserProfile) => (
+              <SectionLabel text={t("friends.myFriends")} count={filteredFriends.length} />
+              {filteredFriends.map((item: UserProfile) => (
                 <TouchableOpacity
                   key={item.userId}
                   onPress={() => router.push(`/(tabs)/friends/${item.userId}`)}
@@ -389,6 +422,24 @@ export default function FriendsScreen() {
           )}
 
         </ScrollView>
+      )}
+
+      {/* QR button — floating, always accessible */}
+      {!searchVisible && (
+        <TouchableOpacity
+          onPress={() => setQrVisible(true)}
+          style={{
+            position: "absolute", bottom: 100, right: 20,
+            backgroundColor: BRAND, borderRadius: 28,
+            paddingHorizontal: 18, paddingVertical: 12,
+            flexDirection: "row", alignItems: "center", gap: 8,
+            shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+          }}
+          activeOpacity={0.85}
+        >
+          <FontAwesome name="qrcode" size={16} color="#0B0B0E" />
+          <Text style={{ color: "#0B0B0E", fontSize: 13, fontWeight: "800" }}>QR</Text>
+        </TouchableOpacity>
       )}
 
       <QRModal visible={qrVisible} onClose={() => setQrVisible(false)} />

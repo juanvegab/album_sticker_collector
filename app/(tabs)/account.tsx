@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
-  View, Text, TouchableOpacity, Alert,
-  ScrollView, Linking, ActivityIndicator, StatusBar,
+  View, Text, TouchableOpacity, Alert, Modal, Share,
+  ScrollView, Linking, ActivityIndicator, StatusBar, Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useUser, useAuth } from "@clerk/clerk-expo";
@@ -110,6 +110,11 @@ export default function AccountScreen() {
   const { isPurchasing, setIsPurchasing, setIsPremium } = usePremiumStore();
   const [lang, setLang] = useState<LangCode>((i18n.language as LangCode) ?? "es");
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [shareOwned, setShareOwned] = useState(false);
+  const [shareMissing, setShareMissing] = useState(false);
+  const [shareRepeated, setShareRepeated] = useState(true);
+  const [isSharing, setIsSharing] = useState(false);
 
   const totalStickers = WORLD_CUP_2026.totalStickers;
   const owned = ownedSet.size;
@@ -200,6 +205,46 @@ export default function AccountScreen() {
       Alert.alert(t("common.error"), t("premium.purchaseError"));
     } finally {
       setIsPurchasing(false);
+    }
+  }
+
+  // ── Share list ──
+  // Pre-compute as the user toggles checkboxes — zero cost on tap
+  const shareText = useMemo(() => {
+    const allStickers = WORLD_CUP_2026.sections.flatMap((s) => s.stickers);
+    const parts: string[] = [];
+    parts.push(lang === "es" ? "Mi Álbum 2026 ⚽" : "My 2026 Album ⚽");
+    parts.push("");
+
+    if (shareRepeated) {
+      const ids = allStickers.filter((s) => (duplicates[s.id] ?? 0) > 0).map((s) => s.id);
+      parts.push(lang === "es" ? `🔁 REPETIDAS (${ids.length})` : `🔁 DUPLICATES (${ids.length})`);
+      parts.push(ids.join(", "));
+      parts.push("");
+    }
+    if (shareMissing) {
+      const ids = allStickers.filter((s) => !ownedSet.has(s.id)).map((s) => s.id);
+      parts.push(lang === "es" ? `❌ ME FALTAN (${ids.length})` : `❌ MISSING (${ids.length})`);
+      parts.push(ids.join(", "));
+      parts.push("");
+    }
+    if (shareOwned) {
+      const ids = allStickers.filter((s) => ownedSet.has(s.id)).map((s) => s.id);
+      parts.push(lang === "es" ? `✅ TENGO (${ids.length})` : `✅ HAVE (${ids.length})`);
+      parts.push(ids.join(", "));
+      parts.push("");
+    }
+    return parts.join("\n").trim();
+  }, [shareOwned, shareMissing, shareRepeated, ownedSet, duplicates, lang]);
+
+  async function handleShareList() {
+    if (!shareOwned && !shareMissing && !shareRepeated) return;
+    setIsSharing(true);
+    try {
+      await Share.share({ message: shareText });
+    } finally {
+      setIsSharing(false);
+      setShareModalVisible(false);
     }
   }
 
@@ -302,6 +347,19 @@ export default function AccountScreen() {
           <StatCard value={totalDuplicates} label={t("resumen.repeated")} valueColor={ORANGE} />
         </View>
 
+        {/* ── Compartir lista (premium only) ── */}
+        {isPremium && (
+          <View style={{ marginBottom: 12 }}>
+            <SettingsRow
+              label={lang === "es" ? "Compartir lista" : "Share list"}
+              onPress={() => setShareModalVisible(true)}
+              isFirst
+              isLast
+              right={<FontAwesome name="share-alt" size={15} color={BRAND} />}
+            />
+          </View>
+        )}
+
         {/* ── Settings ── */}
         <View style={{ marginBottom: 12 }}>
           <SettingsRow
@@ -363,6 +421,104 @@ export default function AccountScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* ── Share list modal ── */}
+      <Modal
+        visible={shareModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShareModalVisible(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" }}
+          onPress={() => setShareModalVisible(false)}
+        >
+          <Pressable onPress={() => {}} style={{
+            backgroundColor: SURFACE, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+            paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36,
+          }}>
+            {/* Handle */}
+            <View style={{
+              width: 36, height: 4, borderRadius: 2,
+              backgroundColor: DIM, alignSelf: "center", marginBottom: 20,
+            }} />
+
+            <Text style={{ color: INK, fontSize: 18, fontWeight: "800", marginBottom: 4 }}>
+              {lang === "es" ? "Compartir lista" : "Share list"}
+            </Text>
+            <Text style={{ color: DIM, fontSize: 13, marginBottom: 24 }}>
+              {lang === "es"
+                ? "Elige qué postales incluir en el mensaje"
+                : "Choose which stickers to include"}
+            </Text>
+
+            {/* Checkboxes */}
+            {([
+              { key: "repeated", label: lang === "es" ? "🔁 Repetidas" : "🔁 Duplicates",
+                count: Object.values(duplicates).filter((n) => n > 0).length,
+                value: shareRepeated, set: setShareRepeated },
+              { key: "missing", label: lang === "es" ? "❌ Me faltan" : "❌ Missing",
+                count: totalStickers - owned,
+                value: shareMissing, set: setShareMissing },
+              { key: "owned", label: lang === "es" ? "✅ Tengo" : "✅ Have",
+                count: owned,
+                value: shareOwned, set: setShareOwned },
+            ] as const).map((item) => (
+              <TouchableOpacity
+                key={item.key}
+                onPress={() => item.set(!item.value)}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: "row", alignItems: "center",
+                  backgroundColor: ELEVATED, borderRadius: 14,
+                  paddingHorizontal: 16, paddingVertical: 14, marginBottom: 8,
+                  borderWidth: 1.5,
+                  borderColor: item.value ? BRAND : "transparent",
+                }}
+              >
+                <View style={{
+                  width: 22, height: 22, borderRadius: 6, marginRight: 14,
+                  backgroundColor: item.value ? BRAND : DIM3,
+                  alignItems: "center", justifyContent: "center",
+                  borderWidth: item.value ? 0 : 1.5, borderColor: DIM,
+                }}>
+                  {item.value && (
+                    <FontAwesome name="check" size={12} color="#0B0B0E" />
+                  )}
+                </View>
+                <Text style={{ flex: 1, color: INK, fontSize: 15, fontWeight: "600" }}>
+                  {item.label}
+                </Text>
+                <Text style={{ color: DIM, fontSize: 13, fontWeight: "600" }}>
+                  {item.count}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+            {/* Share button */}
+            <TouchableOpacity
+              onPress={handleShareList}
+              disabled={isSharing || (!shareOwned && !shareMissing && !shareRepeated)}
+              activeOpacity={0.85}
+              style={{
+                marginTop: 12, borderRadius: 14, paddingVertical: 15, alignItems: "center",
+                backgroundColor: (shareOwned || shareMissing || shareRepeated) ? BRAND : DIM3,
+              }}
+            >
+              {isSharing ? (
+                <ActivityIndicator color={BG} size="small" />
+              ) : (
+                <Text style={{
+                  fontSize: 16, fontWeight: "800",
+                  color: (shareOwned || shareMissing || shareRepeated) ? BG : DIM,
+                }}>
+                  {lang === "es" ? "Compartir 🚀" : "Share 🚀"}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
