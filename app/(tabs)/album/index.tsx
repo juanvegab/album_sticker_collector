@@ -279,7 +279,7 @@ export default function AlbumScreen() {
   const total = WORLD_CUP_2026.totalStickers;
   const owned = ownedSet.size;
   const missing = total - owned;
-  const repeatedCount = Object.keys(duplicates).length;
+  const repeatedCount = Object.values(duplicates).reduce((sum, n) => sum + Math.max(0, n), 0);
 
   // ── Filtered flat items (Fix 2) ───────────────────────────────────────
   const displayItems = useMemo<FlatItem[]>(() => {
