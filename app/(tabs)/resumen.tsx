@@ -10,6 +10,8 @@ import { useTranslation } from "react-i18next";
 import { useCollection } from "@/hooks/useCollection";
 import { usePremiumStore } from "@/store/premiumStore";
 import { WORLD_CUP_2026, TEAM_GROUP } from "@/lib/data/world-cup-2026";
+import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
+import { TrialBanner } from "@/components/premium/TrialBanner";
 
 // ── Group color palette (matches design tokens) ───────────────────────
 const GROUP_COLORS: Record<string, string> = {
@@ -192,10 +194,13 @@ export default function ResumenScreen() {
           )}
         </View>
 
+        {/* Remove ads banner (non-premium only) */}
+        <TrialBanner />
+
         {/* Progress card */}
         <View style={{
           backgroundColor: "#15161B", borderRadius: 16,
-          padding: 16, marginTop: 16, marginBottom: 12,
+          padding: 16, marginTop: 8, marginBottom: 12,
         }}>
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
             <Text style={{ flex: 1, color: "rgba(245,244,238,0.38)", fontSize: 11,
@@ -259,6 +264,7 @@ export default function ResumenScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
+        <BannerAd />
         {groups.map((g) => (
           <SectionRow
             key={g.id}

@@ -270,7 +270,7 @@ const es = {
     trialEnded: "🚨 Tu período gratis terminó",
     trialEndedMsg:
       "Ahora verás anuncios mientras usas la app. Elimínalos de por vida con un solo pago.",
-    removeAdsCta: "🎯 Quitar anuncios — $1.99",
+    removeAdsCta: "🎯 Quitar anuncios — $2.99",
     restorePurchases: "Restaurar compra",
     restoreTitle: "Restaurar compra",
     restoreSuccess: "¡Compra restaurada! Ya no verás anuncios.",

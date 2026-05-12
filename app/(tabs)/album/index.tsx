@@ -378,7 +378,6 @@ export default function AlbumScreen() {
     <View style={{ flex: 1, backgroundColor: "#0B0B0E", paddingTop: insets.top }}>
       <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
 
-      <TrialBanner />
       <BannerAd />
 
       {/* ══ FULL-WIDTH HEADER ══ */}
@@ -417,6 +416,8 @@ export default function AlbumScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      <TrialBanner />
 
       <View style={{ flex: 1, flexDirection: "row" }}>
 
