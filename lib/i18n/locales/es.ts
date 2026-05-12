@@ -7,7 +7,7 @@ const es = {
   },
   auth: {
     welcome: "Bienvenido",
-    tagline: "Tu álbum del Mundial 2026",
+    tagline: "Tu álbum de stickers 2026",
     continueGoogle: "Continuar con Google",
     continueApple: "Continuar con Apple",
     orEmail: "o con correo",
@@ -238,7 +238,7 @@ const es = {
     selectAtLeastOne: "Selecciona al menos 1 postal de cada lado",
     errorCreate: "No se pudo crear el intercambio",
     shareMessage:
-      "¡Te propongo un intercambio de postales del Mundial 2026! 🌍⚽\nTengo {{offering}} postales repetidas y busco {{requesting}}.\nAbre el link para ver los detalles:\n{{link}}",
+      "¡Te propongo un intercambio de postales del álbum 2026! 🌍⚽\nTengo {{offering}} postales repetidas y busco {{requesting}}.\nAbre el link para ver los detalles:\n{{link}}",
     tradeDetail: "Intercambio",
     tradeFrom: "Intercambio de {{name}}",
     offersSummary: "{{offering}} postales ofrece · {{requesting}} postales busca",

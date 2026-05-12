@@ -405,21 +405,20 @@ export default function AccountScreen() {
           </Text>
         </View>
 
-        {/* ── Delete account (subtle) ── */}
-        <TouchableOpacity
-          onPress={handleDeleteAccount}
-          disabled={deletingAccount}
-          style={{ alignItems: "center", paddingVertical: 10 }}
-          activeOpacity={0.6}
-        >
-          {deletingAccount ? (
-            <ActivityIndicator size="small" color={DIM} />
-          ) : (
-            <Text style={{ color: DIM, fontSize: 12, opacity: 0.5 }}>
-              {t("account.deleteAccount")}
-            </Text>
-          )}
-        </TouchableOpacity>
+        {/* ── Delete account ── */}
+        <View style={{ marginBottom: 8 }}>
+          <SettingsRow
+            label={deletingAccount ? "..." : t("account.deleteAccount")}
+            onPress={deletingAccount ? undefined : handleDeleteAccount}
+            isFirst
+            isLast
+            danger
+            right={deletingAccount
+              ? <ActivityIndicator size="small" color={RED} />
+              : <FontAwesome name="trash-o" size={15} color={RED} />
+            }
+          />
+        </View>
       </ScrollView>
 
       {/* ── Share list modal ── */}

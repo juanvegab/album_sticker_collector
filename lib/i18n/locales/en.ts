@@ -7,7 +7,7 @@ const en = {
   },
   auth: {
     welcome: "Welcome",
-    tagline: "Your 2026 World Cup album",
+    tagline: "Your 2026 sticker album",
     continueGoogle: "Continue with Google",
     continueApple: "Continue with Apple",
     orEmail: "or with email",
@@ -238,7 +238,7 @@ const en = {
     selectAtLeastOne: "Select at least 1 sticker on each side",
     errorCreate: "Could not create the trade",
     shareMessage:
-      "I'm proposing a sticker trade for the 2026 World Cup! 🌍⚽\nI have {{offering}} duplicate stickers and I'm looking for {{requesting}}.\nOpen the link to see the details:\n{{link}}",
+      "I'm proposing a sticker trade for the 2026 album! 🌍⚽\nI have {{offering}} duplicate stickers and I'm looking for {{requesting}}.\nOpen the link to see the details:\n{{link}}",
     tradeDetail: "Trade",
     tradeFrom: "Trade from {{name}}",
     offersSummary: "offers {{offering}} stickers · wants {{requesting}} stickers",

@@ -156,7 +156,7 @@ export default function SignInScreen() {
             marginBottom: 10,
           }}
         >
-          {"Tu álbum del\nMundial 2026,\n"}
+          {"Tu álbum de\nstickers 2026,\n"}
           <Text style={{ color: "#F4C430" }}>{"siempre contigo."}</Text>
         </Text>
 
