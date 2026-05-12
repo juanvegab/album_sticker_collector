@@ -119,7 +119,7 @@ export default function AccountScreen() {
   const totalStickers = WORLD_CUP_2026.totalStickers;
   const owned = ownedSet.size;
   const missing = totalStickers - owned;
-  const totalDuplicates = Object.values(duplicates).filter((n) => n > 0).length;
+  const totalDuplicates = Object.values(duplicates).reduce((sum, n) => sum + Math.max(0, n), 0);
 
   const displayName =
     user?.fullName ??
@@ -455,7 +455,7 @@ export default function AccountScreen() {
             {/* Checkboxes */}
             {([
               { key: "repeated", label: lang === "es" ? "🔁 Repetidas" : "🔁 Duplicates",
-                count: Object.values(duplicates).filter((n) => n > 0).length,
+                count: Object.values(duplicates).reduce((sum, n) => sum + Math.max(0, n), 0),
                 value: shareRepeated, set: setShareRepeated },
               { key: "missing", label: lang === "es" ? "❌ Me faltan" : "❌ Missing",
                 count: totalStickers - owned,

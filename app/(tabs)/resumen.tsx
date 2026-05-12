@@ -113,7 +113,7 @@ export default function ResumenScreen() {
   const total = WORLD_CUP_2026.totalStickers;
   const owned = ownedSet.size;
   const missing = total - owned;
-  const duplicateCount = Object.values(duplicates).filter((n) => n > 0).length;
+  const duplicateCount = Object.values(duplicates).reduce((sum, n) => sum + Math.max(0, n), 0);
   const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
 
   const firstName = user?.firstName ?? t("resumen.defaultName");
