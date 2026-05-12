@@ -264,13 +264,14 @@ export default function ResumenScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <BannerAd />
-        {groups.map((g) => (
-          <SectionRow
-            key={g.id}
-            item={g}
-            onPress={() => router.navigate({ pathname: "/(tabs)/album", params: { scrollTo: g.id } })}
-          />
+        {groups.map((g, i) => (
+          <View key={g.id}>
+            {i % 4 === 0 && <BannerAd />}
+            <SectionRow
+              item={g}
+              onPress={() => router.navigate({ pathname: "/(tabs)/album", params: { scrollTo: g.id } })}
+            />
+          </View>
         ))}
       </ScrollView>
     </View>
