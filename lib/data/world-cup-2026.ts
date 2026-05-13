@@ -40,7 +40,7 @@ function makeTeamSection(
 // ── Opening / FWC section (20 stickers) ──────────────────────────
 const openingSection: AlbumSection = {
   id: "FWC",
-  name: "World Cup 2026",
+  name: "Álbum 2026",
   emoji: "🏆",
   stickers: [
     makeSticker("FWC", 0,  "Panini Logo", "special"),          // P00
@@ -315,7 +315,7 @@ const allSections = [openingSection, ...orderedTeamSections];
 
 export const WORLD_CUP_2026: Album = {
   id: "wc2026",
-  name: "World Cup 2026",
+  name: "Álbum 2026",
   year: 2026,
   totalStickers: allSections.reduce((sum, s) => sum + s.stickers.length, 0),
   sections: allSections,

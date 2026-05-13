@@ -50,7 +50,7 @@ const es = {
     repeated: "REPETIDAS",
     bySectionTitle: "POR GRUPO",
     viewAll: "Ver todas",
-    fwcName: "Mundial 26",
+    fwcName: "Apertura",
     group: "Grupo {{letter}}",
     trialDays: "{{count}} días sin ads",
     trialLastDay: "Último día sin ads",
