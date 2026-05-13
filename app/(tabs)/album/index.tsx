@@ -453,7 +453,7 @@ export default function AlbumScreen() {
             {pct}%
             <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 12, fontWeight: "600" }}>
               {` · ${ownedMain}/${total}`}
-              {repeatedCount > 0 ? ` · ×${repeatedCount}` : ""}
+              {repeatedCount > 0 ? ` · Repetidas ${repeatedCount}` : ""}
             </Text>
           </Text>
         </View>
@@ -619,7 +619,8 @@ export default function AlbumScreen() {
         <View style={{
           backgroundColor: "#15161B",
           borderTopLeftRadius: 20, borderTopRightRadius: 20,
-          paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32,
+          paddingHorizontal: 20, paddingTop: 16,
+          paddingBottom: Math.max(32, insets.bottom + 16),
         }}>
           <View style={{
             width: 36, height: 4, borderRadius: 99,
@@ -688,7 +689,8 @@ export default function AlbumScreen() {
         <View style={{
           backgroundColor: "#15161B",
           borderTopLeftRadius: 20, borderTopRightRadius: 20,
-          paddingHorizontal: 20, paddingTop: 16, paddingBottom: 36,
+          paddingHorizontal: 20, paddingTop: 16,
+          paddingBottom: Math.max(36, insets.bottom + 16),
         }}>
           <View style={{
             width: 36, height: 4, borderRadius: 99,

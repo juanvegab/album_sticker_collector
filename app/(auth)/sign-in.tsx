@@ -16,6 +16,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WORLD_CUP_2026 } from "@/lib/data/world-cup-2026";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -44,6 +45,7 @@ const GRID_TOP = ICON_TOP + 90 + 12; // icon height + gap
 
 export default function SignInScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { startOAuthFlow: startGoogleFlow } = useOAuth({ strategy: "oauth_google" });
   const { startOAuthFlow: startAppleFlow } = useOAuth({ strategy: "oauth_apple" });
   const router = useRouter();
@@ -143,7 +145,7 @@ export default function SignInScreen() {
           left: 0,
           right: 0,
           paddingHorizontal: 22,
-          paddingBottom: Platform.OS === "ios" ? 50 : 28,
+          paddingBottom: Math.max(insets.bottom + 16, Platform.OS === "ios" ? 50 : 28),
         }}
       >
         {/* Headline */}

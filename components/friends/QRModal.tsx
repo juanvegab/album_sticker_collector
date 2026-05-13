@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
-import { View, Text, Modal, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, Text, Modal, TouchableOpacity, ActivityIndicator, Alert, Share } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import QRCode from "react-native-qrcode-svg";
 import { sendFriendRequest, getProfile } from "@/lib/firestore/users";
@@ -127,7 +128,39 @@ export function QRModal({ visible, onClose }: Props) {
             <View className="p-5 bg-white rounded-3xl shadow-md border border-gray-100">
               <QRCode value={inviteUrl} size={220} />
             </View>
-            <Text className="text-xs text-gray-400 mt-6 text-center">{inviteUrl}</Text>
+
+            {/* Link display */}
+            <View style={{
+              marginTop: 20, width: "100%",
+              backgroundColor: "#F0F0F0", borderRadius: 12,
+              paddingHorizontal: 14, paddingVertical: 10,
+              flexDirection: "row", alignItems: "center",
+            }}>
+              <Text
+                style={{ flex: 1, color: "#1A1A1A", fontSize: 12, fontWeight: "600" }}
+                numberOfLines={1}
+                ellipsizeMode="middle"
+              >
+                {inviteUrl}
+              </Text>
+            </View>
+
+            {/* Share link button */}
+            <TouchableOpacity
+              onPress={() => Share.share({ message: inviteUrl, url: inviteUrl })}
+              style={{
+                marginTop: 12, width: "100%",
+                backgroundColor: "#2563EB", borderRadius: 12,
+                flexDirection: "row", alignItems: "center", justifyContent: "center",
+                paddingVertical: 13, gap: 8,
+              }}
+              activeOpacity={0.8}
+            >
+              <FontAwesome name="share-alt" size={15} color="#fff" />
+              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+                {t("friends.invite")}
+              </Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View className="flex-1">

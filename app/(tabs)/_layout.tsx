@@ -89,6 +89,7 @@ function SobreFAB() {
 // ── Layout ────────────────────────────────────────────────────────────
 export default function TabLayout() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={{ flex: 1 }}>
@@ -101,6 +102,8 @@ export default function TabLayout() {
             backgroundColor: "#15161B",
             borderTopColor: "rgba(245,244,238,0.08)",
             borderTopWidth: 1,
+            paddingBottom: insets.bottom,
+            height: (Platform.OS === "ios" ? 49 : 56) + insets.bottom,
           },
           tabBarLabelStyle: { fontSize: 11, fontWeight: "600", marginBottom: 2 },
         }}

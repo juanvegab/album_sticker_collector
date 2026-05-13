@@ -320,7 +320,7 @@ const ccSectionStickers: AlbumSticker[] = Array.from({ length: 14 }, (_, i) =>
 const ccSection: AlbumSection = {
   id: "CC",
   name: "CC",
-  emoji: "⭐",
+  emoji: "🥤",
   stickers: ccSectionStickers,
 };
 
