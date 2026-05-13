@@ -347,18 +347,16 @@ export default function AccountScreen() {
           <StatCard value={totalDuplicates} label={t("resumen.repeated")} valueColor={ORANGE} />
         </View>
 
-        {/* ── Compartir lista (premium only) ── */}
-        {isPremium && (
-          <View style={{ marginBottom: 12 }}>
-            <SettingsRow
-              label={lang === "es" ? "Compartir lista" : "Share list"}
-              onPress={() => setShareModalVisible(true)}
-              isFirst
-              isLast
-              right={<FontAwesome name="share-alt" size={15} color={BRAND} />}
-            />
-          </View>
-        )}
+        {/* ── Compartir lista (available to all users) ── */}
+        <View style={{ marginBottom: 12 }}>
+          <SettingsRow
+            label={lang === "es" ? "Compartir lista" : "Share list"}
+            onPress={() => setShareModalVisible(true)}
+            isFirst
+            isLast
+            right={<FontAwesome name="share-alt" size={15} color={BRAND} />}
+          />
+        </View>
 
         {/* ── Settings ── */}
         <View style={{ marginBottom: 12 }}>
