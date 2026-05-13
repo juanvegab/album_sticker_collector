@@ -40,7 +40,7 @@ function makeTeamSection(
 // ── Opening / FWC section (20 stickers) ──────────────────────────
 const openingSection: AlbumSection = {
   id: "FWC",
-  name: "Álbum 2026",
+  name: "Especiales",
   emoji: "🏆",
   stickers: [
     makeSticker("FWC", 0,  "Panini Logo", "special"),          // P00
@@ -313,12 +313,26 @@ const orderedTeamSections: AlbumSection[] = GROUP_ORDER.flatMap(([, codes]) =>
 
 const allSections = [openingSection, ...orderedTeamSections];
 
+// ── CC section (CC1–CC14) — optional, outside main album count ────
+const ccSectionStickers: AlbumSticker[] = Array.from({ length: 14 }, (_, i) =>
+  makeSticker("CC", i + 1, `CC ${i + 1}`, "special")
+);
+const ccSection: AlbumSection = {
+  id: "CC",
+  name: "CC",
+  emoji: "⭐",
+  stickers: ccSectionStickers,
+};
+
+/** IDs of CC stickers — excluded from main album totals/percentages */
+export const CC_STICKER_IDS = new Set(ccSectionStickers.map((s) => s.id));
+
 export const WORLD_CUP_2026: Album = {
   id: "wc2026",
   name: "Álbum 2026",
   year: 2026,
-  totalStickers: allSections.reduce((sum, s) => sum + s.stickers.length, 0),
-  sections: allSections,
+  totalStickers: allSections.reduce((sum, s) => sum + s.stickers.length, 0), // 980, CC excluded
+  sections: [...allSections, ccSection],
 };
 
 export const ALBUM_SECTIONS_MAP = new Map(

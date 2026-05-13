@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useCollection } from "@/hooks/useCollection";
 import { usePremiumStore } from "@/store/premiumStore";
-import { WORLD_CUP_2026, TEAM_GROUP } from "@/lib/data/world-cup-2026";
+import { WORLD_CUP_2026, TEAM_GROUP, CC_STICKER_IDS } from "@/lib/data/world-cup-2026";
 import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialBanner } from "@/components/premium/TrialBanner";
 
@@ -113,7 +113,11 @@ export default function ResumenScreen() {
   const isTrialActive = usePremiumStore((s) => s.isTrialActive());
 
   const total = WORLD_CUP_2026.totalStickers;
-  const owned = ownedSet.size;
+  // Exclude CC stickers from main album stats
+  const owned = useMemo(
+    () => [...ownedSet].filter((id) => !CC_STICKER_IDS.has(id)).length,
+    [ownedSet]
+  );
   const missing = total - owned;
   const duplicateCount = Object.values(duplicates).reduce((sum, n) => sum + Math.max(0, n), 0);
   const pct = total > 0 ? Math.round((owned / total) * 100) : 0;

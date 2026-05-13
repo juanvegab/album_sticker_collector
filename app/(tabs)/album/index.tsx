@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import {
   View, Text, ScrollView, FlatList,
   TouchableOpacity, Image, ActivityIndicator, StatusBar,
-  NativeSyntheticEvent, NativeScrollEvent, Modal, Pressable,
+  NativeSyntheticEvent, NativeScrollEvent, Modal, Pressable, Share,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,7 @@ import { StickerCard } from "@/components/stickers/StickerCard";
 import { NativeAdCard, AD_HEIGHT } from "@/components/ads/NativeAdCard";
 import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialBanner } from "@/components/premium/TrialBanner";
-import { WORLD_CUP_2026, TEAM_GROUP, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
+import { WORLD_CUP_2026, TEAM_GROUP, FIFA_TO_ISO, CC_STICKER_IDS } from "@/lib/data/world-cup-2026";
 import { GROUP_COLORS, colorForSection, needsDarkText } from "@/lib/design/groupColors";
 import { usePremiumStore } from "@/store/premiumStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -105,6 +105,11 @@ function buildLeftItems(): LeftItem[] {
   const items: LeftItem[] = [{ type: "section", section: fwcSection }];
   let lastGroup = "";
   for (const section of WORLD_CUP_2026.sections.slice(1)) {
+    if (section.id === "CC") {
+      items.push({ type: "header", group: "CC" });
+      items.push({ type: "section", section });
+      continue;
+    }
     const group = TEAM_GROUP[section.id];
     if (group && group !== lastGroup) {
       lastGroup = group;
@@ -140,8 +145,11 @@ const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
   const textSub  = dark ? "rgba(0,0,0,0.5)"  : "rgba(245,244,238,0.6)";
 
   const isFWC = section.id === "FWC";
+  const isCC  = section.id === "CC";
   const subtitle = isFWC
-    ? `Sección especial · ${total}`
+    ? `Especiales · ${total}`
+    : isCC
+    ? `Sección CC · ${total}`
     : (() => {
         const group = TEAM_GROUP[section.id];
         return group ? `Grupo ${group}` : section.name;
@@ -238,7 +246,8 @@ const StickerRow = React.memo(
 type FilterType = "all" | "owned" | "missing" | "repeated";
 
 export default function AlbumScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language ?? "es";
   const insets = useSafeAreaInsets();
   const { ownedSet, duplicates, toggle, setDuplicates, bulkOwn, scheduleSave, collectionLoaded } = useCollection();
 
@@ -252,6 +261,13 @@ export default function AlbumScreen() {
 
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [filterVisible, setFilterVisible] = useState(false);
+
+  // ── Share list state ──────────────────────────────────────────────
+  const [shareVisible, setShareVisible] = useState(false);
+  const [shareOwned, setShareOwned] = useState(false);
+  const [shareMissing, setShareMissing] = useState(false);
+  const [shareRepeated, setShareRepeated] = useState(true);
+  const [isSharing, setIsSharing] = useState(false);
 
   const [activeSectionId, setActiveSectionId] = useState(fwcSection.id);
   const activeSectionIdRef = useRef(fwcSection.id);
@@ -276,10 +292,53 @@ export default function AlbumScreen() {
   const programmaticTarget = useRef<string | null>(null);
   const leftScrollAnimated = useRef(false);
 
-  const total = WORLD_CUP_2026.totalStickers;
-  const owned = ownedSet.size;
-  const missing = total - owned;
+  const total = WORLD_CUP_2026.totalStickers; // 980, CC excluded
+  // Exclude CC stickers from main album stats
+  const ownedMain = useMemo(
+    () => [...ownedSet].filter((id) => !CC_STICKER_IDS.has(id)).length,
+    [ownedSet]
+  );
+  const missing = total - ownedMain;
   const repeatedCount = Object.values(duplicates).reduce((sum, n) => sum + Math.max(0, n), 0);
+
+  // ── Share text (pre-computed) ─────────────────────────────────────
+  const shareText = useMemo(() => {
+    const allStickers = WORLD_CUP_2026.sections.flatMap((s) => s.stickers);
+    const mainStickers = allStickers.filter((s) => !CC_STICKER_IDS.has(s.id));
+    const parts: string[] = [];
+    parts.push(lang === "es" ? "Mi Álbum 2026 ⚽" : "My 2026 Album ⚽");
+    parts.push("");
+    if (shareRepeated) {
+      const ids = allStickers.filter((s) => (duplicates[s.id] ?? 0) > 0).map((s) => s.id);
+      parts.push(lang === "es" ? `🔁 REPETIDAS (${ids.length})` : `🔁 DUPLICATES (${ids.length})`);
+      parts.push(ids.join(", "));
+      parts.push("");
+    }
+    if (shareMissing) {
+      const ids = mainStickers.filter((s) => !ownedSet.has(s.id)).map((s) => s.id);
+      parts.push(lang === "es" ? `❌ ME FALTAN (${ids.length})` : `❌ MISSING (${ids.length})`);
+      parts.push(ids.join(", "));
+      parts.push("");
+    }
+    if (shareOwned) {
+      const ids = allStickers.filter((s) => ownedSet.has(s.id)).map((s) => s.id);
+      parts.push(lang === "es" ? `✅ TENGO (${ids.length})` : `✅ HAVE (${ids.length})`);
+      parts.push(ids.join(", "));
+      parts.push("");
+    }
+    return parts.join("\n").trim();
+  }, [shareOwned, shareMissing, shareRepeated, ownedSet, duplicates, lang]);
+
+  async function handleShareList() {
+    if (!shareOwned && !shareMissing && !shareRepeated) return;
+    setIsSharing(true);
+    try {
+      await Share.share({ message: shareText });
+    } finally {
+      setIsSharing(false);
+      setShareVisible(false);
+    }
+  }
 
   // ── Filtered flat items (Fix 2) ───────────────────────────────────────
   const displayItems = useMemo<FlatItem[]>(() => {
@@ -299,7 +358,7 @@ export default function AlbumScreen() {
     }
     return items;
   }, [activeFilter, ownedSet, duplicates]);
-  const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
+  const pct = total > 0 ? Math.round((ownedMain / total) * 100) : 0;
 
   function updateActive(id: string, animated = false) {
     if (activeSectionIdRef.current === id) return;
@@ -390,13 +449,27 @@ export default function AlbumScreen() {
           <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 9, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" }}>
             {t("album.title")}
           </Text>
-          <Text style={{ color: "#F5F4EE", fontSize: 22, fontWeight: "800", lineHeight: 28, marginTop: 1 }}>
+          <Text style={{ color: "#F5F4EE", fontSize: 22, fontWeight: "800", lineHeight: 28, marginTop: 1 }} numberOfLines={1}>
             {pct}%
-            <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 14, fontWeight: "600" }}>
-              {" · "}{owned}/{total}
+            <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 12, fontWeight: "600" }}>
+              {` · ${ownedMain}/${total}`}
+              {repeatedCount > 0 ? ` · ×${repeatedCount}` : ""}
             </Text>
           </Text>
         </View>
+        {/* Share button */}
+        <TouchableOpacity
+          onPress={() => setShareVisible(true)}
+          style={{
+            width: 38, height: 38, borderRadius: 12,
+            backgroundColor: "#1C1D24",
+            alignItems: "center", justifyContent: "center",
+            marginRight: 8,
+          }}
+          activeOpacity={0.7}
+        >
+          <FontAwesome name="share-alt" size={15} color="rgba(245,244,238,0.55)" />
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setFilterVisible(true)}
           style={{
@@ -430,6 +503,7 @@ export default function AlbumScreen() {
                 // ── GROUP CHIP ──
                 const color = GROUP_COLORS[item.group] ?? "#9CA3AF";
                 const dark  = needsDarkText(color);
+                const label = item.group === "CC" ? "CC" : t("album.group", { letter: item.group });
                 return (
                   <View key={`hdr-${i}`} style={{ paddingHorizontal: 8, paddingTop: 10, paddingBottom: 4 }}>
                     <View style={{ backgroundColor: color, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 }}>
@@ -438,7 +512,7 @@ export default function AlbumScreen() {
                         fontSize: 9, fontWeight: "800", letterSpacing: 1,
                         textTransform: "uppercase",
                       }}>
-                        {t("album.group", { letter: item.group })}
+                        {label}
                       </Text>
                     </View>
                   </View>
@@ -531,7 +605,7 @@ export default function AlbumScreen() {
 
       </View>
 
-      {/* ── Filter Modal (Fix 2) ── */}
+      {/* ── Filter Modal ── */}
       <Modal
         visible={filterVisible}
         transparent
@@ -547,23 +621,20 @@ export default function AlbumScreen() {
           borderTopLeftRadius: 20, borderTopRightRadius: 20,
           paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32,
         }}>
-          {/* Handle */}
           <View style={{
             width: 36, height: 4, borderRadius: 99,
             backgroundColor: "rgba(245,244,238,0.15)",
             alignSelf: "center", marginBottom: 20,
           }} />
-
           <Text style={{
             color: "rgba(245,244,238,0.38)", fontSize: 11,
             fontWeight: "700", letterSpacing: 1.2, marginBottom: 14,
           }}>
             FILTRAR POSTALES
           </Text>
-
           {([
             { key: "all",      label: "Todas",     count: total },
-            { key: "owned",    label: "Tengo",     count: owned },
+            { key: "owned",    label: "Tengo",     count: ownedMain },
             { key: "missing",  label: "Faltan",    count: missing },
             { key: "repeated", label: "Repetidas", count: repeatedCount },
           ] as { key: FilterType; label: string; count: number }[]).map(({ key, label, count }) => {
@@ -600,6 +671,83 @@ export default function AlbumScreen() {
               </TouchableOpacity>
             );
           })}
+        </View>
+      </Modal>
+
+      {/* ── Share Modal ── */}
+      <Modal
+        visible={shareVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShareVisible(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}
+          onPress={() => setShareVisible(false)}
+        />
+        <View style={{
+          backgroundColor: "#15161B",
+          borderTopLeftRadius: 20, borderTopRightRadius: 20,
+          paddingHorizontal: 20, paddingTop: 16, paddingBottom: 36,
+        }}>
+          <View style={{
+            width: 36, height: 4, borderRadius: 99,
+            backgroundColor: "rgba(245,244,238,0.15)",
+            alignSelf: "center", marginBottom: 20,
+          }} />
+          <Text style={{
+            color: "rgba(245,244,238,0.38)", fontSize: 11,
+            fontWeight: "700", letterSpacing: 1.2, marginBottom: 14,
+          }}>
+            {lang === "es" ? "COMPARTIR LISTA" : "SHARE LIST"}
+          </Text>
+          {([
+            { label: lang === "es" ? "Repetidas 🔁" : "Duplicates 🔁", value: shareRepeated, set: setShareRepeated },
+            { label: lang === "es" ? "Me faltan ❌"  : "Missing ❌",    value: shareMissing,  set: setShareMissing  },
+            { label: lang === "es" ? "Tengo ✅"       : "Have ✅",       value: shareOwned,    set: setShareOwned    },
+          ]).map(({ label, value, set }) => (
+            <TouchableOpacity
+              key={label}
+              onPress={() => set(!value)}
+              activeOpacity={0.7}
+              style={{
+                flexDirection: "row", alignItems: "center",
+                paddingVertical: 14, borderBottomWidth: 1,
+                borderBottomColor: "rgba(245,244,238,0.07)",
+              }}
+            >
+              <View style={{
+                width: 22, height: 22, borderRadius: 6, borderWidth: 2,
+                borderColor: value ? "#F4C430" : "rgba(245,244,238,0.25)",
+                backgroundColor: value ? "#F4C430" : "transparent",
+                alignItems: "center", justifyContent: "center", marginRight: 12,
+              }}>
+                {value && <FontAwesome name="check" size={12} color="#0B0B0E" />}
+              </View>
+              <Text style={{ color: "#F5F4EE", fontSize: 15, fontWeight: "500", flex: 1 }}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            onPress={handleShareList}
+            disabled={isSharing || (!shareOwned && !shareMissing && !shareRepeated)}
+            activeOpacity={0.75}
+            style={{
+              marginTop: 20, borderRadius: 14, paddingVertical: 14, alignItems: "center",
+              backgroundColor: (shareOwned || shareMissing || shareRepeated) ? "#F4C430" : "rgba(245,244,238,0.1)",
+            }}
+          >
+            {isSharing
+              ? <ActivityIndicator color="#0B0B0E" />
+              : <Text style={{
+                  color: (shareOwned || shareMissing || shareRepeated) ? "#0B0B0E" : "rgba(245,244,238,0.25)",
+                  fontSize: 15, fontWeight: "800",
+                }}>
+                  {lang === "es" ? "Compartir lista 📤" : "Share list 📤"}
+                </Text>
+            }
+          </TouchableOpacity>
         </View>
       </Modal>
     </View>
