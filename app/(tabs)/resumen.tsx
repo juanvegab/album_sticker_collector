@@ -19,6 +19,7 @@ const GROUP_COLORS: Record<string, string> = {
   A: "#1FA7A0", B: "#E2453C", C: "#7FB832", D: "#2B6FE3",
   E: "#5847C4", F: "#F2853A", G: "#D9457A", H: "#5BB3D6",
   I: "#3B8C5B", J: "#E55D4C", K: "#9333EA", L: "#0EA5E9",
+  CC: "#DC2626",
 };
 
 const GROUP_ORDER = ["A","B","C","D","E","F","G","H","I","J","K","L"];
@@ -155,6 +156,18 @@ export default function ResumenScreen() {
         ...groupData[letter],
       });
     }
+
+    // CC section — optional, at the end
+    const ccSec = WORLD_CUP_2026.sections.find((s) => s.id === "CC");
+    if (ccSec) {
+      const ccOwned = ccSec.stickers.filter((s) => ownedSet.has(s.id)).length;
+      result.push({
+        id: "CC", badge: "CC", name: "CC",
+        color: GROUP_COLORS.CC ?? "#DC2626",
+        total: ccSec.stickers.length, owned: ccOwned,
+      });
+    }
+
     return result;
   }, [ownedSet, t]);
 

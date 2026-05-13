@@ -280,6 +280,11 @@ export default function AlbumScreen() {
       handleSelectSection(fwcSection);
       return;
     }
+    if (scrollTo === "CC") {
+      const ccSec = WORLD_CUP_2026.sections.find((s) => s.id === "CC");
+      if (ccSec) handleSelectSection(ccSec);
+      return;
+    }
     const first = WORLD_CUP_2026.sections.find((s) => TEAM_GROUP[s.id] === scrollTo);
     if (first) handleSelectSection(first);
   // eslint-disable-next-line react-hooks/exhaustive-deps
