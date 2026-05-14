@@ -30,6 +30,7 @@ const GROUP_ORDER = ["A","B","C","D","E","F","G","H","I","J","K","L"];
 type SectionGroup = {
   id: string; badge: string; name: string;
   color: string; total: number; owned: number;
+  codes?: string[];
 };
 
 // ── StatCard ──────────────────────────────────────────────────────────
@@ -81,12 +82,21 @@ function SectionRow({ item, onPress }: { item: SectionGroup; onPress: () => void
         </Text>
       </View>
 
-      {/* Name + progress bar */}
+      {/* Name + codes + progress bar */}
       <View style={{ flex: 1 }}>
-        <Text style={{ color: "#F5F4EE", fontSize: 15, fontWeight: "600", marginBottom: 6 }}>
+        <Text style={{ color: "#F5F4EE", fontSize: 15, fontWeight: "600", marginBottom: 2 }}>
           {item.name}
         </Text>
-        <View style={{ height: 3, backgroundColor: "rgba(245,244,238,0.12)", borderRadius: 99 }}>
+        {item.codes && item.codes.length > 0 && (
+          <Text style={{
+            color: "rgba(245,244,238,0.28)", fontSize: 10,
+            fontWeight: "600", letterSpacing: 0.3, marginBottom: 6,
+          }}>
+            {item.codes.join(" · ")}
+          </Text>
+        )}
+        <View style={{ height: 3, backgroundColor: "rgba(245,244,238,0.12)", borderRadius: 99,
+          marginTop: item.codes && item.codes.length > 0 ? 0 : 6 }}>
           <View style={{
             height: 3, borderRadius: 99,
             backgroundColor: item.color,
@@ -144,13 +154,14 @@ export default function ResumenScreen() {
     });
 
     // Aggregate by group
-    const groupData: Record<string, { total: number; owned: number }> = {};
+    const groupData: Record<string, { total: number; owned: number; codes: string[] }> = {};
     for (const section of WORLD_CUP_2026.sections.slice(1)) {
       const letter = TEAM_GROUP[section.id];
       if (!letter) continue;
-      if (!groupData[letter]) groupData[letter] = { total: 0, owned: 0 };
+      if (!groupData[letter]) groupData[letter] = { total: 0, owned: 0, codes: [] };
       groupData[letter].total += section.stickers.length;
       groupData[letter].owned += section.stickers.filter((s) => ownedSet.has(s.id)).length;
+      groupData[letter].codes.push(section.id);
     }
     for (const letter of GROUP_ORDER) {
       if (!groupData[letter]) continue;
