@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, FlatList,
   TouchableOpacity, Image, ActivityIndicator, StatusBar,
   NativeSyntheticEvent, NativeScrollEvent, Modal, Pressable, Share,
+  Alert, ActionSheetIOS, Platform,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useTranslation } from "react-i18next";
@@ -157,10 +158,48 @@ const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
 
   const isComplete = ownedCount >= total;
 
-  function handleMarkAll() {
+  function handleContextMenu() {
     const ids = section.stickers.map((s) => s.id);
-    useCollectionStore.getState().bulkOwn(ids);
-    _scheduleSaveRef.current();
+    const options = ["Marcar todo", "Desmarcar todo", "Limpiar repetidas", "Cancelar"];
+    const cancelIndex = 3;
+
+    function runAction(index: number) {
+      const store = useCollectionStore.getState();
+      if (index === 0) {
+        // Mark all
+        store.bulkOwn(ids);
+        _scheduleSaveRef.current();
+      } else if (index === 1) {
+        // Unmark all — remove these IDs from owned
+        const col = store.collection;
+        if (!col) return;
+        const newOwned = col.owned.filter((id) => !ids.includes(id));
+        store.setCollection({ ...col, owned: newOwned });
+        _scheduleSaveRef.current();
+      } else if (index === 2) {
+        // Clear duplicates for this section
+        const col = store.collection;
+        if (!col) return;
+        const newDuplicates = { ...col.duplicates };
+        for (const id of ids) delete newDuplicates[id];
+        store.setCollection({ ...col, duplicates: newDuplicates });
+        _scheduleSaveRef.current();
+      }
+    }
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: cancelIndex, title: section.name },
+        runAction
+      );
+    } else {
+      Alert.alert(section.name, undefined, [
+        { text: "Marcar todo",      onPress: () => runAction(0) },
+        { text: "Desmarcar todo",   onPress: () => runAction(1) },
+        { text: "Limpiar repetidas", onPress: () => runAction(2) },
+        { text: "Cancelar", style: "cancel" },
+      ]);
+    }
   }
 
   return (
@@ -193,21 +232,20 @@ const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
         {ownedCount}/{total}
       </Text>
 
-      {/* Mark all button */}
-      {!isComplete && (
-        <TouchableOpacity
-          onPress={handleMarkAll}
-          activeOpacity={0.7}
-          style={{
-            marginLeft: 8,
-            backgroundColor: "rgba(0,0,0,0.18)",
-            borderRadius: 6,
-            paddingHorizontal: 7, paddingVertical: 3,
-          }}
-        >
-          <Text style={{ color: textSub, fontSize: 10, fontWeight: "700" }}>✓ Todo</Text>
-        </TouchableOpacity>
-      )}
+      {/* Context menu button (3 dots) */}
+      <TouchableOpacity
+        onPress={handleContextMenu}
+        activeOpacity={0.7}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        style={{
+          marginLeft: 10,
+          backgroundColor: "rgba(0,0,0,0.18)",
+          borderRadius: 6,
+          paddingHorizontal: 7, paddingVertical: 4,
+        }}
+      >
+        <FontAwesome name="ellipsis-h" size={13} color={textSub} />
+      </TouchableOpacity>
     </View>
   );
 });

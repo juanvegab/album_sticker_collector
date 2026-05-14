@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity,
   Image, StatusBar, Platform,
@@ -7,11 +7,14 @@ import { useRouter } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useCollection } from "@/hooks/useCollection";
 import { usePremiumStore } from "@/store/premiumStore";
 import { WORLD_CUP_2026, TEAM_GROUP, CC_STICKER_IDS } from "@/lib/data/world-cup-2026";
 import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialBanner } from "@/components/premium/TrialBanner";
+import { ImportModal } from "@/components/import/ImportModal";
+import { ImportOnboardingModal } from "@/components/onboarding/ImportOnboardingModal";
 
 // ── Group color palette (matches design tokens) ───────────────────────
 const GROUP_COLORS: Record<string, string> = {
@@ -113,6 +116,8 @@ export default function ResumenScreen() {
   const trialDaysLeft = usePremiumStore((s) => s.trialDaysLeft());
   const isTrialActive = usePremiumStore((s) => s.isTrialActive());
 
+  const [importVisible, setImportVisible] = useState(false);
+
   const total = WORLD_CUP_2026.totalStickers;
   // Exclude CC stickers from main album stats
   const owned = useMemo(
@@ -192,23 +197,40 @@ export default function ResumenScreen() {
             </Text>
           </View>
 
-          {/* Trial chip (only when trial active and not premium) */}
-          {isTrialActive && !isPremium && (
-            <View style={{
-              backgroundColor: "rgba(244,196,48,0.15)",
-              borderRadius: 999, borderWidth: 1,
-              borderColor: "rgba(244,196,48,0.4)",
-              paddingHorizontal: 12, paddingVertical: 6,
-              flexDirection: "row", alignItems: "center",
-              marginTop: 8,
-            }}>
-              <View style={{ width: 7, height: 7, borderRadius: 99,
-                backgroundColor: "#F4C430", marginRight: 6 }} />
-              <Text style={{ color: "#F4C430", fontSize: 12, fontWeight: "700" }}>
-                {trialLabel}
-              </Text>
-            </View>
-          )}
+          {/* Right-side actions */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+            {/* Trial chip (only when trial active and not premium) */}
+            {isTrialActive && !isPremium && (
+              <View style={{
+                backgroundColor: "rgba(244,196,48,0.15)",
+                borderRadius: 999, borderWidth: 1,
+                borderColor: "rgba(244,196,48,0.4)",
+                paddingHorizontal: 12, paddingVertical: 6,
+                flexDirection: "row", alignItems: "center",
+              }}>
+                <View style={{ width: 7, height: 7, borderRadius: 99,
+                  backgroundColor: "#F4C430", marginRight: 6 }} />
+                <Text style={{ color: "#F4C430", fontSize: 12, fontWeight: "700" }}>
+                  {trialLabel}
+                </Text>
+              </View>
+            )}
+
+            {/* Import button */}
+            <TouchableOpacity
+              onPress={() => setImportVisible(true)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{
+                width: 36, height: 36, borderRadius: 10,
+                backgroundColor: "rgba(244,196,48,0.12)",
+                borderWidth: 1, borderColor: "rgba(244,196,48,0.25)",
+                alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <FontAwesome name="download" size={14} color="#F4C430" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Remove ads banner (non-premium only) */}
@@ -291,6 +313,12 @@ export default function ResumenScreen() {
           </View>
         ))}
       </ScrollView>
+
+      {/* ── Import modal ── */}
+      <ImportModal visible={importVisible} onClose={() => setImportVisible(false)} />
+
+      {/* ── First-time onboarding prompt ── */}
+      <ImportOnboardingModal />
     </View>
   );
 }

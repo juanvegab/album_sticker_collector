@@ -14,10 +14,12 @@ import { usePremiumStore } from "@/store/premiumStore";
 import { purchaseNoAds, restorePurchases } from "@/lib/purchases";
 import { changeLanguage } from "@/lib/i18n";
 import { deleteUserAccount } from "@/lib/firestore/users";
+import { useCollectionStore } from "@/store/collectionStore";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import i18n from "i18next";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { ImportModal } from "@/components/import/ImportModal";
 
 // ── Design tokens ──────────────────────────────────────────────────────
 const BG       = "#0B0B0E";
@@ -105,12 +107,13 @@ export default function AccountScreen() {
   const { user } = useUser();
   const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
-  const { ownedSet, duplicates } = useCollection();
+  const { ownedSet, duplicates, scheduleSave } = useCollection();
   const { isPremium, isTrialActive, trialDaysLeft } = usePremium();
   const { isPurchasing, setIsPurchasing, setIsPremium } = usePremiumStore();
   const [lang, setLang] = useState<LangCode>((i18n.language as LangCode) ?? "es");
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [importVisible, setImportVisible] = useState(false);
   const [shareOwned, setShareOwned] = useState(false);
   const [shareMissing, setShareMissing] = useState(false);
   const [shareRepeated, setShareRepeated] = useState(true);
@@ -141,6 +144,28 @@ export default function AccountScreen() {
       { text: t("common.cancel") },
       { text: t("account.signOutYes"), style: "destructive", onPress: () => signOut().catch(console.error) },
     ]);
+  }
+
+  function handleResetCollection() {
+    Alert.alert(
+      lang === "es" ? "Limpiar colección" : "Reset collection",
+      lang === "es"
+        ? "Se borrarán todas tus postales marcadas y repetidas. ¿Estás seguro?"
+        : "All your marked stickers and duplicates will be cleared. Are you sure?",
+      [
+        { text: lang === "es" ? "Cancelar" : "Cancel", style: "cancel" },
+        {
+          text: lang === "es" ? "Limpiar todo" : "Clear all",
+          style: "destructive",
+          onPress: () => {
+            const col = useCollectionStore.getState().collection;
+            if (!col) return;
+            useCollectionStore.getState().setCollection({ ...col, owned: [], duplicates: {} });
+            scheduleSave();
+          },
+        },
+      ]
+    );
   }
 
   function handleDeleteAccount() {
@@ -347,14 +372,19 @@ export default function AccountScreen() {
           <StatCard value={totalDuplicates} label={t("resumen.repeated")} valueColor={ORANGE} />
         </View>
 
-        {/* ── Compartir lista (available to all users) ── */}
+        {/* ── Compartir lista + Importar (available to all / premium) ── */}
         <View style={{ marginBottom: 12 }}>
           <SettingsRow
             label={lang === "es" ? "Compartir lista" : "Share list"}
             onPress={() => setShareModalVisible(true)}
             isFirst
-            isLast
             right={<FontAwesome name="share-alt" size={15} color={BRAND} />}
+          />
+          <SettingsRow
+            label={lang === "es" ? "Importar colección" : "Import collection"}
+            onPress={() => setImportVisible(true)}
+            isLast
+            right={<FontAwesome name="download" size={15} color={BRAND} />}
           />
         </View>
 
@@ -403,12 +433,18 @@ export default function AccountScreen() {
           </Text>
         </View>
 
-        {/* ── Delete account ── */}
+        {/* ── Danger zone ── */}
         <View style={{ marginBottom: 8 }}>
+          <SettingsRow
+            label={lang === "es" ? "Limpiar colección" : "Reset collection"}
+            onPress={handleResetCollection}
+            isFirst
+            danger
+            right={<FontAwesome name="refresh" size={15} color={RED} />}
+          />
           <SettingsRow
             label={deletingAccount ? "..." : t("account.deleteAccount")}
             onPress={deletingAccount ? undefined : handleDeleteAccount}
-            isFirst
             isLast
             danger
             right={deletingAccount
@@ -418,6 +454,9 @@ export default function AccountScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* ── Import modal ── */}
+      <ImportModal visible={importVisible} onClose={() => setImportVisible(false)} />
 
       {/* ── Share list modal ── */}
       <Modal
