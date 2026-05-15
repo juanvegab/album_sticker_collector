@@ -76,9 +76,19 @@ export function ImportOnboardingModal() {
           <View style={{
             backgroundColor: SURFACE,
             borderTopLeftRadius: 28, borderTopRightRadius: 28,
-            paddingHorizontal: 24, paddingTop: 28,
+            paddingHorizontal: 24, paddingTop: 20,
             paddingBottom: Math.max(insets.bottom + 20, 36),
           }}>
+            {/* X button */}
+            <TouchableOpacity
+              onPress={handleDismiss}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{ alignSelf: "flex-end", marginBottom: 12 }}
+            >
+              <FontAwesome name="times" size={18} color={DIM} />
+            </TouchableOpacity>
+
             {/* Icon */}
             <View style={{
               width: 64, height: 64, borderRadius: 20,
@@ -129,7 +139,7 @@ export function ImportOnboardingModal() {
               }}
             >
               <Text style={{ color: DIM, fontSize: 15, fontWeight: "600" }}>
-                Empezar desde cero
+                Continuar sin importar
               </Text>
             </TouchableOpacity>
           </View>

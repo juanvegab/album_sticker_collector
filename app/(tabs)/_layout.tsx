@@ -2,10 +2,11 @@ import { Tabs, useRouter } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
-import { View, Text, TouchableOpacity, Platform } from "react-native";
+import { View, Text, TouchableOpacity, Platform, ActivityIndicator, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFriends } from "@/hooks/useFriends";
 import { useStickerRequests } from "@/hooks/useStickerRequests";
+import { useCollection } from "@/hooks/useCollection";
 
 // ── Icons ─────────────────────────────────────────────────────────────
 function TabIcon({
@@ -90,6 +91,7 @@ function SobreFAB() {
 export default function TabLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { collectionLoaded } = useCollection();
 
   return (
     <View style={{ flex: 1 }}>
@@ -163,6 +165,16 @@ export default function TabLayout() {
 
       {/* Global FAB — Abrir sobre */}
       <SobreFAB />
+
+      {/* ── Loading overlay — hides zero-state while Firestore syncs ── */}
+      {!collectionLoaded && (
+        <View style={StyleSheet.flatten([
+          StyleSheet.absoluteFill,
+          { backgroundColor: "#0B0B0E", alignItems: "center", justifyContent: "center", zIndex: 999 },
+        ])}>
+          <ActivityIndicator size="large" color="#F4C430" />
+        </View>
+      )}
     </View>
   );
 }
