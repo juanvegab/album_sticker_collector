@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView,
-  Image, Dimensions, StatusBar,
+  Image, Dimensions, StatusBar, Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -332,7 +332,7 @@ export default function SobreScreen() {
                     width: SLOT_W, height: SLOT_H, borderRadius: 12,
                     borderWidth: 1.5,
                     borderColor: isNext ? "rgba(244,196,48,0.5)" : "rgba(245,244,238,0.1)",
-                    borderStyle: "dashed",
+                    borderStyle: Platform.OS === "ios" ? "dashed" : "solid",
                     alignItems: "center", justifyContent: "center",
                   }}
                 >

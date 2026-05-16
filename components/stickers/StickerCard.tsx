@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Platform } from "react-native";
 import { useCollectionStore } from "@/store/collectionStore";
 import { needsDarkText } from "@/lib/design/groupColors";
 import type { AlbumSticker } from "@/types/album";
@@ -68,7 +68,7 @@ export const StickerCard = React.memo(({ sticker, sectionColor, onToggle, onSetD
         ...(isOwned ? {} : {
           borderWidth: 1,
           borderColor: "rgba(245,244,238,0.13)",
-          borderStyle: "dashed",
+          borderStyle: Platform.OS === "ios" ? "dashed" : "solid",
         }),
       }}
       onPress={handleCardPress}

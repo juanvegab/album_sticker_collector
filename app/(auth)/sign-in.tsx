@@ -126,7 +126,7 @@ export default function SignInScreen() {
                       ? {}
                       : {
                           borderWidth: 1,
-                          borderStyle: "dashed",
+                          borderStyle: Platform.OS === "ios" ? "dashed" : "solid",
                           borderColor: "rgba(245,244,238,0.18)",
                         }),
                   }}
