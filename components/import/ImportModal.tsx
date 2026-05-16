@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCollection } from "@/hooks/useCollection";
-import { usePremium } from "@/hooks/usePremium";
 import {
   WORLD_CUP_2026, ALL_STICKERS_MAP,
   TEAM_GROUP, FIFA_TO_ISO, CC_STICKER_IDS,
@@ -52,8 +51,6 @@ export function ImportModal({ visible, onClose }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { ownedSet, bulkOwn, setDuplicates } = useCollection();
-  const { isPremium, isTrialActive } = usePremium();
-
   const [step, setStep] = useState<Step>("input");
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,7 +60,6 @@ export function ImportModal({ visible, onClose }: Props) {
   const [confirmedNew, setConfirmedNew] = useState(0);
   const [confirmedDupes, setConfirmedDupes] = useState(0);
 
-  const hasAccess = isPremium || isTrialActive();
 
   // ── Merge logic: only stickers not yet owned ──────────────────────
   const newOwned = useMemo(
@@ -212,18 +208,7 @@ export function ImportModal({ visible, onClose }: Props) {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={0}
           >
-            {!hasAccess ? (
-              <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
-                <FontAwesome name="lock" size={40} color={DIM} style={{ marginBottom: 20 }} />
-                <Text style={{ color: INK, fontSize: 17, fontWeight: "700", marginBottom: 10, textAlign: "center" }}>
-                  {t("import.importTitle")}
-                </Text>
-                <Text style={{ color: DIM, fontSize: 14, textAlign: "center", lineHeight: 20 }}>
-                  {t("import.importPremiumOnly")}
-                </Text>
-              </View>
-            ) : (
-              <>
+            <>
                 <ScrollView
                   contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 }}
                   keyboardShouldPersistTaps="handled"
@@ -282,8 +267,7 @@ export function ImportModal({ visible, onClose }: Props) {
                     )}
                   </TouchableOpacity>
                 </View>
-              </>
-            )}
+            </>
           </KeyboardAvoidingView>
         )}
 

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { View, Text, ScrollView, SectionList, TouchableOpacity, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { useTranslation } from "react-i18next";
 import { WORLD_CUP_2026, TEAM_GROUP, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
 import type { AlbumSticker } from "@/types/album";
@@ -12,6 +12,7 @@ const INK      = "#F5F4EE";
 const DIM      = "rgba(245,244,238,0.38)";
 const DIM3     = "rgba(245,244,238,0.08)";
 const BRAND    = "#F4C430";
+const GREEN    = "#22C55E";
 
 interface PoolSection {
   sectionId: string;
@@ -21,17 +22,19 @@ interface PoolSection {
 
 type LeftItem =
   | { type: "header"; label: string }
-  | { type: "section"; sectionId: string; name: string; total: number; selectedCount: number };
+  | { type: "section"; sectionId: string; name: string; total: number; selectedCount: number; neededCount: number };
 
 interface Props {
   pool: AlbumSticker[];
   selected: string[];
   onToggle: (id: string) => void;
+  /** IDs the current user is missing — shown with a green "FALTA" badge */
+  needed?: Set<string>;
   emptyIcon?: string;
   emptyText?: string;
 }
 
-export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭", emptyText }: Props) {
+export function StickerPickerPanel({ pool, selected, onToggle, needed, emptyIcon = "📭", emptyText }: Props) {
   const { t } = useTranslation();
 
   const poolBySection = new Map<string, AlbumSticker[]>();
@@ -64,16 +67,19 @@ export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭
       name: s.name,
       total: s.data.length,
       selectedCount: s.data.filter((st) => selected.includes(st.id)).length,
+      neededCount: needed ? s.data.filter((st) => needed.has(st.id)).length : 0,
     });
   }
 
   const [activeSectionId, setActiveSectionId] = useState(sections[0]?.sectionId ?? "");
-  const listRef = useRef<SectionList<AlbumSticker, PoolSection>>(null);
+  const rightScrollRef = useRef<ScrollView>(null);
+  // Recorded Y positions from onLayout on each section header
+  const sectionYRef = useRef<Map<string, number>>(new Map());
 
   function handleSelectSection(sectionId: string) {
     setActiveSectionId(sectionId);
-    const idx = sectionIndexById.get(sectionId) ?? 0;
-    listRef.current?.scrollToLocation({ sectionIndex: idx, itemIndex: 0, animated: true, viewOffset: 0 });
+    const y = sectionYRef.current.get(sectionId) ?? 0;
+    rightScrollRef.current?.scrollTo({ y, animated: true });
   }
 
   if (pool.length === 0) {
@@ -140,15 +146,24 @@ export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭
                   >
                     {item.sectionId}
                   </Text>
-                  {item.selectedCount > 0 && (
+                  {item.selectedCount > 0 ? (
                     <View style={{
                       backgroundColor: BRAND, borderRadius: 99,
-                      width: 16, height: 16,
+                      minWidth: 16, height: 16, paddingHorizontal: 3,
                       alignItems: "center", justifyContent: "center",
                     }}>
                       <Text style={{ color: BG, fontSize: 9, fontWeight: "800" }}>{item.selectedCount}</Text>
                     </View>
-                  )}
+                  ) : item.neededCount > 0 ? (
+                    <View style={{
+                      backgroundColor: "rgba(34,197,94,0.2)", borderRadius: 99,
+                      minWidth: 16, height: 16, paddingHorizontal: 3,
+                      alignItems: "center", justifyContent: "center",
+                      borderWidth: 1, borderColor: GREEN,
+                    }}>
+                      <Text style={{ color: GREEN, fontSize: 9, fontWeight: "800" }}>{item.neededCount}</Text>
+                    </View>
+                  ) : null}
                 </View>
                 {/* Progress bar */}
                 <View style={{
@@ -169,82 +184,109 @@ export function StickerPickerPanel({ pool, selected, onToggle, emptyIcon = "📭
         </ScrollView>
       </View>
 
-      {/* Right sticker list */}
-      <SectionList
-        ref={listRef}
-        sections={sections}
-        keyExtractor={(sticker) => sticker.id}
+      {/* Right sticker list — ScrollView + onLayout for reliable scrollTo */}
+      <ScrollView
+        ref={rightScrollRef}
         style={{ flex: 1, backgroundColor: BG }}
         contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 6 }}
-        stickySectionHeadersEnabled
-        onScrollToIndexFailed={() => {}}
-        renderSectionHeader={({ section }) => {
+        showsVerticalScrollIndicator={false}
+      >
+        {sections.map((section) => {
           const iso = FIFA_TO_ISO[section.sectionId];
           const selCount = section.data.filter((s) => selected.includes(s.id)).length;
           return (
-            <View style={{
-              flexDirection: "row", alignItems: "center",
-              backgroundColor: ELEVATED,
-              paddingVertical: 8, paddingHorizontal: 10,
-              borderBottomWidth: 1, borderBottomColor: DIM3,
-            }}>
-              {iso ? (
-                <Image
-                  source={{ uri: `https://flagcdn.com/w40/${iso}.png` }}
-                  style={{ width: 22, height: 15, borderRadius: 2, marginRight: 8 }}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={{
-                  width: 22, height: 15, borderRadius: 2, marginRight: 8,
-                  backgroundColor: BRAND, alignItems: "center", justifyContent: "center",
-                }}>
-                  <Text style={{ color: BG, fontSize: 6, fontWeight: "900", letterSpacing: 0.2 }}>FWC</Text>
-                </View>
-              )}
-              <Text style={{ color: INK, fontSize: 12, fontWeight: "700", flex: 1 }}>{section.name}</Text>
-              {selCount > 0 && (
-                <Text style={{ color: BRAND, fontSize: 11, fontWeight: "700" }}>
-                  {t("friends.selCount", { count: selCount })}
-                </Text>
-              )}
-            </View>
-          );
-        }}
-        renderItem={({ item: sticker }) => {
-          const isSelected = selected.includes(sticker.id);
-          return (
-            <TouchableOpacity
-              onPress={() => onToggle(sticker.id)}
-              style={{
-                flexDirection: "row", alignItems: "center",
-                borderRadius: 12, marginBottom: 6,
-                paddingHorizontal: 12, paddingVertical: 12,
-                backgroundColor: isSelected ? "rgba(244,196,48,0.10)" : SURFACE,
-                borderWidth: 1,
-                borderColor: isSelected ? BRAND : DIM3,
-              }}
-              activeOpacity={0.7}
+            <View
+              key={section.sectionId}
+              onLayout={(e) => sectionYRef.current.set(section.sectionId, e.nativeEvent.layout.y)}
             >
-              <View style={{
-                width: 20, height: 20, borderRadius: 4,
-                borderWidth: 2,
-                backgroundColor: isSelected ? BRAND : "transparent",
-                borderColor: isSelected ? BRAND : DIM,
-                marginRight: 10,
-                alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-              }}>
-                {isSelected && (
-                  <Text style={{ color: BG, fontSize: 10, fontWeight: "800" }}>✓</Text>
+              {/* Section header */}
+              <View
+                style={{
+                  flexDirection: "row", alignItems: "center",
+                  backgroundColor: ELEVATED,
+                  paddingVertical: 8, paddingHorizontal: 10,
+                  borderBottomWidth: 1, borderBottomColor: DIM3,
+                  marginBottom: 6,
+                }}
+              >
+                {iso ? (
+                  <Image
+                    source={{ uri: `https://flagcdn.com/w40/${iso}.png` }}
+                    style={{ width: 22, height: 15, borderRadius: 2, marginRight: 8 }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={{
+                    width: 22, height: 15, borderRadius: 2, marginRight: 8,
+                    backgroundColor: BRAND, alignItems: "center", justifyContent: "center",
+                  }}>
+                    <Text style={{ color: BG, fontSize: 6, fontWeight: "900", letterSpacing: 0.2 }}>FWC</Text>
+                  </View>
+                )}
+                <Text style={{ color: INK, fontSize: 12, fontWeight: "700", flex: 1 }}>{section.name}</Text>
+                {selCount > 0 && (
+                  <Text style={{ color: BRAND, fontSize: 11, fontWeight: "700" }}>
+                    {t("friends.selCount", { count: selCount })}
+                  </Text>
                 )}
               </View>
-              <Text style={{ color: DIM, fontSize: 11, width: 52 }} numberOfLines={1}>{sticker.id}</Text>
-              <Text style={{ color: INK, fontSize: 13, flex: 1 }} numberOfLines={1}>{sticker.name}</Text>
-            </TouchableOpacity>
+
+              {/* Sticker items */}
+              {section.data.map((sticker) => {
+                const isSelected = selected.includes(sticker.id);
+                const isNeeded = needed?.has(sticker.id) ?? false;
+                return (
+                  <TouchableOpacity
+                    key={sticker.id}
+                    onPress={() => onToggle(sticker.id)}
+                    style={{
+                      flexDirection: "row", alignItems: "center",
+                      borderRadius: 12, marginBottom: 6,
+                      paddingHorizontal: 12, paddingVertical: 12,
+                      backgroundColor: isSelected
+                        ? "rgba(244,196,48,0.10)"
+                        : isNeeded ? "rgba(34,197,94,0.06)" : SURFACE,
+                      borderWidth: 1,
+                      borderColor: isSelected ? BRAND : isNeeded ? "rgba(34,197,94,0.35)" : DIM3,
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{
+                      width: 20, height: 20, borderRadius: 4,
+                      borderWidth: 2,
+                      backgroundColor: isSelected ? BRAND : "transparent",
+                      borderColor: isSelected ? BRAND : isNeeded ? GREEN : DIM,
+                      marginRight: 10,
+                      alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                      {isSelected && (
+                        <Text style={{ color: BG, fontSize: 10, fontWeight: "800" }}>✓</Text>
+                      )}
+                    </View>
+                    <Text style={{ color: DIM, fontSize: 11, width: 52 }} numberOfLines={1}>{sticker.id}</Text>
+                    <Text style={{ color: INK, fontSize: 13, flex: 1 }} numberOfLines={1}>
+                      {sticker.name}
+                    </Text>
+                    {isNeeded && !isSelected && (
+                      <View style={{
+                        backgroundColor: "rgba(34,197,94,0.15)",
+                        borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+                        marginLeft: 6,
+                      }}>
+                        <Text style={{ color: GREEN, fontSize: 9, fontWeight: "800", letterSpacing: 0.5 }}>
+                          FALTA
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           );
-        }}
-      />
+        })}
+        <View style={{ height: 80 }} />
+      </ScrollView>
     </View>
   );
 }

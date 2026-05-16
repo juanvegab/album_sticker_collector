@@ -71,6 +71,40 @@ export async function rejectStickerRequest(requestId: string): Promise<void> {
   });
 }
 
+/** Cancel a pending outgoing request (before the other side has responded) */
+export async function cancelOutgoingRequest(requestId: string): Promise<void> {
+  await updateDoc(doc(db, "requests", requestId), {
+    status: "cancelled",
+    updatedAt: Date.now(),
+  });
+}
+
+/**
+ * Cancel an already-accepted request.
+ * Restores the duplicate counts that were decremented when the request was accepted.
+ */
+export async function cancelAcceptedRequest(
+  requestId: string,
+  toUserId: string,
+  givenStickers: string[]
+): Promise<void> {
+  const batch = writeBatch(db);
+
+  batch.update(doc(db, "requests", requestId), {
+    status: "cancelled",
+    updatedAt: Date.now(),
+  });
+
+  if (givenStickers.length > 0) {
+    const colRef = userCollectionRef(toUserId);
+    for (const stickerId of givenStickers) {
+      batch.set(colRef, { [`duplicates.${stickerId}`]: increment(1), albumId: ALBUM_ID }, { merge: true });
+    }
+  }
+
+  await batch.commit();
+}
+
 /**
  * fromUser confirms physical receipt. Adds givenStickers to their owned array.
  */
@@ -113,7 +147,7 @@ export function subscribeToIncomingRequests(
   });
 }
 
-/** Requests I sent that were accepted but not yet physically delivered (fromUser) */
+/** Requests I sent that were accepted but not yet physically delivered (fromUser perspective) */
 export function subscribeToMyPendingDeliveries(
   userId: string,
   onData: (requests: StickerRequest[]) => void
@@ -121,6 +155,21 @@ export function subscribeToMyPendingDeliveries(
   const q = query(
     collection(db, "requests"),
     where("fromUserId", "==", userId),
+    where("status", "==", "accepted")
+  );
+  return onSnapshot(q, (snap) => {
+    onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)));
+  });
+}
+
+/** Requests I accepted and need to physically deliver (toUser perspective) */
+export function subscribeToMyToDeliver(
+  userId: string,
+  onData: (requests: StickerRequest[]) => void
+): () => void {
+  const q = query(
+    collection(db, "requests"),
+    where("toUserId", "==", userId),
     where("status", "==", "accepted")
   );
   return onSnapshot(q, (snap) => {

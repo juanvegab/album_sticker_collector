@@ -210,7 +210,7 @@ const es = {
     acceptedBodyPartial: "Te puede dar: {{stickers}}",
     pendingDelivery: "Pendiente de entrega",
     waitingDelivery: "Esperas {{count}} postal(es)",
-    pendingLabel: "Por entregar",
+    pendingLabel: "Por recibir",
     noStickersGiven: "Sin postales confirmadas",
     markReceived: "Marcar como recibidas ✅",
     receivedTitle: "{{name}} recibió las postales",

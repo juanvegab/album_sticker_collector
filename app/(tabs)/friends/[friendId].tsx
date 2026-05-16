@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   View, Text, TouchableOpacity, ActivityIndicator, Alert, StatusBar,
 } from "react-native";
@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFriendCollection } from "@/hooks/useFriendCollection";
 import { useFriends } from "@/hooks/useFriends";
+import { useCollection } from "@/hooks/useCollection";
 import { sendStickerRequest } from "@/lib/firestore/requests";
 import { getProfile } from "@/lib/firestore/users";
 import { sendPushNotification } from "@/lib/notifications";
@@ -39,13 +40,30 @@ export default function FriendDetailScreen() {
   const insets = useSafeAreaInsets();
   const { friendProfiles } = useFriends();
   const { duplicateStickers, loading } = useFriendCollection(friendId ?? null);
+  const { ownedSet } = useCollection();
 
   const [selected, setSelected] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
+  const [preselected, setPreselected] = useState(false);
 
+  // IDs of friend's duplicates that I'm missing — used for pre-selection and visual hint
+  const neededSet = useMemo(
+    () => new Set(duplicateStickers.filter((s) => !ownedSet.has(s.id)).map((s) => s.id)),
+    [duplicateStickers, ownedSet]
+  );
+
+  // Reset pre-selection flag every time the screen gains focus
   useFocusEffect(useCallback(() => {
-    setSelected([]);
+    setPreselected(false);
   }, []));
+
+  // Pre-select stickers I need once data is ready
+  useEffect(() => {
+    if (!loading && !preselected && duplicateStickers.length > 0) {
+      setSelected([...neededSet]);
+      setPreselected(true);
+    }
+  }, [loading, preselected, neededSet, duplicateStickers.length]);
 
   const friend = friendProfiles.find((p) => p.userId === friendId);
   const friendName = friend?.name ?? friendId ?? "";
@@ -144,6 +162,7 @@ export default function FriendDetailScreen() {
         pool={duplicateStickers}
         selected={selected}
         onToggle={toggle}
+        needed={neededSet}
         emptyText={t("friends.noDuplicates", { name: friendName })}
       />
 

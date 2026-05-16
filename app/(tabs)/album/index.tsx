@@ -423,10 +423,28 @@ export default function AlbumScreen() {
 
   function handleSelectSection(section: AlbumSection) {
     updateActive(section.id, true);
-    const idx = SECTION_FIRST_IDX.get(section.id) ?? 0;
     programmaticTarget.current = section.id;
-    const offsets = showAdsRef.current ? FLAT_OFFSETS_ADS : FLAT_OFFSETS_FREE;
-    rightListRef.current?.scrollToOffset({ offset: offsets[idx] ?? 0, animated: true });
+
+    let scrollOffset: number;
+    if (activeFilter === "all") {
+      // Use pre-computed offsets for the full unfiltered list
+      const idx = SECTION_FIRST_IDX.get(section.id) ?? 0;
+      const offsets = showAdsRef.current ? FLAT_OFFSETS_ADS : FLAT_OFFSETS_FREE;
+      scrollOffset = offsets[idx] ?? 0;
+    } else {
+      // Compute offset dynamically from the filtered list (no ads in filtered view)
+      let cum = PADDING_TOP;
+      scrollOffset = 0;
+      for (const item of displayItems) {
+        if (item.type === "header" && item.sectionId === section.id) {
+          scrollOffset = cum;
+          break;
+        }
+        cum += item.type === "header" ? SECTION_HEADER_HEIGHT : ROW_HEIGHT;
+      }
+    }
+
+    rightListRef.current?.scrollToOffset({ offset: scrollOffset, animated: true });
     setTimeout(() => { programmaticTarget.current = null; }, 1500);
   }
 

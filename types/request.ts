@@ -1,4 +1,4 @@
-export type RequestStatus = "pending" | "accepted" | "received" | "rejected";
+export type RequestStatus = "pending" | "accepted" | "received" | "rejected" | "cancelled";
 
 export interface StickerRequest {
   id: string;

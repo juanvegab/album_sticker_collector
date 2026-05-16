@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   View, Text, TouchableOpacity, ActivityIndicator,
   Alert, Share, ScrollView, StatusBar, TextInput,
@@ -14,9 +14,10 @@ import {
   acceptFriendRequest, rejectFriendRequest,
   getProfile, saveExpoPushToken,
 } from "@/lib/firestore/users";
-import { markRequestReceived } from "@/lib/firestore/requests";
+import { markRequestReceived, cancelOutgoingRequest, cancelAcceptedRequest } from "@/lib/firestore/requests";
 import { sendPushNotification, registerForPushNotifications } from "@/lib/notifications";
 import { RequestCard } from "@/components/friends/RequestCard";
+import { RequestDetailModal } from "@/components/friends/RequestDetailModal";
 import { QRModal } from "@/components/friends/QRModal";
 import { TrialBanner } from "@/components/premium/TrialBanner";
 import type { UserProfile } from "@/types/user";
@@ -81,12 +82,22 @@ export default function FriendsScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const { friendProfiles, pendingFrom, loading } = useFriends();
-  const { incoming, pendingDeliveries } = useStickerRequests();
+  const { incoming, outgoing, pendingDeliveries, toDeliver } = useStickerRequests();
   const [qrVisible, setQrVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [pendingProfiles, setPendingProfiles] = useState<Record<string, UserProfile>>({});
+  const [detailRequest, setDetailRequest] = useState<{
+    req: StickerRequest;
+    mode: "outgoing" | "toDeliver" | "delivery";
+  } | null>(null);
+
+  // Map friendId → profile for quick lookup in outgoing cards
+  const friendMap = useMemo(
+    () => Object.fromEntries(friendProfiles.map((f) => [f.userId, f])),
+    [friendProfiles]
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -158,8 +169,8 @@ export default function FriendsScreen() {
     : friendProfiles;
 
   const hasSections =
-    pendingFrom.length > 0 || incoming.length > 0 ||
-    pendingDeliveries.length > 0 || friendProfiles.length > 0;
+    pendingFrom.length > 0 || incoming.length > 0 || outgoing.length > 0 ||
+    toDeliver.length > 0 || pendingDeliveries.length > 0 || friendProfiles.length > 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: BG, paddingTop: insets.top }}>
@@ -330,6 +341,100 @@ export default function FriendsScreen() {
             </>
           )}
 
+          {/* ── Outgoing requests (sent by me, awaiting response) ── */}
+          {outgoing.length > 0 && (
+            <>
+              <SectionLabel text={t("requests.outgoing")} count={outgoing.length} />
+              {outgoing.map((req) => {
+                const toName = friendMap[req.toUserId]?.name ?? req.toUserId;
+                const preview = req.stickers.slice(0, 4).join(" · ");
+                const more = req.stickers.length - 4;
+                return (
+                  <TouchableOpacity
+                    key={req.id}
+                    onPress={() => setDetailRequest({ req, mode: "outgoing" })}
+                    activeOpacity={0.7}
+                    style={{
+                      backgroundColor: SURFACE, marginHorizontal: 16, marginBottom: 8,
+                      borderRadius: 16, padding: 14,
+                      borderWidth: 1, borderColor: DIM3,
+                      flexDirection: "row", alignItems: "center",
+                    }}
+                  >
+                    <Avatar name={toName} />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{ color: INK, fontSize: 15, fontWeight: "700" }} numberOfLines={1}>
+                        {toName}
+                      </Text>
+                      <Text style={{ color: DIM, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+                        {req.stickers.length} postales · {preview}{more > 0 ? ` +${more}` : ""}
+                      </Text>
+                    </View>
+                    <View style={{
+                      backgroundColor: "rgba(244,196,48,0.12)",
+                      borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5,
+                      borderWidth: 1, borderColor: "rgba(244,196,48,0.4)",
+                    }}>
+                      <Text style={{ color: BRAND, fontSize: 10, fontWeight: "800", letterSpacing: 0.5 }}>
+                        ENVIADO
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+
+          {/* ── To deliver (I accepted, need to hand over stickers) ── */}
+          {toDeliver.length > 0 && (
+            <>
+              <SectionLabel text="Para entregar" count={toDeliver.length} />
+              {toDeliver.map((req) => {
+                const given = req.givenStickers ?? [];
+                const preview = given.slice(0, 4).join(" · ");
+                const more = given.length - 4;
+                return (
+                  <TouchableOpacity
+                    key={req.id}
+                    onPress={() => setDetailRequest({ req, mode: "toDeliver" })}
+                    activeOpacity={0.7}
+                    style={{
+                      backgroundColor: SURFACE, marginHorizontal: 16, marginBottom: 8,
+                      borderRadius: 16, padding: 14,
+                      borderWidth: 1, borderColor: "rgba(34,197,94,0.2)",
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: given.length > 0 ? 8 : 0 }}>
+                      <Avatar name={req.fromUserName} />
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={{ color: INK, fontSize: 15, fontWeight: "700" }} numberOfLines={1}>
+                          {req.fromUserName}
+                        </Text>
+                        <Text style={{ color: DIM, fontSize: 12, marginTop: 2 }}>
+                          {given.length} postal(es) a entregar
+                        </Text>
+                      </View>
+                      <View style={{
+                        backgroundColor: "rgba(34,197,94,0.12)",
+                        borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5,
+                        borderWidth: 1, borderColor: GREEN,
+                      }}>
+                        <Text style={{ color: GREEN, fontSize: 10, fontWeight: "800", letterSpacing: 0.5 }}>
+                          A ENTREGAR
+                        </Text>
+                      </View>
+                    </View>
+                    {given.length > 0 && (
+                      <Text style={{ color: DIM, fontSize: 11 }} numberOfLines={1}>
+                        {preview}{more > 0 ? ` +${more}` : ""}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+
           {/* ── Pending deliveries ── */}
           {pendingDeliveries.length > 0 && (
             <>
@@ -345,8 +450,12 @@ export default function FriendsScreen() {
                     borderRadius: 16, padding: 14,
                     borderWidth: 1, borderColor: DIM3,
                   }}>
-                    {/* Header row */}
-                    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                    {/* Header row — tappable for detail */}
+                    <TouchableOpacity
+                      onPress={() => setDetailRequest({ req, mode: "delivery" })}
+                      activeOpacity={0.7}
+                      style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+                    >
                       <Avatar name={req.fromUserName} />
                       <View style={{ flex: 1, marginLeft: 12 }}>
                         <Text style={{ color: INK, fontSize: 15, fontWeight: "700" }} numberOfLines={1}>
@@ -367,7 +476,7 @@ export default function FriendsScreen() {
                           {t("requests.pendingLabel").toUpperCase()}
                         </Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
 
                     {/* Mark received */}
                     <TouchableOpacity
@@ -443,6 +552,67 @@ export default function FriendsScreen() {
       )}
 
       <QRModal visible={qrVisible} onClose={() => setQrVisible(false)} />
+
+      {/* ── Request detail modal ── */}
+      {detailRequest && (() => {
+        const { req, mode } = detailRequest;
+        const toName = friendMap[req.toUserId]?.name ?? req.toUserId;
+
+        if (mode === "outgoing") {
+          return (
+            <RequestDetailModal
+              request={req}
+              title={`Para ${toName}`}
+              stickers={req.stickers}
+              stickersLabel="Postales pedidas"
+              stickersColor={INK}
+              cancelLabel="Cancelar pedido"
+              onClose={() => setDetailRequest(null)}
+              onCancel={async () => {
+                await cancelOutgoingRequest(req.id);
+                setDetailRequest(null);
+              }}
+            />
+          );
+        }
+
+        if (mode === "toDeliver") {
+          // I am toUserId — stickers I committed to give
+          return (
+            <RequestDetailModal
+              request={req}
+              title={`Para ${req.fromUserName}`}
+              stickers={req.givenStickers ?? []}
+              stickersLabel="Postales a entregar"
+              stickersColor={GREEN}
+              cancelLabel="Cancelar entrega"
+              onClose={() => setDetailRequest(null)}
+              onCancel={async () => {
+                // toUserId = user.id → restore my own duplicates
+                await cancelAcceptedRequest(req.id, user!.id, req.givenStickers ?? []);
+                setDetailRequest(null);
+              }}
+            />
+          );
+        }
+
+        // mode === "delivery" — I am fromUser, waiting to receive
+        return (
+          <RequestDetailModal
+            request={req}
+            title={`De ${req.fromUserName}`}
+            stickers={req.givenStickers ?? []}
+            stickersLabel="Postales a recibir"
+            stickersColor={ORANGE}
+            cancelLabel="Eliminar pedido aceptado"
+            onClose={() => setDetailRequest(null)}
+            onCancel={async () => {
+              await cancelAcceptedRequest(req.id, req.toUserId, req.givenStickers ?? []);
+              setDetailRequest(null);
+            }}
+          />
+        );
+      })()}
     </View>
   );
 }

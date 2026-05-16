@@ -210,7 +210,7 @@ const en = {
     acceptedBodyPartial: "Can give you: {{stickers}}",
     pendingDelivery: "Pending delivery",
     waitingDelivery: "Waiting for {{count}} sticker(s)",
-    pendingLabel: "To deliver",
+    pendingLabel: "To receive",
     noStickersGiven: "No stickers confirmed",
     markReceived: "Mark as received ✅",
     receivedTitle: "{{name}} received the stickers",

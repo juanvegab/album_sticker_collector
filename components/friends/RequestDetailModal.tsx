@@ -1,0 +1,168 @@
+import { useState } from "react";
+import {
+  Modal, View, Text, TouchableOpacity,
+  ScrollView, ActivityIndicator, Alert,
+} from "react-native";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { StickerRequest } from "@/types/request";
+
+// ── Design tokens ──────────────────────────────────────────────────────
+const SURFACE  = "#15161B";
+const ELEVATED = "#1C1D24";
+const INK      = "#F5F4EE";
+const DIM      = "rgba(245,244,238,0.38)";
+const DIM3     = "rgba(245,244,238,0.08)";
+const GREEN    = "#22C55E";
+const ORANGE   = "#F2853A";
+const RED      = "#EF4444";
+
+interface Props {
+  request: StickerRequest | null;
+  /** Label shown in the header (e.g. "Para Juan" / "De Juan") */
+  title: string;
+  /** Which sticker list to display */
+  stickers: string[];
+  /** Label above the sticker list */
+  stickersLabel: string;
+  /** Color accent for the sticker list (green = owned, orange = given) */
+  stickersColor?: string;
+  /** If provided, a cancel/delete button appears at the bottom */
+  onCancel?: () => Promise<void>;
+  cancelLabel?: string;
+  onClose: () => void;
+}
+
+export function RequestDetailModal({
+  request,
+  title,
+  stickers,
+  stickersLabel,
+  stickersColor = INK,
+  onCancel,
+  cancelLabel = "Cancelar pedido",
+  onClose,
+}: Props) {
+  const insets = useSafeAreaInsets();
+  const [cancelling, setCancelling] = useState(false);
+
+  if (!request) return null;
+
+  async function handleCancel() {
+    if (!onCancel) return;
+    Alert.alert(
+      "¿Cancelar pedido?",
+      "Esta acción no se puede deshacer.",
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Sí, cancelar",
+          style: "destructive",
+          onPress: async () => {
+            setCancelling(true);
+            try {
+              await onCancel();
+              onClose();
+            } catch {
+              Alert.alert("Error", "No se pudo cancelar el pedido.");
+            } finally {
+              setCancelling(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  const dateStr = new Date(request.createdAt).toLocaleDateString("es-AR", {
+    day: "numeric", month: "short",
+  });
+
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.65)",
+        justifyContent: "flex-end",
+      }}>
+        <View style={{
+          backgroundColor: SURFACE,
+          borderTopLeftRadius: 24, borderTopRightRadius: 24,
+          paddingHorizontal: 20, paddingTop: 18,
+          paddingBottom: Math.max(insets.bottom + 16, 32),
+        }}>
+          {/* Handle bar */}
+          <View style={{
+            width: 36, height: 4, borderRadius: 2,
+            backgroundColor: DIM3, alignSelf: "center", marginBottom: 16,
+          }} />
+
+          {/* Header */}
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 18 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: INK, fontSize: 18, fontWeight: "800" }} numberOfLines={1}>
+                {title}
+              </Text>
+              <Text style={{ color: DIM, fontSize: 12, marginTop: 2 }}>
+                {dateStr}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <FontAwesome name="times" size={18} color={DIM} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Sticker count label */}
+          <Text style={{
+            color: DIM, fontSize: 10, fontWeight: "700",
+            letterSpacing: 1.2, marginBottom: 10,
+          }}>
+            {stickersLabel.toUpperCase()} · {stickers.length}
+          </Text>
+
+          {/* Sticker list */}
+          <View style={{
+            backgroundColor: ELEVATED,
+            borderRadius: 14, padding: 14,
+            maxHeight: 200,
+          }}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={{
+                color: stickersColor,
+                fontSize: 13, lineHeight: 22, flexWrap: "wrap",
+              }}>
+                {stickers.join("   ·   ")}
+              </Text>
+            </ScrollView>
+          </View>
+
+          {/* Cancel button */}
+          {onCancel && (
+            <TouchableOpacity
+              onPress={handleCancel}
+              disabled={cancelling}
+              style={{
+                marginTop: 18,
+                borderRadius: 14, paddingVertical: 15,
+                alignItems: "center",
+                backgroundColor: "rgba(239,68,68,0.12)",
+                borderWidth: 1, borderColor: RED,
+              }}
+              activeOpacity={0.7}
+            >
+              {cancelling
+                ? <ActivityIndicator color={RED} size="small" />
+                : <Text style={{ color: RED, fontSize: 15, fontWeight: "700" }}>
+                    {cancelLabel}
+                  </Text>
+              }
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
