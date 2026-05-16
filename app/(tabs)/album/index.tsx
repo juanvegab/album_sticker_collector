@@ -656,7 +656,6 @@ export default function AlbumScreen() {
               initialNumToRender={12}
               maxToRenderPerBatch={8}
               updateCellsBatchingPeriod={50}
-              removeClippedSubviews
               onScroll={handleScroll}
               onScrollBeginDrag={handleScrollBeginDrag}
               scrollEventThrottle={100}
