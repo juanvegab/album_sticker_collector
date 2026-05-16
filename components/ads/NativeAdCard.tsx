@@ -25,6 +25,13 @@ class AdErrorBoundary extends React.Component<
   }
   componentDidCatch(error: Error) {
     console.warn("[NativeAdCard] render error caught:", error?.message);
+    // TODO: remove this alert once the Android crash is identified
+    const { Alert } = require("react-native");
+    Alert.alert(
+      "🐛 [DEBUG] NativeAdCard crash",
+      error?.message ?? "Unknown error",
+      [{ text: "OK" }]
+    );
   }
   render() {
     if (this.state.crashed) return null; // silent fallback — no space consumed
