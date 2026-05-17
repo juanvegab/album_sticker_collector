@@ -206,7 +206,9 @@ export default function AccountScreen() {
       }
     } catch (err: any) {
       if (err?.code !== 1 && err?.message !== "no_package") {
-        Alert.alert(t("common.error"), t("premium.purchaseError"));
+        // TODO: remove debug info once IAP issue is resolved
+        const debugInfo = `code=${err?.code ?? "?"} | ${err?.message ?? "unknown"}`;
+        Alert.alert(t("common.error"), `${t("premium.purchaseError")}\n\n[DEBUG] ${debugInfo}`);
       }
     } finally {
       setIsPurchasing(false);
