@@ -9,11 +9,14 @@ const API_KEY = Platform.select({
 
 const ENTITLEMENT = "no_ads";
 
-// Test keys only work in Expo Go / debug — skip in release builds to avoid RC blocking the app
+// Skip if no key (Expo Go / missing env) or test key (not a real RC project)
 const isTestKey = API_KEY.startsWith("test_");
 
 export async function initPurchases(userId: string): Promise<void> {
-  if (isTestKey) return;
+  if (!API_KEY || isTestKey) {
+    console.warn("[RC] No valid API key — skipping Purchases.configure()");
+    return;
+  }
   Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR);
   Purchases.configure({ apiKey: API_KEY, appUserID: userId });
 }
@@ -24,6 +27,7 @@ export async function checkPremiumStatus(): Promise<boolean> {
 }
 
 export async function purchaseNoAds(): Promise<boolean> {
+  if (!API_KEY || isTestKey) throw new Error("purchases_not_configured");
   const offerings = await Purchases.getOfferings();
   console.log("RC offerings:", JSON.stringify({ current: offerings.current?.identifier, packages: offerings.current?.availablePackages.map(p => p.identifier) }));
   const pkg = offerings.current?.availablePackages[0];
