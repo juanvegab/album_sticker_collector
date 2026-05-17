@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Modal, View, Text, TouchableOpacity,
   ScrollView, ActivityIndicator, Alert,
@@ -6,6 +6,23 @@ import {
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { StickerRequest } from "@/types/request";
+import { ALL_STICKERS_MAP, WORLD_CUP_2026 } from "@/lib/data/world-cup-2026";
+
+// Section order index for sorting (FWC=0, MEX=1, …)
+const SECTION_ORDER = new Map(WORLD_CUP_2026.sections.map((s, i) => [s.id, i]));
+
+function sortStickerIds(ids: string[]): string[] {
+  return [...ids].sort((a, b) => {
+    const sa = ALL_STICKERS_MAP.get(a);
+    const sb = ALL_STICKERS_MAP.get(b);
+    if (!sa || !sb) return 0;
+    const sectionDiff =
+      (SECTION_ORDER.get(sa.sectionId) ?? 999) -
+      (SECTION_ORDER.get(sb.sectionId) ?? 999);
+    if (sectionDiff !== 0) return sectionDiff;
+    return sa.number - sb.number;
+  });
+}
 
 // ── Design tokens ──────────────────────────────────────────────────────
 const SURFACE  = "#15161B";
@@ -45,6 +62,7 @@ export function RequestDetailModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const [cancelling, setCancelling] = useState(false);
+  const sortedStickers = useMemo(() => sortStickerIds(stickers), [stickers]);
 
   if (!request) return null;
 
@@ -120,7 +138,7 @@ export function RequestDetailModal({
             color: DIM, fontSize: 10, fontWeight: "700",
             letterSpacing: 1.2, marginBottom: 10,
           }}>
-            {stickersLabel.toUpperCase()} · {stickers.length}
+            {stickersLabel.toUpperCase()} · {sortedStickers.length}
           </Text>
 
           {/* Sticker list */}
@@ -134,7 +152,7 @@ export function RequestDetailModal({
                 color: stickersColor,
                 fontSize: 13, lineHeight: 22, flexWrap: "wrap",
               }}>
-                {stickers.join("   ·   ")}
+                {sortedStickers.join("   ·   ")}
               </Text>
             </ScrollView>
           </View>
