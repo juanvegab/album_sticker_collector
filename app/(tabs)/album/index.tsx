@@ -34,7 +34,7 @@ for (const section of WORLD_CUP_2026.sections) {
 
 // ── Flat item list ────────────────────────────────────────────────────
 type FlatItem =
-  | { type: "header"; sectionId: string; section: AlbumSection; emptyLabel?: string }
+  | { type: "header"; sectionId: string; section: AlbumSection; emptyLabel?: string; showCompleted?: boolean }
   | { type: "row";    sectionId: string; stickers: AlbumSticker[] }
   | { type: "ad";     sectionId: string; adIndex: number };
 
@@ -127,7 +127,11 @@ const _scheduleSaveRef = { current: () => {} };
 
 // ── Memoized sub-components ───────────────────────────────────────────
 
-const SectionHeader = React.memo(({ section, emptyLabel }: { section: AlbumSection; emptyLabel?: string }) => {
+const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
+  section: AlbumSection;
+  emptyLabel?: string;
+  showCompleted?: boolean;
+}) => {
   const ownedCount = useCollectionStore(
     useCallback(
       (state) => {
@@ -224,13 +228,13 @@ const SectionHeader = React.memo(({ section, emptyLabel }: { section: AlbumSecti
         <Text style={{ fontSize: 20, marginRight: 8 }}>{section.emoji}</Text>
       )}
 
-      {/* Name + subtitle / emptyLabel */}
+      {/* Name + subtitle / emptyLabel / completado */}
       <View style={{ flex: 1 }}>
         <Text style={{ color: textMain, fontSize: 15, fontWeight: "700", lineHeight: 19 }} numberOfLines={1}>
           {section.name}
         </Text>
-        <Text style={{ color: textSub, fontSize: 11, fontWeight: "500" }}>
-          {isEmpty ? emptyLabel : subtitle}
+        <Text style={{ color: isEmpty ? textSub : showCompleted ? "#4ADE80" : textSub, fontSize: 11, fontWeight: "500" }}>
+          {isEmpty ? emptyLabel : showCompleted ? "Completado ✓" : subtitle}
         </Text>
       </View>
 
@@ -428,7 +432,8 @@ export default function AlbumScreen() {
         // Always show the header, but mark it as empty with a descriptive label
         items.push({ type: "header", sectionId: section.id, section, emptyLabel: emptyLabelFor(section) });
       } else {
-        items.push({ type: "header", sectionId: section.id, section });
+        const isComplete = filtered.length === section.stickers.length && activeFilter === "owned";
+        items.push({ type: "header", sectionId: section.id, section, showCompleted: isComplete });
         for (let i = 0; i < filtered.length; i += STICKERS_PER_ROW)
           items.push({ type: "row", sectionId: section.id, stickers: filtered.slice(i, i + STICKERS_PER_ROW) });
       }
@@ -527,7 +532,7 @@ export default function AlbumScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: FlatItem }) => {
-      if (item.type === "header") return <SectionHeader section={item.section} emptyLabel={item.emptyLabel} />;
+      if (item.type === "header") return <SectionHeader section={item.section} emptyLabel={item.emptyLabel} showCompleted={item.showCompleted} />;
       if (item.type === "ad")    return <NativeAdCard adIndex={item.adIndex} />;
       const sectionColor = SECTION_COLOR_MAP.get(item.sectionId) ?? "#9CA3AF";
       return (
@@ -558,6 +563,26 @@ export default function AlbumScreen() {
     const offsets = ads ? FLAT_OFFSETS_ADS : FLAT_OFFSETS_FREE;
     return { length, offset: offsets[index] ?? 0, index };
   }, []);
+
+  // Pre-compute per-index layout for filtered views (needed for correct scrollToOffset)
+  const filteredItemOffsets = useMemo<number[] | null>(() => {
+    if (activeFilter === "all") return null;
+    const offsets: number[] = [];
+    let cum = PADDING_TOP;
+    for (const item of displayItems) {
+      offsets.push(cum);
+      cum += item.type === "header" ? SECTION_HEADER_HEIGHT : ROW_HEIGHT;
+    }
+    return offsets;
+  }, [activeFilter, displayItems]);
+
+  const getFilteredItemLayout = useCallback((_: unknown, index: number) => {
+    const item = displayItems[index];
+    const length = item?.type === "header" ? SECTION_HEADER_HEIGHT : ROW_HEIGHT;
+    const offset = filteredItemOffsets?.[index] ?? 0;
+    return { length, offset, index };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredItemOffsets]);
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0B0B0E", paddingTop: insets.top }}>
@@ -715,7 +740,7 @@ export default function AlbumScreen() {
               data={displayItems}
               keyExtractor={keyExtractor}
               renderItem={renderItem}
-              getItemLayout={activeFilter === "all" ? getItemLayout : undefined}
+              getItemLayout={activeFilter === "all" ? getItemLayout : getFilteredItemLayout}
               contentContainerStyle={{ paddingTop: PADDING_TOP, paddingBottom: 120 }}
               windowSize={5}
               initialNumToRender={12}
