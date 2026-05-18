@@ -76,7 +76,7 @@ const uefaTeams: AlbumSection[] = [
     "Courtois", "Theate", "Castagne", "Debast", "Mechele", "De Cuyper", "Meunier", "Tielemans", "Onana", "Raskin", "Saelemaekers",
     "Vanaken", "De Bruyne", "Doku", "De Ketelaere", "Trossard", "Openda", "Lukaku",
   ]),
-  makeTeamSection("BIH", "Bosnia y Herzegovina", "🦁", [
+  makeTeamSection("BIH", "Bosnia y Herzegovina", "🇧🇦", [
     "Vasilj", "Dedic", "Kolasinac", "Muharemovic", "Mujakic", "Katic", "Hadziahmetovic", "Tahirovic", "Gigovic", "Sunjic", "Basic",
     "Burnic", "Bajraktarevic", "Memic", "Demirovic", "Dzeko", "Bazdar", "Tabakovic",
   ]),
@@ -88,19 +88,19 @@ const uefaTeams: AlbumSection[] = [
     "Kovar", "Stanek", "Krejci", "Coufal", "Zeleny", "Holes", "Zima", "Sadilek", "Provod", "Cerv", "Soucek",
     "Sulc", "Vydra", "Kusej", "Chory", "Cerny", "Hlozek", "Schick",
   ]),
-  makeTeamSection("ENG", "Inglaterra", "🦁", [
+  makeTeamSection("ENG", "Inglaterra", "🏴󠁧󠁢󠁥󠁮󠁧󁿢", [
     "Pickford", "Stones", "Guéhi", "Konsa", "Alexander-Arnold", "James", "Burn", "Henderson", "Rice", "Bellingham", "Palmer",
     "Rogers", "Gordon", "Foden", "Saka", "Kane", "Rashford", "Watkins",
   ]),
-  makeTeamSection("FRA", "Francia", "🐓", [
+  makeTeamSection("FRA", "Francia", "🇫🇷", [
     "Maignan", "T. Hernandez", "Saliba", "Kounde", "Konate", "Upamecano", "Digne", "Tchouaméni", "Camavinga", "Kone", "Rabiot",
     "Olise", "Dembele", "Barcola", "Doué", "Coman", "Ekitike", "Mbappe",
   ]),
-  makeTeamSection("GER", "Alemania", "🦅", [
+  makeTeamSection("GER", "Alemania", "🇩🇪", [
     "ter Stegen", "Tah", "Raum", "Schlotterbeck", "Rüdiger", "Anton", "Baku", "Mittelstadt", "Kimmich", "Wirtz", "Nmecha",
     "Goretzka", "Musiala", "Gnabry", "Havertz", "Sane", "Adeyemi", "Woltemade",
   ]),
-  makeTeamSection("NED", "Países Bajos", "🌷", [
+  makeTeamSection("NED", "Países Bajos", "🇳🇱", [
     "Verbruggen", "van Dijk", "van de Ven", "Timber", "Dumfries", "Aké", "Frimpong", "van Hecke", "Reijnders", "Gravenberch", "Koopmeiners",
     "de Jong", "Simons", "Kluivert", "Depay", "Malen", "Weghorst", "Gakpo",
   ]),
@@ -112,7 +112,7 @@ const uefaTeams: AlbumSection[] = [
     "Costa", "Sa", "Dias", "Cancelo", "Dalot", "Mendes", "Inácio", "B. Silva", "Fernandes", "Neves", "Vitinha",
     "J. Neves", "Ronaldo", "Trincao", "Felix", "Ramos", "Neto", "Leão",
   ]),
-  makeTeamSection("SCO", "Escocia", "🦁", [
+  makeTeamSection("SCO", "Escocia", "🏴󠁧󠁢󠁳󠁣󠁴󁿢", [
     "Gunn", "Hendry", "Tierney", "Hickey", "Robertson", "McKenna", "Souttar", "Ralston", "Hanley", "McTominay", "Gilmour",
     "Ferguson", "Christie", "McLean", "McGinn", "Dykes", "Adams", "Gannon-Doak",
   ]),
@@ -164,7 +164,7 @@ const conmebolTeams: AlbumSection[] = [
 
 // ── CONCACAF — Norte y Centroamérica (6 equipos) ─────────────────
 const concacafTeams: AlbumSection[] = [
-  makeTeamSection("CAN", "Canadá", "🍁", [
+  makeTeamSection("CAN", "Canadá", "🇨🇦", [
     "St.Clair", "Davies", "Johnston", "Adekugbe", "Laryea", "Cornelius", "Bombito", "Miller", "Eustáquio", "Koné", "Osorio",
     "Shaffelburg", "Choinière", "Sigur", "Buchanan", "Millar", "Larin", "David",
   ]),
@@ -176,7 +176,7 @@ const concacafTeams: AlbumSection[] = [
     "Placide", "Arcus", "Expérience", "Duverne", "Adé", "Lacroix", "Metusala", "Delcroix", "Pierre", "Jean Jacques", "Bellegarde",
     "Attys", "Etienne Jr", "Casimir", "Providence", "Nazon", "Deedson", "Pierrot",
   ]),
-  makeTeamSection("MEX", "México", "🦅", [
+  makeTeamSection("MEX", "México", "🇲🇽", [
     "Malagón", "Vasquez", "Sánchez", "Montes", "Gallardo", "Reyes", "Lainez", "Rodriguez", "Alvarez", "Pineda", "Ruiz",
     "É. Sánchez", "Lozano", "Giménez", "Jiménez", "Vega", "Alvarado", "Huerta",
   ]),
@@ -184,7 +184,7 @@ const concacafTeams: AlbumSection[] = [
     "Mosquera", "Mejia", "Escobar", "Andrade", "Murillo", "Davis", "Cordoba", "Blackman", "Martinez", "Godoy", "Carrasquilla",
     "Bárcenas", "Harvey", "Díaz", "Fajardo", "Waterman", "L. Rodriguez", "Quintero",
   ]),
-  makeTeamSection("USA", "Estados Unidos", "🦅", [
+  makeTeamSection("USA", "Estados Unidos", "🇺🇸", [
     "Freese", "Richards", "Ream", "McKenzie", "Freeman", "Robinson", "Adams", "Tessmann", "McKennie", "Roldan", "Weah",
     "Luna", "Tillman", "Pulisic", "Aaronson", "Pepi", "Wright", "Balogun",
   ]),
@@ -192,7 +192,7 @@ const concacafTeams: AlbumSection[] = [
 
 // ── CAF — África (10 equipos) ─────────────────────────────────────
 const cafTeams: AlbumSection[] = [
-  makeTeamSection("ALG", "Argelia", "🟢", [
+  makeTeamSection("ALG", "Argelia", "🇩🇿", [
     "Guendouz", "Bensebaini", "Atal", "Aït-Nouri", "Tougai", "Mandi", "Bennacer", "Aquar", "Boudaoui", "Zerrouki", "Bentalab",
     "Chaibi", "Mahrez", "Benrahma", "Hadj Moussa", "Gouiri", "Bounedjah", "Amoura",
   ]),
@@ -204,23 +204,23 @@ const cafTeams: AlbumSection[] = [
     "Mpasi", "Wan-Bissaka", "Tuanzebe", "Masuaku", "Mbemba", "Kayembe", "Pickel", "Mukau", "E. Kayembe", "Moutoussamy", "Sadiki",
     "Bongonda", "Elia", "Wissa", "Cipenga", "Mayele", "Bakambu", "Mbuku",
   ]),
-  makeTeamSection("EGY", "Egipto", "🦅", [
+  makeTeamSection("EGY", "Egipto", "🇪🇬", [
     "El Shenawy", "Hany", "Hamdy", "Ibrahim", "Sobhi", "Rabia", "Abdelmaguid", "Fatouh", "Attia", "Zizo", "Fathy",
     "Lasheen", "Ashour", "Faisal", "Salah", "M. Mohamed", "Trezeguet", "Marmoush",
   ]),
-  makeTeamSection("GHA", "Ghana", "⭐", [
+  makeTeamSection("GHA", "Ghana", "🇬🇭", [
     "Ati Zigi", "Lamptey", "Salisu", "Seidu", "Djiku", "Mensah", "Yirenkyi", "Fatawu", "Partey", "Samed", "Sulemana",
     "Kudus", "I. Williams", "J. Ayew", "A. Ayew", "Paintsil", "Bukari", "Semenyo",
   ]),
-  makeTeamSection("CIV", "Costa de Marfil", "🐘", [
+  makeTeamSection("CIV", "Costa de Marfil", "🇨🇮", [
     "Fofana", "Konan", "Singo", "Kossounou", "Ndicka", "Boly", "Agbadou", "Diomande", "Kessie", "Y. Fofana", "Sangare",
     "Gbamin", "Diallo", "Haller", "Adingra", "Y. Diomande", "Guessand", "Diakite",
   ]),
-  makeTeamSection("MAR", "Marruecos", "🌟", [
+  makeTeamSection("MAR", "Marruecos", "🇲🇦", [
     "Bounou", "El Kajoui", "Hakimi", "Mazraoui", "Aguerd", "Saiss", "El Yamiq", "Masina", "Amrabat", "Ounahi", "Ben Seghir",
     "El Khannouss", "Saibari", "En-Nesyri", "Ezzalzouli", "Rahimi", "Diaz", "El Kaabi",
   ]),
-  makeTeamSection("SEN", "Senegal", "🦁", [
+  makeTeamSection("SEN", "Senegal", "🇸🇳", [
     "Mendy", "Diouf", "Niakhaté", "Seck", "Jakobs", "M. Diouf", "Koulibaly", "Gueye", "Sarr", "P. Gueye", "Diarra",
     "Camara", "Mane", "P. Sarr", "Dia", "Ndiaye", "Jackson", "Diatta",
   ]),
@@ -228,7 +228,7 @@ const cafTeams: AlbumSection[] = [
     "Williams", "Chaine", "Modiba", "Kabini", "Mbokazi", "Ndamane", "S. Ngezana", "Sibisi", "Mbatha", "Aubaas", "Sithole",
     "Mbule", "Foster", "Rayners", "Nkota", "Appollis", "Tau", "Zwane",
   ]),
-  makeTeamSection("TUN", "Túnez", "🌙", [
+  makeTeamSection("TUN", "Túnez", "🇹🇳", [
     "Ben Said", "Dahmen", "Valery", "Talbi", "Meriah", "Abdi", "Bronn", "Skhiri", "Laidouni", "Sassi", "Ben Romdhane",
     "Mejbri", "Achouri", "Saad", "Mastouri", "Gharbi", "Ltaief", "Sliti",
   ]),
@@ -236,19 +236,19 @@ const cafTeams: AlbumSection[] = [
 
 // ── AFC — Asia (8 equipos) ────────────────────────────────────────
 const afcTeams: AlbumSection[] = [
-  makeTeamSection("AUS", "Australia", "🦘", [
+  makeTeamSection("AUS", "Australia", "🇦🇺", [
     "Ryan", "Gauci", "Souttar", "Circati", "Bos", "Behich", "Burgess", "Miller", "Degenek", "Irvine", "McGree",
     "O'Neill", "Metcalfe", "Yazbek", "Goodwin", "Vengi", "Irankunda", "Touré",
   ]),
-  makeTeamSection("IRN", "Irán", "🦁", [
+  makeTeamSection("IRN", "Irán", "🇮🇷", [
     "Beiranvand", "Pouraliganji", "Hajsafi", "Mohammadi", "Khalilzadeh", "Rezaeian", "Kanaani", "Moharrami", "Hardani", "Ezatolahi", "Ghoddos",
     "Noorafkan", "Cheshmi", "Mohebi", "Azmoun", "Taremi", "Jahanbakhsh", "Gholizadeh",
   ]),
-  makeTeamSection("IRQ", "Irak", "🌙", [
+  makeTeamSection("IRQ", "Irak", "🇮🇶", [
     "Hassan", "Sulaka", "Ali", "Hashem", "Doski", "Tahseen", "Younis", "Iqbal", "Al-Ammari", "Bavesh", "Jasim",
     "Amyn", "Sher", "Farji", "Rashid", "Al-Hamadi", "Hussein", "M. Ali",
   ]),
-  makeTeamSection("JPN", "Japón", "🔴", [
+  makeTeamSection("JPN", "Japón", "🇯🇵", [
     "Suzuki", "Mochizuki", "Seko", "J. Suzuki", "Taniguchi", "Watanabe", "Sano", "Soma", "Tanaka", "Kamada", "Kubo",
     "Doan", "Nakamura", "Minamino", "Machino", "Ito", "Ogawa", "Ueda",
   ]),
@@ -256,19 +256,19 @@ const afcTeams: AlbumSection[] = [
     "Abulaila", "Haddad", "Abu Hashish", "Al-Arab", "Nasib", "Obaid", "Abualnadi", "Saadeh", "Al-Rashdan", "Al-Rawabdeh", "Abu Taha",
     "Jamous", "Al-Taamari", "Al-Naimat", "Al-Mardi", "Olwan", "Abu Zrayq", "Sabra",
   ]),
-  makeTeamSection("KOR", "Corea del Sur", "🐯", [
+  makeTeamSection("KOR", "Corea del Sur", "🇰🇷", [
     "Jo", "Kim Seung-Gyu", "Kim Min-jae", "Cho", "Seol", "Lee Han-beom", "Lee Tae-seok", "Lee Myung-jae", "Lee Jae-sung", "Hwang", "Lee Kang-in",
     "Paik", "Castrop", "Lee Dong-yeong", "Cho Gue-sung", "Son", "Hwang Hee-chan", "Oh",
   ]),
-  makeTeamSection("KSA", "Arabia Saudita", "🦅", [
+  makeTeamSection("KSA", "Arabia Saudita", "🇸🇦", [
     "Alaqidi", "Al-Sanbi", "Abdulhamid", "Bouwashl", "Thakri", "Al-Harbi", "Altambakti", "Aljuwayr", "Aljohani", "Alkhaibari", "Aldawsari",
     "Abu Alshamat", "Alsahafi", "S. Aldawsari", "Al-Aboud", "Akbrikan", "Alshehri", "Al-Hamdan",
   ]),
-  makeTeamSection("QAT", "Catar", "🌙", [
+  makeTeamSection("QAT", "Catar", "🇶🇦", [
     "Barsham", "Albrake", "Mendes", "Ahmed", "Khoukhi", "Miguel", "Salman", "Al-Mannai", "Boudiaf", "Madibo", "Fatehi",
     "Waad", "Hatem", "Al-Haydos", "Junior", "Afif", "Al Ganehi", "Ali",
   ]),
-  makeTeamSection("UZB", "Uzbekistán", "🐆", [
+  makeTeamSection("UZB", "Uzbekistán", "🇺🇿", [
     "Yusupov", "Savfiev", "Nasrullaev", "Eshmurodov", "Aliqulov", "Ashurmatov", "Alijonov", "Khusanov", "Hamrobekov", "Shukurov", "Iskanderov",
     "Turgunboev", "Erkinov", "Shomurodov", "Urunov", "Masharipov", "Sergeev", "Fayzullaev",
   ]),
@@ -276,7 +276,7 @@ const afcTeams: AlbumSection[] = [
 
 // ── OFC — Oceanía (1 equipo) ──────────────────────────────────────
 const ofcTeams: AlbumSection[] = [
-  makeTeamSection("NZL", "Nueva Zelanda", "🥝", [
+  makeTeamSection("NZL", "Nueva Zelanda", "🇳🇿", [
     "Crocombe Payne", "Paulsen", "Boxall", "Cacace", "Payne", "Bindon", "de Vries", "Surman", "Bell", "Singh", "Thomas",
     "Garbett", "Stamenić", "Old", "Wood", "Just", "McCowatt", "Barbarouses",
   ]),
