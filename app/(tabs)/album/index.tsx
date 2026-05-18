@@ -344,29 +344,40 @@ export default function AlbumScreen() {
   const missing = total - ownedMain;
   const repeatedCount = Object.values(duplicates).reduce((sum, n) => sum + Math.max(0, n), 0);
 
-  // ── Share text (pre-computed) ─────────────────────────────────────
+  // ── Share text (pre-computed, grouped by section) ────────────────
   const shareText = useMemo(() => {
+    // Returns lines like "Mexico 🦅: MEX1, MEX5" for each section that has matches
+    function groupBySection(stickers: { id: string; sectionId: string }[]): string[] {
+      const lines: string[] = [];
+      for (const section of WORLD_CUP_2026.sections) {
+        const ids = stickers.filter((s) => s.sectionId === section.id).map((s) => s.id);
+        if (ids.length === 0) continue;
+        lines.push(`${section.name} ${section.emoji}: ${ids.join(", ")}`);
+      }
+      return lines;
+    }
+
     const allStickers = WORLD_CUP_2026.sections.flatMap((s) => s.stickers);
     const mainStickers = allStickers.filter((s) => !CC_STICKER_IDS.has(s.id));
     const parts: string[] = [];
     parts.push(lang === "es" ? "Mi Álbum 2026 ⚽" : "My 2026 Album ⚽");
     parts.push("");
     if (shareRepeated) {
-      const ids = allStickers.filter((s) => (duplicates[s.id] ?? 0) > 0).map((s) => s.id);
-      parts.push(lang === "es" ? `🔁 REPETIDAS (${ids.length})` : `🔁 DUPLICATES (${ids.length})`);
-      parts.push(ids.join(", "));
+      const matched = allStickers.filter((s) => (duplicates[s.id] ?? 0) > 0);
+      parts.push(lang === "es" ? `🔁 REPETIDAS (${matched.length})` : `🔁 DUPLICATES (${matched.length})`);
+      parts.push(...groupBySection(matched));
       parts.push("");
     }
     if (shareMissing) {
-      const ids = mainStickers.filter((s) => !ownedSet.has(s.id)).map((s) => s.id);
-      parts.push(lang === "es" ? `❌ ME FALTAN (${ids.length})` : `❌ MISSING (${ids.length})`);
-      parts.push(ids.join(", "));
+      const matched = mainStickers.filter((s) => !ownedSet.has(s.id));
+      parts.push(lang === "es" ? `❌ ME FALTAN (${matched.length})` : `❌ MISSING (${matched.length})`);
+      parts.push(...groupBySection(matched));
       parts.push("");
     }
     if (shareOwned) {
-      const ids = allStickers.filter((s) => ownedSet.has(s.id)).map((s) => s.id);
-      parts.push(lang === "es" ? `✅ TENGO (${ids.length})` : `✅ HAVE (${ids.length})`);
-      parts.push(ids.join(", "));
+      const matched = allStickers.filter((s) => ownedSet.has(s.id));
+      parts.push(lang === "es" ? `✅ TENGO (${matched.length})` : `✅ HAVE (${matched.length})`);
+      parts.push(...groupBySection(matched));
       parts.push("");
     }
     return parts.join("\n").trim();

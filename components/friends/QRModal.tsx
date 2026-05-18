@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { View, Text, Modal, TouchableOpacity, ActivityIndicator, Alert, Share } from "react-native";
+import { View, Text, Modal, TouchableOpacity, ActivityIndicator, Alert, Share, Platform } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { useUser } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -24,8 +25,15 @@ export function QRModal({ visible, onClose }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [sending, setSending] = useState(false);
+  const [copied, setCopied] = useState(false);
   // Synchronous guard — useRef so it blocks re-entry before React re-renders
   const processingRef = useRef(false);
+
+  async function handleCopyLink() {
+    await Clipboard.setStringAsync(inviteUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   const inviteUrl = `${INVITE_BASE}/${user?.id ?? ""}`;
 
@@ -129,13 +137,17 @@ export function QRModal({ visible, onClose }: Props) {
               <QRCode value={inviteUrl} size={220} />
             </View>
 
-            {/* Link display */}
-            <View style={{
-              marginTop: 20, width: "100%",
-              backgroundColor: "#F0F0F0", borderRadius: 12,
-              paddingHorizontal: 14, paddingVertical: 10,
-              flexDirection: "row", alignItems: "center",
-            }}>
+            {/* Link display — tap to copy */}
+            <TouchableOpacity
+              onPress={handleCopyLink}
+              activeOpacity={0.7}
+              style={{
+                marginTop: 20, width: "100%",
+                backgroundColor: "#F0F0F0", borderRadius: 12,
+                paddingHorizontal: 14, paddingVertical: 10,
+                flexDirection: "row", alignItems: "center", gap: 8,
+              }}
+            >
               <Text
                 style={{ flex: 1, color: "#1A1A1A", fontSize: 12, fontWeight: "600" }}
                 numberOfLines={1}
@@ -143,11 +155,22 @@ export function QRModal({ visible, onClose }: Props) {
               >
                 {inviteUrl}
               </Text>
-            </View>
+              <FontAwesome
+                name={copied ? "check" : "copy"}
+                size={14}
+                color={copied ? "#16A34A" : "#6B7280"}
+              />
+            </TouchableOpacity>
 
             {/* Share link button */}
             <TouchableOpacity
-              onPress={() => Share.share({ message: inviteUrl, url: inviteUrl })}
+              onPress={() =>
+                Share.share(
+                  Platform.OS === "ios"
+                    ? { url: inviteUrl }
+                    : { message: inviteUrl }
+                )
+              }
               style={{
                 marginTop: 12, width: "100%",
                 backgroundColor: "#2563EB", borderRadius: 12,
