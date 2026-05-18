@@ -305,6 +305,8 @@ export default function AlbumScreen() {
   useEffect(() => { showAdsRef.current = showAds; }, [showAds]);
 
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const activeFilterRef = useRef<FilterType>("all");
+  useEffect(() => { activeFilterRef.current = activeFilter; }, [activeFilter]);
   const [filterVisible, setFilterVisible] = useState(false);
 
   // ── Share list state ──────────────────────────────────────────────
@@ -433,6 +435,25 @@ export default function AlbumScreen() {
     }
     return items;
   }, [activeFilter, ownedSet, duplicates]);
+
+  // Pre-compute section start/end bounds for filtered view — used by handleScroll
+  const filteredBoundsRef = useRef<{ sectionId: string; start: number; end: number }[]>([]);
+  useEffect(() => {
+    if (activeFilter === "all") { filteredBoundsRef.current = []; return; }
+    const bounds: { sectionId: string; start: number; end: number }[] = [];
+    let cum = PADDING_TOP;
+    let currentSection: { sectionId: string; start: number } | null = null;
+    for (const item of displayItems) {
+      if (item.type === "header") {
+        if (currentSection) bounds.push({ ...currentSection, end: cum });
+        currentSection = { sectionId: item.sectionId, start: cum };
+      }
+      cum += item.type === "header" ? SECTION_HEADER_HEIGHT : ROW_HEIGHT;
+    }
+    if (currentSection) bounds.push({ ...currentSection, end: cum });
+    filteredBoundsRef.current = bounds;
+  }, [activeFilter, displayItems]);
+
   const pct = total > 0 ? Math.round((ownedMain / total) * 100) : 0;
 
   function updateActive(id: string, animated = false) {
@@ -480,6 +501,12 @@ export default function AlbumScreen() {
     setTimeout(() => { programmaticTarget.current = null; }, 1500);
   }
 
+  // Reset to top when filter changes — avoids stale scroll position + wrong sidebar highlight
+  useEffect(() => {
+    rightListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    updateActive(WORLD_CUP_2026.sections[0].id);
+  }, [activeFilter]);
+
   const handleScrollBeginDrag = useCallback(() => {
     programmaticTarget.current = null;
   }, []);
@@ -488,6 +515,12 @@ export default function AlbumScreen() {
     if (programmaticTarget.current !== null) return;
     const scrollY = e.nativeEvent.contentOffset.y;
     const viewH = rightPanelHeight.current > 0 ? rightPanelHeight.current : ROW_HEIGHT * 6;
+    if (activeFilterRef.current !== "all") {
+      // Use dynamically computed bounds for filtered views
+      const sectionId = sectionWithMostPixels(scrollY, viewH, filteredBoundsRef.current);
+      if (sectionId) updateActive(sectionId, true);
+      return;
+    }
     const bounds = showAdsRef.current ? SECTION_BOUNDS_ADS : SECTION_BOUNDS_FREE;
     updateActive(sectionWithMostPixels(scrollY, viewH, bounds), true);
   }, []);
