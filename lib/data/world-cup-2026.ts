@@ -88,7 +88,7 @@ const uefaTeams: AlbumSection[] = [
     "Kovar", "Stanek", "Krejci", "Coufal", "Zeleny", "Holes", "Zima", "Sadilek", "Provod", "Cerv", "Soucek",
     "Sulc", "Vydra", "Kusej", "Chory", "Cerny", "Hlozek", "Schick",
   ]),
-  makeTeamSection("ENG", "Inglaterra", "🏴󠁧󠁢󠁥󠁮󠁧󁿢", [
+  makeTeamSection("ENG", "Inglaterra", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", [
     "Pickford", "Stones", "Guéhi", "Konsa", "Alexander-Arnold", "James", "Burn", "Henderson", "Rice", "Bellingham", "Palmer",
     "Rogers", "Gordon", "Foden", "Saka", "Kane", "Rashford", "Watkins",
   ]),
@@ -112,7 +112,7 @@ const uefaTeams: AlbumSection[] = [
     "Costa", "Sa", "Dias", "Cancelo", "Dalot", "Mendes", "Inácio", "B. Silva", "Fernandes", "Neves", "Vitinha",
     "J. Neves", "Ronaldo", "Trincao", "Felix", "Ramos", "Neto", "Leão",
   ]),
-  makeTeamSection("SCO", "Escocia", "🏴󠁧󠁢󠁳󠁣󠁴󁿢", [
+  makeTeamSection("SCO", "Escocia", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", [
     "Gunn", "Hendry", "Tierney", "Hickey", "Robertson", "McKenna", "Souttar", "Ralston", "Hanley", "McTominay", "Gilmour",
     "Ferguson", "Christie", "McLean", "McGinn", "Dykes", "Adams", "Gannon-Doak",
   ]),
