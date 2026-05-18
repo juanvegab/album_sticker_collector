@@ -34,7 +34,7 @@ for (const section of WORLD_CUP_2026.sections) {
 
 // ── Flat item list ────────────────────────────────────────────────────
 type FlatItem =
-  | { type: "header"; sectionId: string; section: AlbumSection }
+  | { type: "header"; sectionId: string; section: AlbumSection; emptyLabel?: string }
   | { type: "row";    sectionId: string; stickers: AlbumSticker[] }
   | { type: "ad";     sectionId: string; adIndex: number };
 
@@ -127,7 +127,7 @@ const _scheduleSaveRef = { current: () => {} };
 
 // ── Memoized sub-components ───────────────────────────────────────────
 
-const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
+const SectionHeader = React.memo(({ section, emptyLabel }: { section: AlbumSection; emptyLabel?: string }) => {
   const ownedCount = useCollectionStore(
     useCallback(
       (state) => {
@@ -202,9 +202,16 @@ const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
     }
   }
 
+  const isEmpty = !!emptyLabel;
+
   return (
     <View
-      style={{ height: SECTION_HEADER_HEIGHT, backgroundColor: color, flexDirection: "row", alignItems: "center", paddingHorizontal: 12 }}
+      style={{
+        height: SECTION_HEADER_HEIGHT,
+        backgroundColor: color,
+        flexDirection: "row", alignItems: "center", paddingHorizontal: 12,
+        opacity: isEmpty ? 0.45 : 1,
+      }}
     >
       {/* Flag or emoji */}
       {iso ? (
@@ -217,13 +224,13 @@ const SectionHeader = React.memo(({ section }: { section: AlbumSection }) => {
         <Text style={{ fontSize: 20, marginRight: 8 }}>{section.emoji}</Text>
       )}
 
-      {/* Name + subtitle */}
+      {/* Name + subtitle / emptyLabel */}
       <View style={{ flex: 1 }}>
         <Text style={{ color: textMain, fontSize: 15, fontWeight: "700", lineHeight: 19 }} numberOfLines={1}>
           {section.name}
         </Text>
         <Text style={{ color: textSub, fontSize: 11, fontWeight: "500" }}>
-          {subtitle}
+          {isEmpty ? emptyLabel : subtitle}
         </Text>
       </View>
 
@@ -397,6 +404,16 @@ export default function AlbumScreen() {
   // ── Filtered flat items (Fix 2) ───────────────────────────────────────
   const displayItems = useMemo<FlatItem[]>(() => {
     if (activeFilter === "all") return FLAT_ITEMS;
+
+    const emptyLabelFor = (section: AlbumSection): string => {
+      const total = section.stickers.length;
+      const owned = section.stickers.filter((s) => ownedSet.has(s.id)).length;
+      if (activeFilter === "owned")    return "Te faltan todas";
+      if (activeFilter === "missing")  return owned >= total ? "Completado ✓" : "Sin resultados";
+      if (activeFilter === "repeated") return "Sin repetidas";
+      return "";
+    };
+
     const items: FlatItem[] = [];
     for (const section of WORLD_CUP_2026.sections) {
       const filtered = section.stickers.filter((s) => {
@@ -405,10 +422,14 @@ export default function AlbumScreen() {
         if (activeFilter === "repeated") return (duplicates[s.id] ?? 0) > 0;
         return true;
       });
-      if (filtered.length === 0) continue;
-      items.push({ type: "header", sectionId: section.id, section });
-      for (let i = 0; i < filtered.length; i += STICKERS_PER_ROW)
-        items.push({ type: "row", sectionId: section.id, stickers: filtered.slice(i, i + STICKERS_PER_ROW) });
+      if (filtered.length === 0) {
+        // Always show the header, but mark it as empty with a descriptive label
+        items.push({ type: "header", sectionId: section.id, section, emptyLabel: emptyLabelFor(section) });
+      } else {
+        items.push({ type: "header", sectionId: section.id, section });
+        for (let i = 0; i < filtered.length; i += STICKERS_PER_ROW)
+          items.push({ type: "row", sectionId: section.id, stickers: filtered.slice(i, i + STICKERS_PER_ROW) });
+      }
     }
     return items;
   }, [activeFilter, ownedSet, duplicates]);
@@ -473,7 +494,7 @@ export default function AlbumScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: FlatItem }) => {
-      if (item.type === "header") return <SectionHeader section={item.section} />;
+      if (item.type === "header") return <SectionHeader section={item.section} emptyLabel={item.emptyLabel} />;
       if (item.type === "ad")    return <NativeAdCard adIndex={item.adIndex} />;
       const sectionColor = SECTION_COLOR_MAP.get(item.sectionId) ?? "#9CA3AF";
       return (
