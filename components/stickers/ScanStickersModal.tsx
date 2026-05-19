@@ -74,11 +74,26 @@ export function ScanStickersModal({ visible, onClose }: Props) {
     if (!cameraRef.current) return;
     setStep("processing");
 
+    // Helper: attempt capture, retry once if AVSession not connected yet
+    async function attemptCapture(retryCount = 0) {
+      try {
+        const photo = await cameraRef.current!.takePictureAsync({
+          base64: false,
+          quality: 0.85,
+        });
+        return photo;
+      } catch (err: any) {
+        const isConnectionErr = err?.message?.includes("No active and enabled video connection");
+        if (isConnectionErr && retryCount < 1) {
+          await new Promise((r) => setTimeout(r, 800));
+          return attemptCapture(retryCount + 1);
+        }
+        throw err;
+      }
+    }
+
     try {
-      const photo = await cameraRef.current.takePictureAsync({
-        base64: false,
-        quality: 0.85,
-      });
+      const photo = await attemptCapture();
       if (!photo) throw new Error("no photo");
 
       const result = await TextRecognition.recognize(photo.uri);
@@ -183,9 +198,9 @@ export function ScanStickersModal({ visible, onClose }: Props) {
                   ref={cameraRef}
                   style={styles.camera}
                   onCameraReady={() => {
-                    // Small delay to let AVCaptureSession fully establish
-                    // the video connection before allowing capture (iOS crash fix)
-                    setTimeout(() => setCameraReady(true), 500);
+                    // Wait for AVCaptureSession to fully establish the video
+                    // connection after reporting ready (iOS crash fix — connection=nil)
+                    setTimeout(() => setCameraReady(true), 1500);
                   }}
                 />
 
