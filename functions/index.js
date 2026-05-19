@@ -39,13 +39,27 @@ function buildImportPrompt(text) {
 Valid section codes: FWC (stickers 0-19), CC (stickers 1-14), and these team codes (stickers 1-20 each):
 ALG,ARG,AUS,AUT,BEL,BIH,BRA,CAN,CIV,COD,COL,CPV,CRO,CUW,CZE,ECU,EGY,ENG,ESP,FRA,GER,GHA,HAI,IRN,IRQ,JOR,JPN,KOR,KSA,MAR,MEX,NED,NOR,NZL,PAN,PAR,POR,QAT,RSA,SCO,SEN,SUI,SWE,TUN,TUR,URU,USA,UZB
 
+Sticker lists are usually organized under section headers. Interpret headers semantically:
+
+POSSESSION headers (user OWNS these stickers):
+  Any word/phrase expressing ownership or availability for trade, in any language.
+  Examples: "Tengo", "I have", "Tenho", "J'ai", "✅", "Disponibles", "Para intercambio", "Para cambio", "Ofrezco", "For trade", "For swap", "Swaps", "Available", "Doubles available", or any similar phrasing.
+
+MISSING headers (user NEEDS these stickers):
+  Any word/phrase expressing need, want, or absence, in any language.
+  Examples: "Me faltan", "Necesito", "Busco", "Quiero", "Falta", "I need", "I want", "Looking for", "Missing", "Need", "Wanted", "❌", or any similar phrasing.
+
+DUPLICATE headers (user has EXTRA copies, possibly to trade):
+  Any word/phrase expressing extras or tradeable copies, in any language.
+  Examples: "Repetidas", "Repet.", "Dobles", "Sobran", "Duplicados", "Extras", "Swaps", "For swap", "For trade", "🔁", or any similar phrasing.
+  Note: "Swaps" and "For trade/swap" are DUPLICATE signals, NOT possession — they mean extra copies available to exchange.
+
 DETECT which of two modes applies, then output accordingly:
 
 MODE A — COMPLETE INVENTORY (Figuritas App "Me faltan / Repetidas" export):
-  The list shows what is MISSING and what is DUPLICATED. Everything not missing is owned.
-  Signals: headers like "Me faltan", "Faltan", "❌", "Missing" AND/OR "Repetidas", "🔁"
-  BUT no "Tengo"/"✅"/"Have" header is present.
-  → output MISSING stickers in "missing", duplicates in "duplicates", leave "owned" as {}
+  The list contains a MISSING section AND/OR a DUPLICATE section, but no POSSESSION section.
+  Everything not listed under a missing header is considered owned.
+  → output stickers under missing headers in "missing", under duplicate headers in "duplicates", leave "owned" as {}
   Example input:
     Me faltan
     MEX 🇲🇽: 4, 8, 12
@@ -55,16 +69,21 @@ MODE A — COMPLETE INVENTORY (Figuritas App "Me faltan / Repetidas" export):
   Example output: {"owned":{},"missing":{"MEX":[4,8,12]},"duplicates":{"FWC":[1,2,7,8],"ARG":[3,3,5]}}
 
 MODE B — PARTIAL LIST (manual lists, WhatsApp, our app's ✅ TENGO format):
-  The list shows only what the user OWNS. Missing stickers are not mentioned.
-  Signals: "Tengo", "✅", "Have" header present; OR plain sticker lists with no missing section.
-  → output owned stickers in "owned", duplicates in "duplicates", leave "missing" as {}
-  "Faltan/❌/Missing" items must be EXCLUDED from owned — do not put them anywhere.
+  The list contains a POSSESSION section. Only explicitly listed stickers are owned.
+  Stickers under missing headers go into "missing", NOT "owned".
+  → output stickers under possession headers in "owned", under duplicate headers in "duplicates", leave "missing" as {}
+  If no section header is present at all, treat the entire list as owned (plain list).
   Example input:
     ✅ TENGO
     FWC1, AUT2
     🔁 REPETIDAS
     ARG3
   Example output: {"owned":{"FWC":[1],"AUT":[2]},"missing":{},"duplicates":{"ARG":[3]}}
+  Example input (English):
+    I have: AUT2, FWC1
+    Swaps: ARG3
+    I need: MEX4, NOR13
+  Example output: {"owned":{"AUT":[2],"FWC":[1]},"missing":{"MEX":[4],"NOR":[13]},"duplicates":{"ARG":[3]}}
 
 Additional rules:
 - FWC 🏆, FWC 🌎, FWC 📜, FWC ⭐, etc. → ALL map to section "FWC"

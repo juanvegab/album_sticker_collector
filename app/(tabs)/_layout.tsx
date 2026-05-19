@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Tabs, useRouter } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -7,6 +8,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFriends } from "@/hooks/useFriends";
 import { useStickerRequests } from "@/hooks/useStickerRequests";
 import { useCollection } from "@/hooks/useCollection";
+import { usePremium } from "@/hooks/usePremium";
+import { ScanStickersModal } from "@/components/stickers/ScanStickersModal";
 
 // ── Icons ─────────────────────────────────────────────────────────────
 function TabIcon({
@@ -48,42 +51,54 @@ function SobreFAB() {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { isPremium } = usePremium();
+  const [showScan, setShowScan] = useState(false);
   const TAB_BAR_H = Platform.OS === "ios" ? 49 : 56;
   const bottom = TAB_BAR_H + insets.bottom + 12;
 
+  const label = isPremium ? t("scan.fab") : t("sobre.fab");
+  const icon = isPremium ? "camera-outline" : "email-open-outline";
+  const onPress = isPremium ? () => setShowScan(true) : () => router.push("/sobre");
+
   return (
-    <View style={{
-      position: "absolute", bottom, right: 16,
-      flexDirection: "row", alignItems: "center",
-      pointerEvents: "box-none",
-    }}>
-      {/* Label chip */}
+    <>
       <View style={{
-        backgroundColor: "rgba(12,12,14,0.88)",
-        borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
-        marginRight: 10,
-        borderWidth: 1, borderColor: "rgba(245,244,238,0.12)",
+        position: "absolute", bottom, right: 16,
+        flexDirection: "row", alignItems: "center",
+        pointerEvents: "box-none",
       }}>
-        <Text style={{ color: "#F5F4EE", fontWeight: "600", fontSize: 14 }}>
-          {t("sobre.fab")}
-        </Text>
+        {/* Label chip */}
+        <View style={{
+          backgroundColor: "rgba(12,12,14,0.88)",
+          borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+          marginRight: 10,
+          borderWidth: 1, borderColor: "rgba(245,244,238,0.12)",
+        }}>
+          <Text style={{ color: "#F5F4EE", fontWeight: "600", fontSize: 14 }}>
+            {label}
+          </Text>
+        </View>
+
+        {/* Button */}
+        <TouchableOpacity
+          onPress={onPress}
+          style={{
+            width: 56, height: 56, borderRadius: 16,
+            backgroundColor: "#F2853A",
+            alignItems: "center", justifyContent: "center",
+            shadowColor: "#F2853A", shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
+          }}
+          activeOpacity={0.85}
+        >
+          <MaterialCommunityIcons name={icon} size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
-      {/* Button */}
-      <TouchableOpacity
-        onPress={() => router.push("/sobre")}
-        style={{
-          width: 56, height: 56, borderRadius: 16,
-          backgroundColor: "#F2853A",
-          alignItems: "center", justifyContent: "center",
-          shadowColor: "#F2853A", shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
-        }}
-        activeOpacity={0.85}
-      >
-        <MaterialCommunityIcons name="email-open-outline" size={24} color="#fff" />
-      </TouchableOpacity>
-    </View>
+      {isPremium && (
+        <ScanStickersModal visible={showScan} onClose={() => setShowScan(false)} />
+      )}
+    </>
   );
 }
 
