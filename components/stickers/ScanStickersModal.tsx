@@ -14,7 +14,7 @@ import * as ImagePicker from "expo-image-picker";
 import TextRecognition from "@react-native-ml-kit/text-recognition";
 import { useTranslation } from "react-i18next";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { ALL_STICKERS_MAP } from "@/lib/data/world-cup-2026";
+import { ALL_STICKERS_MAP, ALBUM_SECTIONS_MAP } from "@/lib/data/world-cup-2026";
 import { useCollection } from "@/hooks/useCollection";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -231,7 +231,9 @@ export function ScanStickersModal({ visible, onClose }: Props) {
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
               renderItem={({ item }) => {
-                  return (
+                const sticker = ALL_STICKERS_MAP.get(item.id);
+                const flag = sticker ? ALBUM_SECTIONS_MAP.get(sticker.sectionId)?.emoji : undefined;
+                return (
                   <TouchableOpacity
                     onPress={() => toggleSelected(item.id)}
                     style={[styles.stickerRow, !item.selected && styles.stickerRowUnselected]}
@@ -243,7 +245,9 @@ export function ScanStickersModal({ visible, onClose }: Props) {
                       )}
                     </View>
                     <View style={styles.stickerInfo}>
-                      <Text style={styles.stickerCode}>{item.id}</Text>
+                      <Text style={styles.stickerCode}>
+                        {flag ? `${flag}  ` : ""}{item.id}
+                      </Text>
                     </View>
                     {item.isOwned ? (
                       <View style={styles.badgeDuplicate}>
