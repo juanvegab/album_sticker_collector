@@ -70,7 +70,7 @@ const es = {
     markDelivered: "Marcar entregadas",
     openCamera: "Abrir cámara",
     scanAgain: "Escanear otra foto",
-    tip1: "Podés incluir varias postales en una foto, aunque a mayor cantidad la precisión puede reducirse. Recomendamos no más de 20 por foto.",
+    tip1: "Recomendamos no más de 30 postales por foto, aunque podés aventurarte con más si las acomodás bien y están bien iluminadas.",
     tip2: "Buscá buena luz y evitá sombras sobre los códigos",
     tip3: "La foto tiene que estar enfocada — los códigos deben verse nítidos",
     exampleLabel: "Los códigos lucen así",
