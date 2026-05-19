@@ -182,7 +182,11 @@ export function ScanStickersModal({ visible, onClose }: Props) {
                 <CameraView
                   ref={cameraRef}
                   style={styles.camera}
-                  onCameraReady={() => setCameraReady(true)}
+                  onCameraReady={() => {
+                    // Small delay to let AVCaptureSession fully establish
+                    // the video connection before allowing capture (iOS crash fix)
+                    setTimeout(() => setCameraReady(true), 500);
+                  }}
                 />
 
                 {/* Overlay hint — sibling, absolute positioned */}
