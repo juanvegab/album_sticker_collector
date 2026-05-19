@@ -100,8 +100,9 @@ export function ScanStickersModal({ visible, onClose }: Props) {
       setStep("confirm");
     } catch (err) {
       console.error("[ScanStickersModal] OCR error:", err);
-      Alert.alert(t("common.error"), t("scan.ocrError"), [
-        { text: t("common.ok"), onPress: () => setStep("camera") },
+      const message = err instanceof Error ? err.message : String(err);
+      Alert.alert("Error (debug)", message, [
+        { text: "OK", onPress: () => setStep("camera") },
       ]);
     }
   }, [ownedSet, duplicates, t]);
