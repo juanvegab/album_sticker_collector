@@ -55,6 +55,7 @@ export function ScanStickersModal({ visible, onClose }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [step, setStep] = useState<Step>("camera");
   const [detected, setDetected] = useState<DetectedSticker[]>([]);
+  const [cameraReady, setCameraReady] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const { ownedSet, duplicates, bulkOwn, setDuplicates } = useCollection();
 
@@ -62,6 +63,7 @@ export function ScanStickersModal({ visible, onClose }: Props) {
   function handleClose() {
     setStep("camera");
     setDetected([]);
+    setCameraReady(false);
     onClose();
   }
 
@@ -175,7 +177,11 @@ export function ScanStickersModal({ visible, onClose }: Props) {
             ) : (
               <>
                 {/* CameraView with NO children — required by expo-camera */}
-                <CameraView ref={cameraRef} style={styles.camera} />
+                <CameraView
+                  ref={cameraRef}
+                  style={styles.camera}
+                  onCameraReady={() => setCameraReady(true)}
+                />
 
                 {/* Overlay hint — sibling, absolute positioned */}
                 <View style={styles.cameraOverlay} pointerEvents="none">
@@ -186,8 +192,9 @@ export function ScanStickersModal({ visible, onClose }: Props) {
                 <View style={styles.captureRow}>
                   <TouchableOpacity
                     onPress={handleCapture}
-                    style={styles.captureBtn}
+                    style={[styles.captureBtn, !cameraReady && styles.captureBtnDisabled]}
                     activeOpacity={0.8}
+                    disabled={!cameraReady}
                   >
                     <View style={styles.captureBtnInner} />
                   </TouchableOpacity>
@@ -367,6 +374,9 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: "#fff",
+  },
+  captureBtnDisabled: {
+    opacity: 0.35,
   },
 
   // Permission
