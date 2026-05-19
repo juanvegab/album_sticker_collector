@@ -19,6 +19,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import i18n from "i18next";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { ImportModal } from "@/components/import/ImportModal";
 import * as ExpoNotifications from "expo-notifications";
 
@@ -34,7 +35,7 @@ const GREEN    = "#22C55E";
 const ORANGE   = "#F2853A";
 const RED      = "#EF4444";
 
-type LangCode = "es" | "en";
+type LangCode = "es" | "en" | "pt";
 
 // ── StatCard ──────────────────────────────────────────────────────────
 function StatCard({ value, label, valueColor }: {
@@ -112,6 +113,8 @@ export default function AccountScreen() {
   const { isPremium, isTrialActive, trialDaysLeft } = usePremium();
   const { isPurchasing, setIsPurchasing, setIsPremium } = usePremiumStore();
   const [lang, setLang] = useState<LangCode>((i18n.language as LangCode) ?? "es");
+  const isEs = lang === "es";
+  const isPt = lang === "pt";
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [importVisible, setImportVisible] = useState(false);
@@ -157,14 +160,14 @@ export default function AccountScreen() {
 
   function handleResetCollection() {
     Alert.alert(
-      lang === "es" ? "Limpiar colección" : "Reset collection",
-      lang === "es"
-        ? "Se borrarán todas tus postales marcadas y repetidas. ¿Estás seguro?"
-        : "All your marked stickers and duplicates will be cleared. Are you sure?",
+      isEs ? "Limpiar colección" : isPt ? "Limpar coleção" : "Reset collection",
+      isEs ? "Se borrarán todas tus postales marcadas y repetidas. ¿Estás seguro?"
+           : isPt ? "Todas as suas figurinhas marcadas e repetidas serão apagadas. Tem certeza?"
+           : "All your marked stickers and duplicates will be cleared. Are you sure?",
       [
-        { text: lang === "es" ? "Cancelar" : "Cancel", style: "cancel" },
+        { text: isEs ? "Cancelar" : isPt ? "Cancelar" : "Cancel", style: "cancel" },
         {
-          text: lang === "es" ? "Limpiar todo" : "Clear all",
+          text: isEs ? "Limpiar todo" : isPt ? "Limpar tudo" : "Clear all",
           style: "destructive",
           onPress: () => {
             const col = useCollectionStore.getState().collection;
@@ -197,7 +200,7 @@ export default function AccountScreen() {
   }
 
   async function handleLanguageChange() {
-    const next: LangCode = lang === "es" ? "en" : "es";
+    const next: LangCode = lang === "es" ? "en" : lang === "en" ? "pt" : "es";
     setLang(next);
     await changeLanguage(next);
   }
@@ -247,30 +250,32 @@ export default function AccountScreen() {
   const shareText = useMemo(() => {
     const allStickers = WORLD_CUP_2026.sections.flatMap((s) => s.stickers);
     const parts: string[] = [];
-    parts.push(lang === "es" ? "Mi Álbum 2026 ⚽" : "My 2026 Album ⚽");
+    parts.push(isEs ? "Mi Álbum 2026 ⚽" : isPt ? "Meu Álbum 2026 ⚽" : "My 2026 Album ⚽");
     parts.push("");
 
     if (shareRepeated) {
       const ids = allStickers.filter((s) => (duplicates[s.id] ?? 0) > 0).map((s) => s.id);
-      parts.push(lang === "es" ? `🔁 REPETIDAS (${ids.length})` : `🔁 DUPLICATES (${ids.length})`);
+      parts.push(isEs ? `🔁 REPETIDAS (${ids.length})` : isPt ? `🔁 REPETIDAS (${ids.length})` : `🔁 DUPLICATES (${ids.length})`);
       parts.push(ids.join(", "));
       parts.push("");
     }
     if (shareMissing) {
       const ids = allStickers.filter((s) => !ownedSet.has(s.id)).map((s) => s.id);
-      parts.push(lang === "es" ? `❌ ME FALTAN (${ids.length})` : `❌ MISSING (${ids.length})`);
+      parts.push(isEs ? `❌ ME FALTAN (${ids.length})` : isPt ? `❌ FALTAM (${ids.length})` : `❌ MISSING (${ids.length})`);
       parts.push(ids.join(", "));
       parts.push("");
     }
     if (shareOwned) {
       const ids = allStickers.filter((s) => ownedSet.has(s.id)).map((s) => s.id);
-      parts.push(lang === "es" ? `✅ TENGO (${ids.length})` : `✅ HAVE (${ids.length})`);
+      parts.push(isEs ? `✅ TENGO (${ids.length})` : isPt ? `✅ TENHO (${ids.length})` : `✅ HAVE (${ids.length})`);
       parts.push(ids.join(", "));
       parts.push("");
     }
-    parts.push(lang === "es"
+    parts.push(isEs
       ? "Descargá la app 👉 https://elalbum2026.com/"
-      : "Get the app 👉 https://elalbum2026.com/");
+      : isPt
+        ? "Baixe o app 👉 https://elalbum2026.com/"
+        : "Get the app 👉 https://elalbum2026.com/");
     return parts.join("\n").trim();
   }, [shareOwned, shareMissing, shareRepeated, ownedSet, duplicates, lang]);
 
@@ -285,7 +290,7 @@ export default function AccountScreen() {
     }
   }
 
-  const langLabel = lang === "es" ? "Español" : "English";
+  const langLabel = lang === "es" ? "Español" : lang === "pt" ? "Português" : "English";
 
   return (
     <View style={{ flex: 1, backgroundColor: BG }}>
@@ -351,7 +356,7 @@ export default function AccountScreen() {
             >
               <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700", flex: 1 }}>
                 {trialActive
-                  ? `${days} ${lang === "es" ? "DÍAS SIN ADS" : "DAYS WITHOUT ADS"}`
+                  ? `${days} ${isEs ? "DÍAS SIN ADS" : isPt ? "DIAS SEM ADS" : "DAYS WITHOUT ADS"}`
                   : t("premium.trialEnded").replace("🚨 ", "")}
               </Text>
               {isPurchasing ? (
@@ -371,7 +376,7 @@ export default function AccountScreen() {
               flexDirection: "row", alignItems: "center",
             }}>
               <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700", flex: 1 }}>
-                ✓ {lang === "es" ? "Sin anuncios" : "No ads"}
+                ✓ {isEs ? "Sin anuncios" : isPt ? "Sem anúncios" : "No ads"}
               </Text>
             </View>
           )}
@@ -384,21 +389,67 @@ export default function AccountScreen() {
           <StatCard value={totalDuplicates} label={t("resumen.repeated")} valueColor={ORANGE} />
         </View>
 
-        {/* ── Compartir lista + Importar (available to all / premium) ── */}
-        <View style={{ marginBottom: 12 }}>
-          <SettingsRow
-            label={lang === "es" ? "Compartir lista" : "Share list"}
-            onPress={() => setShareModalVisible(true)}
-            isFirst
-            right={<FontAwesome name="share-alt" size={15} color={BRAND} />}
-          />
-          <SettingsRow
-            label={lang === "es" ? "Importar colección" : "Import collection"}
-            onPress={() => setImportVisible(true)}
-            isLast
-            right={<FontAwesome name="download" size={15} color={BRAND} />}
-          />
-        </View>
+        {/* ── Importar colección — prominent card ── */}
+        <TouchableOpacity
+          onPress={() => setImportVisible(true)}
+          activeOpacity={0.82}
+          style={{
+            backgroundColor: ELEVATED, borderRadius: 16,
+            padding: 16, marginBottom: 8,
+            flexDirection: "row", alignItems: "center", gap: 14,
+            borderWidth: 1, borderColor: "rgba(244,196,48,0.18)",
+          }}
+        >
+          <View style={{
+            width: 42, height: 42, borderRadius: 12,
+            backgroundColor: "rgba(244,196,48,0.13)",
+            alignItems: "center", justifyContent: "center",
+          }}>
+            <MaterialCommunityIcons name="file-import" size={22} color={BRAND} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: INK, fontSize: 15, fontWeight: "700", marginBottom: 2 }}>
+              {isEs ? "Importar colección" : isPt ? "Importar coleção" : "Import collection"}
+            </Text>
+            <Text style={{ color: DIM, fontSize: 12, lineHeight: 17 }}>
+              {isEs ? "Pegá tu lista de postales y la cargamos automáticamente"
+                     : isPt ? "Cole sua lista de figurinhas e carregamos automaticamente"
+                     : "Paste your sticker list and we'll load it automatically"}
+            </Text>
+          </View>
+          <FontAwesome name="chevron-right" size={12} color={DIM} />
+        </TouchableOpacity>
+
+        {/* ── Compartir lista — prominent card ── */}
+        <TouchableOpacity
+          onPress={() => setShareModalVisible(true)}
+          activeOpacity={0.82}
+          style={{
+            backgroundColor: ELEVATED, borderRadius: 16,
+            padding: 16, marginBottom: 12,
+            flexDirection: "row", alignItems: "center", gap: 14,
+            borderWidth: 1, borderColor: "rgba(244,196,48,0.18)",
+          }}
+        >
+          <View style={{
+            width: 42, height: 42, borderRadius: 12,
+            backgroundColor: "rgba(244,196,48,0.13)",
+            alignItems: "center", justifyContent: "center",
+          }}>
+            <FontAwesome name="share-alt" size={18} color={BRAND} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: INK, fontSize: 15, fontWeight: "700", marginBottom: 2 }}>
+              {isEs ? "Compartir lista" : isPt ? "Compartilhar lista" : "Share list"}
+            </Text>
+            <Text style={{ color: DIM, fontSize: 12, lineHeight: 17 }}>
+              {isEs ? "Mandá tus repetidas, faltantes o todo tu álbum por WhatsApp"
+                     : isPt ? "Envie suas repetidas, faltantes ou todo o álbum pelo WhatsApp"
+                     : "Send your duplicates, missing or full album via WhatsApp"}
+            </Text>
+          </View>
+          <FontAwesome name="chevron-right" size={12} color={DIM} />
+        </TouchableOpacity>
 
         {/* ── Settings ── */}
         <View style={{ marginBottom: 12 }}>
@@ -417,7 +468,7 @@ export default function AccountScreen() {
                 <Text style={{ color: notifGranted ? GREEN : DIM, fontSize: 14 }}>
                   {notifGranted
                     ? t("account.notificationsEnabled")
-                    : (lang === "es" ? "Desactivadas" : "Disabled")}
+                    : (isEs ? "Desactivadas" : isPt ? "Desativadas" : "Disabled")}
                 </Text>
               ) : null
             }
@@ -456,7 +507,7 @@ export default function AccountScreen() {
         {/* ── Danger zone ── */}
         <View style={{ marginBottom: 8 }}>
           <SettingsRow
-            label={lang === "es" ? "Limpiar colección" : "Reset collection"}
+            label={isEs ? "Limpiar colección" : isPt ? "Limpar coleção" : "Reset collection"}
             onPress={handleResetCollection}
             isFirst
             danger
@@ -500,23 +551,23 @@ export default function AccountScreen() {
             }} />
 
             <Text style={{ color: INK, fontSize: 18, fontWeight: "800", marginBottom: 4 }}>
-              {lang === "es" ? "Compartir lista" : "Share list"}
+              {isEs ? "Compartir lista" : isPt ? "Compartilhar lista" : "Share list"}
             </Text>
             <Text style={{ color: DIM, fontSize: 13, marginBottom: 24 }}>
-              {lang === "es"
-                ? "Elige qué postales incluir en el mensaje"
-                : "Choose which stickers to include"}
+              {isEs ? "Elige qué postales incluir en el mensaje"
+                    : isPt ? "Escolha quais figurinhas incluir na mensagem"
+                    : "Choose which stickers to include"}
             </Text>
 
             {/* Checkboxes */}
             {([
-              { key: "repeated", label: lang === "es" ? "🔁 Repetidas" : "🔁 Duplicates",
+              { key: "repeated", label: isEs ? "🔁 Repetidas" : isPt ? "🔁 Repetidas" : "🔁 Duplicates",
                 count: Object.values(duplicates).reduce((sum, n) => sum + Math.max(0, n), 0),
                 value: shareRepeated, set: setShareRepeated },
-              { key: "missing", label: lang === "es" ? "❌ Me faltan" : "❌ Missing",
+              { key: "missing", label: isEs ? "❌ Me faltan" : isPt ? "❌ Faltam" : "❌ Missing",
                 count: totalStickers - owned,
                 value: shareMissing, set: setShareMissing },
-              { key: "owned", label: lang === "es" ? "✅ Tengo" : "✅ Have",
+              { key: "owned", label: isEs ? "✅ Tengo" : isPt ? "✅ Tenho" : "✅ Have",
                 count: owned,
                 value: shareOwned, set: setShareOwned },
             ] as const).map((item) => (
@@ -568,7 +619,7 @@ export default function AccountScreen() {
                   fontSize: 16, fontWeight: "800",
                   color: (shareOwned || shareMissing || shareRepeated) ? BG : DIM,
                 }}>
-                  {lang === "es" ? "Compartir 🚀" : "Share 🚀"}
+                  {isEs ? "Compartir 🚀" : isPt ? "Compartilhar 🚀" : "Share 🚀"}
                 </Text>
               )}
             </TouchableOpacity>

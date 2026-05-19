@@ -8,6 +8,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useCollection } from "@/hooks/useCollection";
 import { usePremiumStore } from "@/store/premiumStore";
 import { WORLD_CUP_2026, TEAM_GROUP, CC_STICKER_IDS } from "@/lib/data/world-cup-2026";
@@ -231,15 +232,17 @@ export default function ResumenScreen() {
             <TouchableOpacity
               onPress={() => setImportVisible(true)}
               activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={{
-                width: 36, height: 36, borderRadius: 10,
+                flexDirection: "row", alignItems: "center", gap: 6,
                 backgroundColor: "rgba(244,196,48,0.12)",
                 borderWidth: 1, borderColor: "rgba(244,196,48,0.25)",
-                alignItems: "center", justifyContent: "center",
+                borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
               }}
             >
-              <FontAwesome name="download" size={14} color="#F4C430" />
+              <MaterialCommunityIcons name="file-import" size={16} color="#F4C430" />
+              <Text style={{ color: "#F4C430", fontSize: 13, fontWeight: "700" }}>
+                {t("import.importAnalyze")}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

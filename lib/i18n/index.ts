@@ -4,12 +4,14 @@ import { getLocales } from "expo-localization";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import es from "./locales/es";
 import en from "./locales/en";
+import pt from "./locales/pt";
 
 export const LANGUAGE_KEY = "@app_language";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "es", label: "Español" },
   { code: "en", label: "English" },
+  { code: "pt", label: "Português" },
 ] as const;
 
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"];
@@ -24,7 +26,9 @@ async function getStoredLanguage(): Promise<string | null> {
 
 function getDeviceLanguage(): string {
   const locale = getLocales()[0]?.languageCode ?? "es";
-  return locale.startsWith("es") ? "es" : "en";
+  if (locale.startsWith("pt")) return "pt";
+  if (locale.startsWith("es")) return "es";
+  return "en";
 }
 
 export async function initI18n() {
@@ -32,7 +36,7 @@ export async function initI18n() {
   const lng = stored ?? getDeviceLanguage();
 
   await i18n.use(initReactI18next).init({
-    resources: { es: { translation: es }, en: { translation: en } },
+    resources: { es: { translation: es }, en: { translation: en }, pt: { translation: pt } },
     lng,
     fallbackLng: "es",
     interpolation: { escapeValue: false },

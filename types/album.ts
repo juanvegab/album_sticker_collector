@@ -9,6 +9,8 @@ export interface AlbumSticker {
   type: StickerType;
   teamCode?: string;
   imageUrl?: string;
+  /** Alternative codes that the OCR may read for this sticker (e.g. "00" for FWC0) */
+  ocrAliases?: string[];
 }
 
 export interface AlbumSection {

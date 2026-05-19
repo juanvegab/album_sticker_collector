@@ -8,24 +8,29 @@ import {
   Alert,
   FlatList,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import * as Haptics from "expo-haptics";
 import TextRecognition from "@react-native-ml-kit/text-recognition";
 import { useTranslation } from "react-i18next";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { ALL_STICKERS_MAP, ALBUM_SECTIONS_MAP } from "@/lib/data/world-cup-2026";
+import { ALL_STICKERS_MAP, ALBUM_SECTIONS_MAP, OCR_ALIASES_MAP } from "@/lib/data/world-cup-2026";
 import { useCollection } from "@/hooks/useCollection";
+import { StickerPickerModal } from "./StickerPickerModal";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type Step = "idle" | "processing" | "confirm";
+type Mode = "add" | "remove";
 
 interface DetectedSticker {
   id: string;
   selected: boolean;
   isOwned: boolean;
-  duplicateCount: number;
+  duplicateCount: number; // current count in collection before this action
+  qty: number;            // how many to add or remove in this batch (≥ 1)
 }
 
 interface Props {
@@ -33,17 +38,31 @@ interface Props {
   onClose: () => void;
 }
 
-// ── OCR Parser ─────────────────────────────────────────────────────────────────
+// ── OCR Parser — returns Map<id, qty> counting each occurrence ────────────────
 
-function parseStickersFromOCR(rawText: string): string[] {
+function parseStickersFromOCR(rawText: string): Map<string, number> {
+  const counts = new Map<string, number>();
+
+  // Primary pass: count every occurrence of valid codes
   const regex = /\b([A-Z]{2,3})\s?(\d{1,2})\b/g;
-  const found = new Set<string>();
   let match: RegExpExecArray | null;
   while ((match = regex.exec(rawText)) !== null) {
     const id = `${match[1]}${parseInt(match[2], 10)}`;
-    if (ALL_STICKERS_MAP.has(id)) found.add(id);
+    if (ALL_STICKERS_MAP.has(id)) {
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
   }
-  return [...found];
+
+  // Secondary pass: alias codes — count occurrences via matchAll
+  for (const [alias, canonicalId] of OCR_ALIASES_MAP) {
+    const aliasRegex = new RegExp(`\\b${alias}\\b`, "g");
+    const hits = [...rawText.matchAll(aliasRegex)].length;
+    if (hits > 0) {
+      counts.set(canonicalId, (counts.get(canonicalId) ?? 0) + hits);
+    }
+  }
+
+  return counts;
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -52,12 +71,15 @@ export function ScanStickersModal({ visible, onClose }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>("idle");
+  const [mode, setMode] = useState<Mode>("add");
   const [detected, setDetected] = useState<DetectedSticker[]>([]);
+  const [pickerVisible, setPickerVisible] = useState(false);
   const { ownedSet, duplicates, bulkOwn, setDuplicates } = useCollection();
 
   // ── Reset on close ────────────────────────────────────────────────────────
   function handleClose() {
     setStep("idle");
+    setMode("add");
     setDetected([]);
     onClose();
   }
@@ -93,24 +115,26 @@ export function ScanStickersModal({ visible, onClose }: Props) {
       const ocrResult = await TextRecognition.recognize(uri);
       console.log("[Scan] OCR raw text:", ocrResult.text);
 
-      const ids = parseStickersFromOCR(ocrResult.text);
-      console.log("[Scan] matched sticker IDs:", ids);
+      const counts = parseStickersFromOCR(ocrResult.text);
+      console.log("[Scan] matched sticker counts:", Object.fromEntries(counts));
 
-      if (ids.length === 0) {
+      if (counts.size === 0) {
         Alert.alert(t("scan.noDetected"), t("scan.noDetectedHint"), [
           { text: t("common.ok"), onPress: () => setStep("idle") },
         ]);
         return;
       }
 
-      const items: DetectedSticker[] = ids.map((id) => ({
+      const items: DetectedSticker[] = [...counts.entries()].map(([id, qty]) => ({
         id,
         selected: true,
         isOwned: ownedSet.has(id),
         duplicateCount: duplicates[id] ?? 0,
+        qty,
       }));
 
       setDetected(items);
+      setMode("add");
       setStep("confirm");
     } catch (err) {
       console.error("[Scan] OCR error:", err);
@@ -128,23 +152,121 @@ export function ScanStickersModal({ visible, onClose }: Props) {
     );
   }
 
-  // ── Action: Add to collection ─────────────────────────────────────────────
-  function handleAdd() {
+  // ── Switch mode ───────────────────────────────────────────────────────────
+  function handleSetMode(next: Mode) {
+    if (next === mode) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMode(next);
+    if (next === "remove") {
+      setDetected((prev) =>
+        prev.map((d) => {
+          if (!d.isOwned || d.duplicateCount === 0) {
+            // Can't deliver what you don't have as a duplicate
+            return { ...d, selected: false };
+          }
+          // Cap qty to available duplicates
+          return { ...d, qty: Math.min(d.qty, d.duplicateCount) };
+        })
+      );
+    } else {
+      setDetected((prev) => prev.map((d) => ({ ...d, selected: true })));
+    }
+  }
+
+  // ── Adjust qty on a detected sticker ─────────────────────────────────────
+  function adjustQty(id: string, delta: number) {
+    setDetected((prev) => {
+      const next = prev.map((d) => {
+        if (d.id !== id) return d;
+        const nextQty = d.qty + delta;
+        const max     = mode === "remove" ? d.duplicateCount : Infinity;
+        if (nextQty < 1 || nextQty > max) return d;
+        return { ...d, qty: nextQty };
+      });
+      // Only fire haptic if something actually changed
+      const changed = next.some((d, i) => d.qty !== prev[i].qty);
+      if (changed) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      return next;
+    });
+  }
+
+  // ── Manual add from picker — toggle: adds if not in list, removes if present
+  function handlePickerAdd(id: string) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setDetected((prev) => {
+      if (prev.some((d) => d.id === id)) {
+        // Toggle off — remove from list
+        return prev.filter((d) => d.id !== id);
+      }
+      return [
+        ...prev,
+        {
+          id,
+          selected: true,
+          isOwned: ownedSet.has(id),
+          duplicateCount: duplicates[id] ?? 0,
+          qty: 1,
+        },
+      ];
+    });
+  }
+
+  // ── Action: Update — applies qty for each selected item ──────────────────
+  function handleUpdate() {
     const selected = detected.filter((d) => d.selected);
-    const newIds = selected.filter((d) => !d.isOwned).map((d) => d.id);
-    const alreadyOwned = selected.filter((d) => d.isOwned);
-    if (newIds.length > 0) bulkOwn(newIds);
-    alreadyOwned.forEach((d) => setDuplicates(d.id, d.duplicateCount + 1));
+
+    if (mode === "add") {
+      selected.forEach((d) => {
+        if (!d.isOwned) {
+          // First copy marks as owned, remaining qty-1 become duplicates
+          bulkOwn([d.id]);
+          if (d.qty > 1) setDuplicates(d.id, (d.duplicateCount) + (d.qty - 1));
+        } else {
+          // Already owned — all qty copies are duplicates
+          setDuplicates(d.id, d.duplicateCount + d.qty);
+        }
+      });
+    } else {
+      selected.forEach((d) => {
+        const remaining = d.duplicateCount - d.qty;
+        if (remaining >= 0) {
+          setDuplicates(d.id, remaining);
+        } else {
+          // Removing more dups than exist → clear dups and unmark owned
+          setDuplicates(d.id, 0);
+          bulkOwn([d.id]); // bulkOwn toggles: owned → removes
+        }
+      });
+    }
+
     handleClose();
   }
 
-  // ── Action: Mark as delivered ─────────────────────────────────────────────
-  function handleMarkDelivered() {
-    detected
-      .filter((d) => d.selected && d.duplicateCount > 0)
-      .forEach((d) => setDuplicates(d.id, d.duplicateCount - 1));
-    handleClose();
+  // ── Mini badge (state indicator, left of stepper) ─────────────────────────
+  function renderBadge(item: DetectedSticker) {
+    if (mode === "add") {
+      if (!item.isOwned) {
+        return <View style={styles.badgeNew}><Text style={styles.badgeText}>{t("scan.new")}</Text></View>;
+      }
+      return <View style={styles.badgeDuplicate}><Text style={styles.badgeText}>+{item.qty}</Text></View>;
+    } else {
+      if (!item.isOwned) {
+        return <View style={styles.badgeDisabled}><Text style={styles.badgeText}>—</Text></View>;
+      }
+      if (item.duplicateCount === 0) {
+        return <View style={styles.badgeNoStock}><Text style={styles.badgeNoStockText}>{t("scan.noStock")}</Text></View>;
+      }
+      return <View style={styles.badgeRemoveDup}><Text style={styles.badgeText}>−{item.qty}</Text></View>;
+    }
   }
+
+  // ── Map id → qty for picker (shows count on each number button) ──────────
+  const detectedQtyMap = new Map(detected.map((d) => [d.id, d.qty]));
+
+  // ── Bottom safe padding (more generous on Android) ────────────────────────
+  const bottomPad = Platform.OS === "android"
+    ? Math.max(insets.bottom, 16) + 16
+    : Math.max(insets.bottom, 8) + 8;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -155,140 +277,225 @@ export function ScanStickersModal({ visible, onClose }: Props) {
       onRequestClose={handleClose}
     >
       <View style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <Text style={styles.headerTitle}>{t("scan.title")}</Text>
-          <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-            <Text style={styles.closeBtnText}>{t("common.cancel")}</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Header */}
+          <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+            <Text style={styles.headerTitle}>{t("scan.title")}</Text>
+            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+              <Text style={styles.closeBtnText}>{t("common.cancel")}</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Step: idle — instructions + scan button */}
-        {step === "idle" && (
-          <View style={styles.idleContainer}>
+          {/* Step: idle — instructions + scan button */}
+          {step === "idle" && (
+            <View style={styles.idleContainer}>
 
-            {/* Tips */}
-            <View style={styles.tipsCard}>
-              {[
-                { icon: "layers-outline",      text: t("scan.tip1") },
-                { icon: "white-balance-sunny", text: t("scan.tip2") },
-                { icon: "focus-field",         text: t("scan.tip3") },
-              ].map((tip, i) => (
-                <View key={i} style={styles.tipRow}>
-                  <MaterialCommunityIcons name={tip.icon as any} size={20} color="#F2853A" style={{ marginTop: 1 }} />
-                  <Text style={styles.tipText}>{tip.text}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Example */}
-            <View style={styles.exampleBox}>
-              <Text style={styles.exampleLabel}>{t("scan.exampleLabel")}</Text>
-              <View style={styles.exampleCodes}>
-                {["NOR 13", "ARG 5", "FWC 3", "MEX 8", "ESP 11"].map((c) => (
-                  <View key={c} style={styles.exampleChip}>
-                    <Text style={styles.exampleChipText}>{c}</Text>
+              {/* Tips */}
+              <View style={styles.tipsCard}>
+                {[
+                  { icon: "layers-outline",      text: t("scan.tip1") },
+                  { icon: "white-balance-sunny", text: t("scan.tip2") },
+                  { icon: "focus-field",         text: t("scan.tip3") },
+                ].map((tip, i) => (
+                  <View key={i} style={styles.tipRow}>
+                    <MaterialCommunityIcons name={tip.icon as any} size={20} color="#F2853A" style={{ marginTop: 1 }} />
+                    <Text style={styles.tipText}>{tip.text}</Text>
                   </View>
                 ))}
               </View>
-              <Text style={styles.exampleSub}>{t("scan.exampleSub")}</Text>
-            </View>
 
-            {/* Disclaimer */}
-            <View style={styles.disclaimerRow}>
-              <MaterialCommunityIcons name="alert-circle-outline" size={14} color="rgba(245,244,238,0.3)" />
-              <Text style={styles.disclaimerText}>{t("scan.disclaimer")}</Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleOpenCamera}
-              style={styles.scanBtn}
-              activeOpacity={0.85}
-            >
-              <MaterialCommunityIcons name="camera" size={20} color="#fff" />
-              <Text style={styles.scanBtnText}>{t("scan.openCamera")}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Step: processing */}
-        {step === "processing" && (
-          <View style={styles.processingContainer}>
-            <ActivityIndicator size="large" color="#F2853A" />
-            <Text style={styles.processingText}>{t("scan.processing")}</Text>
-          </View>
-        )}
-
-        {/* Step: confirm */}
-        {step === "confirm" && (
-          <View style={styles.confirmContainer}>
-            <Text style={styles.confirmSubtitle}>
-              {t("scan.detectedCount", { count: detected.length })}
-            </Text>
-
-            <FlatList
-              data={detected}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              renderItem={({ item }) => {
-                const sticker = ALL_STICKERS_MAP.get(item.id);
-                const flag = sticker ? ALBUM_SECTIONS_MAP.get(sticker.sectionId)?.emoji : undefined;
-                return (
-                  <TouchableOpacity
-                    onPress={() => toggleSelected(item.id)}
-                    style={[styles.stickerRow, !item.selected && styles.stickerRowUnselected]}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[styles.checkbox, item.selected && styles.checkboxChecked]}>
-                      {item.selected && (
-                        <MaterialCommunityIcons name="check" size={14} color="#fff" />
-                      )}
+              {/* Example */}
+              <View style={styles.exampleBox}>
+                <Text style={styles.exampleLabel}>{t("scan.exampleLabel")}</Text>
+                <View style={styles.exampleCodes}>
+                  {["NOR 13", "ARG 5", "FWC 3", "MEX 8", "ESP 11"].map((c) => (
+                    <View key={c} style={styles.exampleChip}>
+                      <Text style={styles.exampleChipText}>{c}</Text>
                     </View>
-                    <View style={styles.stickerInfo}>
-                      <Text style={styles.stickerCode}>
-                        {flag ? `${flag}  ` : ""}{item.id}
-                      </Text>
-                    </View>
-                    {item.isOwned ? (
-                      <View style={styles.badgeDuplicate}>
-                        <Text style={styles.badgeText}>
-                          {item.duplicateCount > 0 ? `×${item.duplicateCount + 1}` : t("scan.owned")}
+                  ))}
+                </View>
+                <Text style={styles.exampleSub}>{t("scan.exampleSub")}</Text>
+              </View>
+
+              {/* Disclaimer */}
+              <View style={styles.disclaimerRow}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={14} color="rgba(245,244,238,0.3)" />
+                <Text style={styles.disclaimerText}>{t("scan.disclaimer")}</Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleOpenCamera}
+                style={styles.scanBtn}
+                activeOpacity={0.85}
+              >
+                <MaterialCommunityIcons name="camera" size={20} color="#fff" />
+                <Text style={styles.scanBtnText}>{t("scan.openCamera")}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Step: processing */}
+          {step === "processing" && (
+            <View style={styles.processingContainer}>
+              <ActivityIndicator size="large" color="#F2853A" />
+              <Text style={styles.processingText}>{t("scan.processing")}</Text>
+            </View>
+          )}
+
+          {/* Step: confirm */}
+          {step === "confirm" && (
+            <View style={styles.confirmContainer}>
+
+              {/* ── Mode toggle ── */}
+              <View style={styles.modeToggleRow}>
+                <TouchableOpacity
+                  onPress={() => handleSetMode("add")}
+                  style={[styles.modeBtn, mode === "add" && styles.modeBtnActive]}
+                  activeOpacity={0.75}
+                >
+                  <MaterialCommunityIcons
+                    name="plus-circle-outline"
+                    size={16}
+                    color={mode === "add" ? "#F2853A" : "rgba(245,244,238,0.4)"}
+                  />
+                  <Text style={[styles.modeBtnText, mode === "add" && styles.modeBtnTextActive]}>
+                    {t("scan.modeAdd")}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleSetMode("remove")}
+                  style={[styles.modeBtn, mode === "remove" && styles.modeBtnActive]}
+                  activeOpacity={0.75}
+                >
+                  <MaterialCommunityIcons
+                    name="send-outline"
+                    size={16}
+                    color={mode === "remove" ? "#F2853A" : "rgba(245,244,238,0.4)"}
+                  />
+                  <Text style={[styles.modeBtnText, mode === "remove" && styles.modeBtnTextActive]}>
+                    {t("scan.modeRemove")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.confirmSubtitle}>
+                {t("scan.detectedCount", {
+                  count: mode === "remove"
+                    ? detected.filter((d) => d.isOwned && d.duplicateCount > 0).reduce((sum, d) => sum + d.qty, 0)
+                    : detected.reduce((sum, d) => sum + d.qty, 0),
+                })}
+              </Text>
+
+              <FlatList
+                data={detected}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                renderItem={({ item }) => {
+                  const sticker = ALL_STICKERS_MAP.get(item.id);
+                  const flag    = sticker ? ALBUM_SECTIONS_MAP.get(sticker.sectionId)?.emoji : undefined;
+                  const disabled = mode === "remove" && (!item.isOwned || item.duplicateCount === 0);
+                  const qtyColor = mode === "add"
+                    ? (!item.isOwned ? "#22C55E" : "#F2853A")
+                    : "#EF4444";
+                  return (
+                    <View
+                      style={[
+                        styles.stickerRow,
+                        (!item.selected || disabled) && styles.stickerRowUnselected,
+                      ]}
+                    >
+                      {/* Checkbox */}
+                      <TouchableOpacity
+                        onPress={() => !disabled && toggleSelected(item.id)}
+                        activeOpacity={disabled ? 1 : 0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <View style={[
+                          styles.checkbox,
+                          item.selected && !disabled && styles.checkboxChecked,
+                        ]}>
+                          {item.selected && !disabled && (
+                            <MaterialCommunityIcons name="check" size={14} color="#fff" />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+
+                      {/* ID + badge */}
+                      <View style={styles.stickerInfo}>
+                        <Text style={styles.stickerCode}>
+                          {flag ? `${flag}  ` : ""}{item.id}
                         </Text>
                       </View>
-                    ) : (
-                      <View style={styles.badgeNew}>
-                        <Text style={styles.badgeText}>{t("scan.new")}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-            />
+                      {renderBadge(item)}
 
-            {/* Review warning */}
-            <View style={styles.reviewWarning}>
-              <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={14} color="rgba(245,244,238,0.35)" />
-              <Text style={styles.reviewWarningText}>{t("scan.reviewHint")}</Text>
+                      {/* Qty stepper */}
+                      {!disabled && (
+                        <View style={styles.stepper}>
+                          <TouchableOpacity
+                            onPress={() => adjustQty(item.id, -1)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            style={styles.stepperBtn}
+                          >
+                            <Text style={styles.stepperBtnText}>−</Text>
+                          </TouchableOpacity>
+                          <Text style={[styles.stepperQty, { color: qtyColor }]}>
+                            {item.qty}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => adjustQty(item.id, +1)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            style={styles.stepperBtn}
+                          >
+                            <Text style={styles.stepperBtnText}>+</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  );
+                }}
+              />
+
+              {/* Review warning + scan again + add manual */}
+              <View style={styles.secondaryRow}>
+                <TouchableOpacity
+                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setStep("idle"); setDetected([]); }}
+                  style={styles.secondaryBtn}
+                >
+                  <MaterialCommunityIcons name="camera-retake-outline" size={18} color="#F2853A" />
+                  <Text style={styles.secondaryBtnText}>{t("scan.scanAgain")}</Text>
+                </TouchableOpacity>
+
+                <View style={styles.secondaryDivider} />
+
+                <TouchableOpacity
+                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setPickerVisible(true); }}
+                  style={styles.secondaryBtn}
+                >
+                  <MaterialCommunityIcons name="plus-circle-outline" size={18} color="#F2853A" />
+                  <Text style={styles.secondaryBtnText}>{t("scan.addManual")}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Single action button */}
+              <View style={[styles.actionArea, { paddingBottom: bottomPad }]}>
+                <TouchableOpacity
+                  onPress={handleUpdate}
+                  style={styles.btnPrimary}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.btnPrimaryText}>{t("scan.update")}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-
-            {/* Scan again button */}
-            <TouchableOpacity onPress={() => { setStep("idle"); setDetected([]); }} style={styles.scanAgainBtn}>
-              <MaterialCommunityIcons name="camera-retake-outline" size={16} color="rgba(245,244,238,0.5)" />
-              <Text style={styles.scanAgainText}>{t("scan.scanAgain")}</Text>
-            </TouchableOpacity>
-
-            <View style={styles.actionRow}>
-              <TouchableOpacity onPress={handleMarkDelivered} style={styles.btnSecondary} activeOpacity={0.8}>
-                <MaterialCommunityIcons name="send-outline" size={16} color="#F2853A" />
-                <Text style={styles.btnSecondaryText}>{t("scan.markDelivered")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleAdd} style={styles.btnPrimary} activeOpacity={0.8}>
-                <MaterialCommunityIcons name="plus" size={16} color="#fff" />
-                <Text style={styles.btnPrimaryText}>{t("scan.addToCollection")}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+          )}
+        {/* Sticker picker — overlay inside this Modal (avoids nested-modal freeze) */}
+        <StickerPickerModal
+          visible={pickerVisible}
+          onClose={() => setPickerVisible(false)}
+          onAdd={handlePickerAdd}
+          onAdjustQty={adjustQty}
+          addedQty={detectedQtyMap}
+        />
       </View>
     </Modal>
   );
@@ -346,13 +553,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16, paddingHorizontal: 32,
   },
   scanBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  reviewWarning: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 16, paddingTop: 4,
-  },
-  reviewWarningText: {
-    flex: 1, color: "rgba(245,244,238,0.35)", fontSize: 12, lineHeight: 17,
-  },
 
   // Processing
   processingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
@@ -360,9 +560,24 @@ const styles = StyleSheet.create({
 
   // Confirm
   confirmContainer: { flex: 1 },
+
+  // Mode toggle
+  modeToggleRow: {
+    flexDirection: "row", marginHorizontal: 16, marginTop: 12, marginBottom: 4,
+    backgroundColor: "#15161B", borderRadius: 12,
+    borderWidth: 1, borderColor: "rgba(245,244,238,0.08)", padding: 3, gap: 3,
+  },
+  modeBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 7, paddingVertical: 9, borderRadius: 10,
+  },
+  modeBtnActive: { backgroundColor: "#1C1D24" },
+  modeBtnText: { color: "rgba(245,244,238,0.4)", fontSize: 14, fontWeight: "600" },
+  modeBtnTextActive: { color: "#F2853A" },
+
   confirmSubtitle: {
     color: "rgba(245,244,238,0.5)", fontSize: 13, fontWeight: "500",
-    textAlign: "center", paddingVertical: 12,
+    textAlign: "center", paddingVertical: 10,
   },
   listContent: { paddingHorizontal: 16, paddingBottom: 8 },
   stickerRow: {
@@ -370,7 +585,7 @@ const styles = StyleSheet.create({
     borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8,
     borderWidth: 1, borderColor: "rgba(245,244,238,0.08)", gap: 12,
   },
-  stickerRowUnselected: { opacity: 0.4 },
+  stickerRowUnselected: { opacity: 0.35 },
   checkbox: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 2,
     borderColor: "rgba(245,244,238,0.25)", alignItems: "center", justifyContent: "center",
@@ -378,29 +593,55 @@ const styles = StyleSheet.create({
   checkboxChecked: { backgroundColor: "#F2853A", borderColor: "#F2853A" },
   stickerInfo: { flex: 1 },
   stickerCode: { color: "#F5F4EE", fontSize: 14, fontWeight: "700" },
-  badgeNew: { backgroundColor: "#16A34A", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  badgeDuplicate: { backgroundColor: "#2B6FE3", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
-  scanAgainBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, paddingVertical: 8,
-  },
-  scanAgainText: { color: "rgba(245,244,238,0.5)", fontSize: 13 },
 
-  // Actions
-  actionRow: {
-    flexDirection: "row", paddingHorizontal: 16, paddingVertical: 16, gap: 10,
+  // Badges
+  badgeNew:         { backgroundColor: "#16A34A", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  badgeDuplicate:   { backgroundColor: "#2B6FE3", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  badgeRemoveDup:   { backgroundColor: "#F2853A", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  badgeUnmark:      { backgroundColor: "#EF4444", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  badgeDisabled:    { backgroundColor: "rgba(245,244,238,0.08)", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  badgeNoStock:     {
+    backgroundColor: "rgba(239,68,68,0.12)", borderRadius: 6,
+    paddingHorizontal: 7, paddingVertical: 3,
+    borderWidth: 1, borderColor: "rgba(239,68,68,0.3)",
+  },
+  badgeText:        { color: "#fff", fontSize: 10, fontWeight: "700" },
+  badgeNoStockText: { color: "#EF4444", fontSize: 10, fontWeight: "700" },
+
+  // Qty stepper
+  stepper:        { flexDirection: "row", alignItems: "center", gap: 6 },
+  stepperBtn:     {
+    width: 26, height: 26, borderRadius: 8,
+    backgroundColor: "rgba(245,244,238,0.08)",
+    alignItems: "center", justifyContent: "center",
+  },
+  stepperBtnText: { color: "rgba(245,244,238,0.6)", fontSize: 16, fontWeight: "700", lineHeight: 20 },
+  stepperQty:     { fontSize: 14, fontWeight: "800", minWidth: 28, textAlign: "center" },
+
+  // Secondary actions row (scan again + add manual)
+  secondaryRow: {
+    flexDirection: "row", justifyContent: "center", alignItems: "center",
+    paddingVertical: 10, paddingHorizontal: 16,
+    borderTopWidth: 1, borderTopColor: "rgba(245,244,238,0.06)",
+  },
+  secondaryBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center",
+    justifyContent: "center", gap: 7, paddingVertical: 6,
+  },
+  secondaryBtnText: { color: "#F5F4EE", fontSize: 14, fontWeight: "600" },
+  secondaryDivider: {
+    width: 1, height: 20, backgroundColor: "rgba(245,244,238,0.1)",
+  },
+
+  // Action area
+  actionArea: {
+    paddingHorizontal: 16, paddingTop: 12,
     borderTopWidth: 1, borderTopColor: "rgba(245,244,238,0.08)",
   },
   btnPrimary: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    backgroundColor: "#F2853A", borderRadius: 14, paddingVertical: 14, gap: 8,
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    backgroundColor: "#F2853A", borderRadius: 16,
+    paddingVertical: 16, gap: 8,
   },
-  btnPrimaryText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  btnSecondary: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    backgroundColor: "rgba(242,133,58,0.12)", borderRadius: 14, paddingVertical: 14,
-    borderWidth: 1, borderColor: "rgba(242,133,58,0.3)", gap: 8,
-  },
-  btnSecondaryText: { color: "#F2853A", fontWeight: "700", fontSize: 14 },
+  btnPrimaryText: { color: "#fff", fontWeight: "800", fontSize: 16 },
 });

@@ -43,7 +43,7 @@ const openingSection: AlbumSection = {
   name: "Especiales",
   emoji: "🏆",
   stickers: [
-    makeSticker("FWC", 0,  "Panini Logo", "special"),          // P00
+    { ...makeSticker("FWC", 0, "Panini Logo", "special"), ocrAliases: ["00", "FWC00"] }, // printed as "00" on physical sticker
     makeSticker("FWC", 1,  "Emblema Oficial", "special"),
     makeSticker("FWC", 2,  "Mascota - Fuego (Lumo)", "special"),
     makeSticker("FWC", 3,  "Mascota - Tierra (Lumo)", "special"),
@@ -341,6 +341,14 @@ export const ALBUM_SECTIONS_MAP = new Map(
 
 export const ALL_STICKERS_MAP = new Map(
   WORLD_CUP_2026.sections.flatMap((s) => s.stickers).map((st) => [st.id, st])
+);
+
+/** Maps OCR alias strings → canonical sticker ID (e.g. "00" → "FWC0") */
+export const OCR_ALIASES_MAP = new Map<string, string>(
+  WORLD_CUP_2026.sections
+    .flatMap((s) => s.stickers)
+    .filter((st) => st.ocrAliases && st.ocrAliases.length > 0)
+    .flatMap((st) => st.ocrAliases!.map((alias) => [alias, st.id] as [string, string]))
 );
 
 export const TEAM_GROUP: Record<string, string> = {};
