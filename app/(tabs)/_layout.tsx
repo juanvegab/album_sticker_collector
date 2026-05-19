@@ -10,6 +10,7 @@ import { useStickerRequests } from "@/hooks/useStickerRequests";
 import { useCollection } from "@/hooks/useCollection";
 import { usePremium } from "@/hooks/usePremium";
 import { ScanStickersModal } from "@/components/stickers/ScanStickersModal";
+import { FEATURES } from "@/constants/featureFlags";
 
 // ── Icons ─────────────────────────────────────────────────────────────
 function TabIcon({
@@ -56,9 +57,10 @@ function SobreFAB() {
   const TAB_BAR_H = Platform.OS === "ios" ? 49 : 56;
   const bottom = TAB_BAR_H + insets.bottom + 12;
 
-  const label = isPremium ? t("scan.fab") : t("sobre.fab");
-  const icon = isPremium ? "camera-outline" : "email-open-outline";
-  const onPress = isPremium ? () => setShowScan(true) : () => router.push("/sobre");
+  const scanAvailable = FEATURES.SCAN_ENABLED && isPremium;
+  const label = scanAvailable ? t("scan.fab") : t("sobre.fab");
+  const icon = scanAvailable ? "camera-outline" : "email-open-outline";
+  const onPress = scanAvailable ? () => setShowScan(true) : () => router.push("/sobre");
 
   return (
     <>
@@ -95,7 +97,7 @@ function SobreFAB() {
         </TouchableOpacity>
       </View>
 
-      {isPremium && (
+      {scanAvailable && (
         <ScanStickersModal visible={showScan} onClose={() => setShowScan(false)} />
       )}
     </>

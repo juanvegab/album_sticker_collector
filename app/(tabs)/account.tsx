@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   View, Text, TouchableOpacity, Alert, Modal, Share,
   ScrollView, Linking, ActivityIndicator, StatusBar, Pressable,
@@ -20,6 +20,7 @@ import { db } from "@/lib/firebase";
 import i18n from "i18next";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { ImportModal } from "@/components/import/ImportModal";
+import * as ExpoNotifications from "expo-notifications";
 
 // ── Design tokens ──────────────────────────────────────────────────────
 const BG       = "#0B0B0E";
@@ -114,6 +115,7 @@ export default function AccountScreen() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [importVisible, setImportVisible] = useState(false);
+  const [notifGranted, setNotifGranted] = useState<boolean | null>(null);
   const [shareOwned, setShareOwned] = useState(false);
   const [shareMissing, setShareMissing] = useState(false);
   const [shareRepeated, setShareRepeated] = useState(true);
@@ -137,6 +139,13 @@ export default function AccountScreen() {
   const trialLabel = days === 1
     ? t("premium.lastDay").replace("⏳ ", "")
     : `${days} ${t("resumen.trialDays", { count: days }).replace(/\d+ /, "")}`.trim();
+
+  // ── Check notification permission ──
+  useEffect(() => {
+    ExpoNotifications.getPermissionsAsync().then(({ status }) => {
+      setNotifGranted(status === "granted");
+    });
+  }, []);
 
   // ── Handlers ──
   function handleSignOut() {
@@ -206,9 +215,7 @@ export default function AccountScreen() {
       }
     } catch (err: any) {
       if (err?.code !== 1 && err?.message !== "no_package") {
-        // TODO: remove debug info once IAP issue is resolved
-        const debugInfo = `code=${err?.code ?? "?"} | ${err?.message ?? "unknown"}`;
-        Alert.alert(t("common.error"), `${t("premium.purchaseError")}\n\n[DEBUG] ${debugInfo}`);
+        Alert.alert(t("common.error"), t("premium.purchaseError"));
       }
     } finally {
       setIsPurchasing(false);
@@ -261,6 +268,9 @@ export default function AccountScreen() {
       parts.push(ids.join(", "));
       parts.push("");
     }
+    parts.push(lang === "es"
+      ? "Descargá la app 👉 https://elalbum2026.com/"
+      : "Get the app 👉 https://elalbum2026.com/");
     return parts.join("\n").trim();
   }, [shareOwned, shareMissing, shareRepeated, ownedSet, duplicates, lang]);
 
@@ -402,7 +412,15 @@ export default function AccountScreen() {
           />
           <SettingsRow
             label={t("account.notifications")}
-            right={<Text style={{ color: DIM, fontSize: 14 }}>{t("account.notificationsEnabled")}</Text>}
+            right={
+              notifGranted !== null ? (
+                <Text style={{ color: notifGranted ? GREEN : DIM, fontSize: 14 }}>
+                  {notifGranted
+                    ? t("account.notificationsEnabled")
+                    : (lang === "es" ? "Desactivadas" : "Disabled")}
+                </Text>
+              ) : null
+            }
           />
           <SettingsRow
             label={t("account.visitSite")}

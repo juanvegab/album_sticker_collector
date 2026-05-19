@@ -9,6 +9,7 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import TextRecognition from "@react-native-ml-kit/text-recognition";
 import { useTranslation } from "react-i18next";
@@ -52,6 +53,7 @@ function parseStickersFromOCR(rawText: string): string[] {
 
 export function ScanStickersModal({ visible, onClose }: Props) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [step, setStep] = useState<Step>("camera");
   const [detected, setDetected] = useState<DetectedSticker[]>([]);
@@ -153,7 +155,7 @@ export function ScanStickersModal({ visible, onClose }: Props) {
     >
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Text style={styles.headerTitle}>{t("scan.title")}</Text>
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
             <Text style={styles.closeBtnText}>{t("common.cancel")}</Text>
@@ -307,7 +309,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(245,244,238,0.08)",

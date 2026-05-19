@@ -1,8 +1,11 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import { View, Text, TouchableOpacity, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useCollectionStore } from "@/store/collectionStore";
 import { needsDarkText } from "@/lib/design/groupColors";
 import type { AlbumSticker } from "@/types/album";
+
+const DEBOUNCE_MS = 400;
 
 interface Props {
   sticker: AlbumSticker;
@@ -29,15 +32,25 @@ export const StickerCard = React.memo(({ sticker, sectionColor, onToggle, onSetD
   const dups = Math.max(0, count - 1);
   const dark = needsDarkText(sectionColor);
 
+  // Debounce ref — prevents double-taps during fast scroll
+  const lastPress = useRef(0);
+
   const handleCardPress = useCallback(() => {
-    if (!isOwned) onToggle(sticker.id);
+    if (isOwned) return;
+    const now = Date.now();
+    if (now - lastPress.current < DEBOUNCE_MS) return;
+    lastPress.current = now;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onToggle(sticker.id);
   }, [isOwned, sticker.id, onToggle]);
 
   const handleIncrement = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onSetDups(sticker.id, dups + 1);
   }, [dups, sticker.id, onSetDups]);
 
   const handleDecrement = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (dups > 0) onSetDups(sticker.id, dups - 1);
     else onToggle(sticker.id);
   }, [dups, sticker.id, onToggle, onSetDups]);
