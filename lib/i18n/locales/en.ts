@@ -70,7 +70,7 @@ const en = {
     markDelivered: "Mark as delivered",
     openCamera: "Open camera",
     scanAgain: "Scan another photo",
-    tip1: "We recommend no more than 30 stickers per photo, though you can push it further if they're well arranged and well lit.",
+    tip1: "We recommend no more than 25 stickers per photo, though you can push it further if they're well arranged and well lit.",
     tip2: "Find good lighting and avoid shadows over the codes",
     tip3: "The photo must be in focus — codes should appear sharp and clear",
     exampleLabel: "Codes look like this",
