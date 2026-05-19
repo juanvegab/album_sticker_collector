@@ -4,5 +4,5 @@
  */
 export const FEATURES = {
   /** OCR sticker scanning via camera. Still in testing — keep false until stable. */
-  SCAN_ENABLED: false,
+  SCAN_ENABLED: true,
 } as const;
