@@ -14,7 +14,7 @@ import * as ImagePicker from "expo-image-picker";
 import TextRecognition from "@react-native-ml-kit/text-recognition";
 import { useTranslation } from "react-i18next";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { ALL_STICKERS_MAP, ALBUM_SECTIONS_MAP } from "@/lib/data/world-cup-2026";
+import { ALL_STICKERS_MAP } from "@/lib/data/world-cup-2026";
 import { useCollection } from "@/hooks/useCollection";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -231,9 +231,7 @@ export function ScanStickersModal({ visible, onClose }: Props) {
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
               renderItem={({ item }) => {
-                const sticker = ALL_STICKERS_MAP.get(item.id)!;
-                const section = ALBUM_SECTIONS_MAP.get(sticker.sectionId);
-                return (
+                  return (
                   <TouchableOpacity
                     onPress={() => toggleSelected(item.id)}
                     style={[styles.stickerRow, !item.selected && styles.stickerRowUnselected]}
@@ -245,12 +243,7 @@ export function ScanStickersModal({ visible, onClose }: Props) {
                       )}
                     </View>
                     <View style={styles.stickerInfo}>
-                      <Text style={styles.stickerCode}>
-                        {section?.emoji} {sticker.sectionId} {sticker.number}
-                      </Text>
-                      <Text style={styles.stickerName} numberOfLines={1}>
-                        {sticker.name}
-                      </Text>
+                      <Text style={styles.stickerCode}>{item.id}</Text>
                     </View>
                     {item.isOwned ? (
                       <View style={styles.badgeDuplicate}>
@@ -381,7 +374,6 @@ const styles = StyleSheet.create({
   checkboxChecked: { backgroundColor: "#F2853A", borderColor: "#F2853A" },
   stickerInfo: { flex: 1 },
   stickerCode: { color: "#F5F4EE", fontSize: 14, fontWeight: "700" },
-  stickerName: { color: "rgba(245,244,238,0.5)", fontSize: 12, marginTop: 2 },
   badgeNew: { backgroundColor: "#16A34A", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   badgeDuplicate: { backgroundColor: "#2B6FE3", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },

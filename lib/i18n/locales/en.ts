@@ -70,7 +70,7 @@ const en = {
     markDelivered: "Mark as delivered",
     openCamera: "Open camera",
     scanAgain: "Scan another photo",
-    tip1: "You can include many stickers in one photo — lay them face-down together",
+    tip1: "You can include several stickers in one photo, though accuracy may decrease with more. We recommend no more than 20 per photo.",
     tip2: "Find good lighting and avoid shadows over the codes",
     tip3: "The photo must be in focus — codes should appear sharp and clear",
     exampleLabel: "Codes look like this",
