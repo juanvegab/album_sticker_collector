@@ -681,7 +681,7 @@ export default function SobreScreen() {
             }} />
           ))}
 
-          {dupCount < 2 && (
+          {dupCount < 3 && (
             <Text style={{ color: "#22C55E", fontSize: 11, fontWeight: "800", letterSpacing: 1.5, marginBottom: 6 }}>
               {t("sobre.result.goodPack")}
             </Text>
