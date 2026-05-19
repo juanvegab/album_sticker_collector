@@ -18,7 +18,7 @@
       "bundleIdentifier": "com.vegaba.elalbum2026",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Necesitamos acceso a tu cámara para escanear códigos QR al agregar amigos."
+        "NSCameraUsageDescription": "Usamos la cámara para escanear los códigos del dorso de tus postales y para conectarte con amigos mediante códigos QR."
       }
     },
     "android": {
