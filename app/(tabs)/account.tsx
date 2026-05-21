@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   View, Text, TouchableOpacity, Alert, Modal, Share,
   ScrollView, Linking, ActivityIndicator, StatusBar, Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,10 +19,13 @@ import { useCollectionStore } from "@/store/collectionStore";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import i18n from "i18next";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { ImportModal } from "@/components/import/ImportModal";
 import * as ExpoNotifications from "expo-notifications";
+
+const ONBOARDING_KEY = (uid: string) => `onboarding_v2_shown_${uid}`;
 
 // ── Design tokens ──────────────────────────────────────────────────────
 const BG       = "#0B0B0E";
@@ -106,6 +110,7 @@ function SettingsRow({
 // ── Main screen ───────────────────────────────────────────────────────
 export default function AccountScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { user } = useUser();
   const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
@@ -197,6 +202,12 @@ export default function AccountScreen() {
       Alert.alert(t("common.error"), t("account.deleteError"));
       setDeletingAccount(false);
     }
+  }
+
+  async function handleViewTour() {
+    if (!user?.id) return;
+    await AsyncStorage.removeItem(ONBOARDING_KEY(user.id));
+    router.push("/(tabs)/resumen");
   }
 
   async function handleLanguageChange() {
@@ -481,8 +492,13 @@ export default function AccountScreen() {
           <SettingsRow
             label={t("account.privacyPolicy")}
             onPress={() => Linking.openURL("https://elalbum2026.com/privacy")}
-            isLast
             right={<FontAwesome name="chevron-right" size={12} color={DIM} />}
+          />
+          <SettingsRow
+            label={isEs ? "Ver tour de funciones" : isPt ? "Ver tour de funcionalidades" : "View feature tour"}
+            onPress={handleViewTour}
+            isLast
+            right={<MaterialCommunityIcons name="compass-outline" size={16} color={DIM} />}
           />
         </View>
 

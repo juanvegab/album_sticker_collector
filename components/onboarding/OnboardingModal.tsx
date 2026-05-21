@@ -7,12 +7,13 @@
  *
  * Storage key: onboarding_v2_shown_<userId>
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, Modal, TouchableOpacity,
-  FlatList, Dimensions, Platform,
+  FlatList, Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -104,19 +105,26 @@ export function OnboardingModal() {
   const [step, setStep]             = useState(0);
   const [importOpen, setImportOpen] = useState(false);
 
-  useEffect(() => {
+  // Shared check — shows modal if key is absent, then marks it as seen
+  const runCheck = useCallback(async () => {
     if (!user?.id || !collectionLoaded) return;
-    let cancelled = false;
-    async function check() {
-      const seen = await AsyncStorage.getItem(STORAGE_KEY(user!.id));
-      if (!cancelled && !seen) {
-        setVisible(true);
-        await AsyncStorage.setItem(STORAGE_KEY(user!.id), "1");
-      }
+    const seen = await AsyncStorage.getItem(STORAGE_KEY(user.id));
+    if (!seen) {
+      setVisible(true);
+      await AsyncStorage.setItem(STORAGE_KEY(user.id), "1");
     }
-    check().catch(() => {});
-    return () => { cancelled = true; };
   }, [user?.id, collectionLoaded]);
+
+  // Initial check: fires when collectionLoaded becomes true
+  useEffect(() => {
+    runCheck().catch(() => {});
+  }, [runCheck]);
+
+  // Focus check: fires whenever resumen comes into focus (e.g. after
+  // the user removes the key from the account screen to replay the tour)
+  useFocusEffect(useCallback(() => {
+    runCheck().catch(() => {});
+  }, [runCheck]));
 
   function goTo(index: number) {
     const next = Math.max(0, Math.min(index, SLIDES.length - 1));
