@@ -40,6 +40,15 @@ interface Props {
 
 // ── OCR Parser — returns Map<id, qty> counting each occurrence ────────────────
 
+/**
+ * Known OCR misreads for section codes.
+ * Add entries here whenever a letter is systematically confused.
+ * e.g. Q → O is common because the tail of Q is hard to detect.
+ */
+const SECTION_CODE_CORRECTIONS: Record<string, string> = {
+  OAT: "QAT", // Q tail often missed → reads as O
+};
+
 function parseStickersFromOCR(rawText: string): Map<string, number> {
   const counts = new Map<string, number>();
 
@@ -47,7 +56,9 @@ function parseStickersFromOCR(rawText: string): Map<string, number> {
   const regex = /\b([A-Z]{2,3})\s?(\d{1,2})\b/g;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(rawText)) !== null) {
-    const id = `${match[1]}${parseInt(match[2], 10)}`;
+    const raw = match[1];
+    const section = SECTION_CODE_CORRECTIONS[raw] ?? raw;
+    const id = `${section}${parseInt(match[2], 10)}`;
     if (ALL_STICKERS_MAP.has(id)) {
       counts.set(id, (counts.get(id) ?? 0) + 1);
     }
