@@ -231,38 +231,56 @@ export function OnboardingModal() {
               )}
             />
 
-            {/* Footer buttons */}
-            <View style={{ paddingHorizontal: 24, gap: 10, marginTop: 4 }}>
-              {/* Next / Finish */}
-              <TouchableOpacity
-                onPress={isLast ? handleClose : () => goTo(step + 1)}
-                activeOpacity={0.85}
-                style={{
-                  borderRadius: 14, paddingVertical: 16,
-                  alignItems: "center",
-                  backgroundColor: isLast ? DIM3 : BRAND,
-                }}
-              >
-                <Text style={{
-                  fontSize: 16, fontWeight: "800",
-                  color: isLast ? DIM : BG,
-                }}>
-                  {isLast ? "Empezar" : "Siguiente →"}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Back (hidden on first slide) */}
-              {step > 0 && (
+            {/* Footer */}
+            <View style={{ paddingHorizontal: 24, marginTop: 4 }}>
+              {/* Last slide — prominent orange CTA */}
+              {isLast && (
                 <TouchableOpacity
-                  onPress={() => goTo(step - 1)}
-                  activeOpacity={0.7}
-                  style={{ alignItems: "center", paddingVertical: 8 }}
+                  onPress={handleClose}
+                  activeOpacity={0.85}
+                  style={{
+                    borderRadius: 14, paddingVertical: 16,
+                    alignItems: "center", backgroundColor: ORANGE,
+                    marginBottom: 12,
+                  }}
                 >
-                  <Text style={{ color: DIM, fontSize: 14, fontWeight: "600" }}>
-                    ← Anterior
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: "#fff" }}>
+                    Continuar
                   </Text>
                 </TouchableOpacity>
               )}
+
+              {/* Arrow navigation row */}
+              <View style={{
+                flexDirection: "row",
+                justifyContent: isLast ? "flex-start" : "space-between",
+                alignItems: "center",
+                paddingVertical: 4,
+              }}>
+                {/* Back arrow */}
+                {step > 0 ? (
+                  <TouchableOpacity
+                    onPress={() => goTo(step - 1)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <MaterialCommunityIcons name="arrow-left" size={26} color={DIM} />
+                  </TouchableOpacity>
+                ) : (
+                  <View style={{ width: 26 }} />
+                )}
+
+                {/* Next arrow — hidden on last slide */}
+                {!isLast && (
+                  <TouchableOpacity
+                    onPress={() => goTo(step + 1)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <MaterialCommunityIcons name="arrow-right" size={26} color={INK} />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
         </View>
