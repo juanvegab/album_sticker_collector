@@ -58,6 +58,9 @@ function SobreFAB() {
   const bottom = TAB_BAR_H + insets.bottom + 12;
 
   const scanAvailable = FEATURES.SCAN_ENABLED && (isPremium || isTrialActive);
+  // Trial expired and not premium — show lock nudge
+  const scanLocked = FEATURES.SCAN_ENABLED && !isPremium && !isTrialActive;
+
   const label = scanAvailable ? t("scan.fab") : t("sobre.fab");
   const icon = scanAvailable ? "camera-outline" : "email-open-outline";
   const onPress = scanAvailable ? () => setShowScan(true) : () => router.push("/sobre");
@@ -66,35 +69,57 @@ function SobreFAB() {
     <>
       <View style={{
         position: "absolute", bottom, right: 16,
-        flexDirection: "row", alignItems: "center",
+        flexDirection: "column", alignItems: "flex-end", gap: 8,
         pointerEvents: "box-none",
       }}>
-        {/* Label chip */}
-        <View style={{
-          backgroundColor: "rgba(12,12,14,0.88)",
-          borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
-          marginRight: 10,
-          borderWidth: 1, borderColor: "rgba(245,244,238,0.12)",
-        }}>
-          <Text style={{ color: "#F5F4EE", fontWeight: "600", fontSize: 14 }}>
-            {label}
-          </Text>
-        </View>
+        {/* Scanner lock nudge — only when trial expired */}
+        {scanLocked && (
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/account")}
+            activeOpacity={0.85}
+            style={{
+              flexDirection: "row", alignItems: "center", gap: 6,
+              backgroundColor: "rgba(12,12,14,0.92)",
+              borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+              borderWidth: 1, borderColor: "rgba(244,196,48,0.35)",
+            }}
+          >
+            <MaterialCommunityIcons name="lock-outline" size={13} color="#F4C430" />
+            <Text style={{ color: "#F4C430", fontWeight: "700", fontSize: 13 }}>
+              Recuperar escáner →
+            </Text>
+          </TouchableOpacity>
+        )}
 
-        {/* Button */}
-        <TouchableOpacity
-          onPress={onPress}
-          style={{
-            width: 56, height: 56, borderRadius: 16,
-            backgroundColor: "#F2853A",
-            alignItems: "center", justifyContent: "center",
-            shadowColor: "#F2853A", shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
-          }}
-          activeOpacity={0.85}
-        >
-          <MaterialCommunityIcons name={icon} size={24} color="#fff" />
-        </TouchableOpacity>
+        {/* FAB row */}
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          {/* Label chip */}
+          <View style={{
+            backgroundColor: "rgba(12,12,14,0.88)",
+            borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+            marginRight: 10,
+            borderWidth: 1, borderColor: "rgba(245,244,238,0.12)",
+          }}>
+            <Text style={{ color: "#F5F4EE", fontWeight: "600", fontSize: 14 }}>
+              {label}
+            </Text>
+          </View>
+
+          {/* Button */}
+          <TouchableOpacity
+            onPress={onPress}
+            style={{
+              width: 56, height: 56, borderRadius: 16,
+              backgroundColor: "#F2853A",
+              alignItems: "center", justifyContent: "center",
+              shadowColor: "#F2853A", shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
+            }}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name={icon} size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {scanAvailable && (

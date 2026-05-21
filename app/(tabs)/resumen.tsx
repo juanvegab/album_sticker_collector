@@ -15,7 +15,7 @@ import { WORLD_CUP_2026, TEAM_GROUP, CC_STICKER_IDS } from "@/lib/data/world-cup
 import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialBanner } from "@/components/premium/TrialBanner";
 import { ImportModal } from "@/components/import/ImportModal";
-import { ImportOnboardingModal } from "@/components/onboarding/ImportOnboardingModal";
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 
 // ── Group color palette (matches design tokens) ───────────────────────
 const GROUP_COLORS: Record<string, string> = {
@@ -332,7 +332,7 @@ export default function ResumenScreen() {
       <ImportModal visible={importVisible} onClose={() => setImportVisible(false)} />
 
       {/* ── First-time onboarding prompt ── */}
-      <ImportOnboardingModal />
+      <OnboardingModal />
     </View>
   );
 }
