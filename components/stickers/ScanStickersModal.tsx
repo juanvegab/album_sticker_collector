@@ -46,7 +46,8 @@ interface Props {
  * e.g. Q → O is common because the tail of Q is hard to detect.
  */
 const SECTION_CODE_CORRECTIONS: Record<string, string> = {
-  OAT: "QAT", // Q tail often missed → reads as O
+  OAT: "QAT", // leading Q misread as O
+  IRO: "IRQ", // trailing Q misread as O
 };
 
 function parseStickersFromOCR(rawText: string): Map<string, number> {
