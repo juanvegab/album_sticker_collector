@@ -42,19 +42,57 @@ interface Props {
 
 /**
  * Known OCR misreads for section codes.
- * Add entries here whenever a letter is systematically confused.
- * e.g. Q → O is common because the tail of Q is hard to detect.
+ * Covers digit-for-letter substitutions (bold condensed font on stickers)
+ * and letter-for-letter confusions. Every entry has been verified against
+ * the full album code list — no correction maps to a real team code.
  */
 const SECTION_CODE_CORRECTIONS: Record<string, string> = {
-  OAT: "QAT", // leading Q misread as O
-  IRO: "IRQ", // trailing Q misread as O
+  // Q misread as O (tail of Q hard to detect)
+  OAT: "QAT",
+  IRO: "IRQ",
+
+  // S misread as 5
+  "5EN": "SEN",
+  "5CO": "SCO",
+  "5UI": "SUI",
+  "5WE": "SWE",
+  U5A:  "USA",
+  R5A:  "RSA",
+  K5A:  "KSA",
+  E5P:  "ESP",
+
+  // I misread as 1
+  "1RN": "IRN",
+  "1RQ": "IRQ",
+  B1H:  "BIH",
+  C1V:  "CIV",
+
+  // B misread as 8
+  "8EL": "BEL",
+  "8RA": "BRA",
+  "8IH": "BIH",
+
+  // Letter O misread as digit 0
+  N0R: "NOR",
+  J0R: "JOR",
+  P0R: "POR",
+  C0D: "COD",
+  C0L: "COL",
+  CR0: "CRO",
+  SC0: "SCO",
+
+  // Y misread as V or 4
+  EGV: "EGY",
+  EG4: "EGY",
 };
 
 function parseStickersFromOCR(rawText: string): Map<string, number> {
   const counts = new Map<string, number>();
 
-  // Primary pass: count every occurrence of valid codes
-  const regex = /\b([A-Z]{2,3})\s?(\d{1,2})\b/g;
+  // Primary pass: [A-Z0-9] in the code position catches digit-for-letter
+  // misreads (e.g. "5EN" for SEN); SECTION_CODE_CORRECTIONS normalises them.
+  // False positives from purely numeric matches are dropped by ALL_STICKERS_MAP.
+  const regex = /\b([A-Z0-9]{2,3})\s?(\d{1,2})\b/g;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(rawText)) !== null) {
     const raw = match[1];
