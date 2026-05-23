@@ -18,6 +18,7 @@ import { markRequestReceived, cancelOutgoingRequest, cancelAcceptedRequest } fro
 import { sendPushNotification, registerForPushNotifications } from "@/lib/notifications";
 import { RequestCard } from "@/components/friends/RequestCard";
 import { RequestDetailModal } from "@/components/friends/RequestDetailModal";
+import { TransactionHistoryModal } from "@/components/friends/TransactionHistoryModal";
 import { QRModal } from "@/components/friends/QRModal";
 import { TrialBanner } from "@/components/premium/TrialBanner";
 import type { UserProfile } from "@/types/user";
@@ -84,6 +85,7 @@ export default function FriendsScreen() {
   const { friendProfiles, pendingFrom, loading } = useFriends();
   const { incoming, outgoing, pendingDeliveries, toDeliver } = useStickerRequests();
   const [qrVisible, setQrVisible] = useState(false);
+  const [historyVisible, setHistoryVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [actingOn, setActingOn] = useState<string | null>(null);
@@ -184,24 +186,40 @@ export default function FriendsScreen() {
         <Text style={{ flex: 1, color: INK, fontSize: 32, fontWeight: "800", letterSpacing: -0.5 }}>
           {t("tabs.friends")}
         </Text>
-        <TouchableOpacity
-          onPress={() => {
-            if (searchVisible) {
-              setSearchVisible(false);
-              setSearchQuery("");
-            } else {
-              setSearchVisible(true);
-            }
-          }}
-          style={{
-            width: 40, height: 40, borderRadius: 20,
-            backgroundColor: searchVisible ? "rgba(244,196,48,0.15)" : ELEVATED,
-            alignItems: "center", justifyContent: "center",
-          }}
-          activeOpacity={0.7}
-        >
-          <FontAwesome name={searchVisible ? "times" : "search"} size={16} color={searchVisible ? BRAND : INK} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {/* History button */}
+          <TouchableOpacity
+            onPress={() => setHistoryVisible(true)}
+            style={{
+              width: 40, height: 40, borderRadius: 20,
+              backgroundColor: ELEVATED,
+              alignItems: "center", justifyContent: "center",
+            }}
+            activeOpacity={0.7}
+          >
+            <FontAwesome name="history" size={16} color={INK} />
+          </TouchableOpacity>
+
+          {/* Search button */}
+          <TouchableOpacity
+            onPress={() => {
+              if (searchVisible) {
+                setSearchVisible(false);
+                setSearchQuery("");
+              } else {
+                setSearchVisible(true);
+              }
+            }}
+            style={{
+              width: 40, height: 40, borderRadius: 20,
+              backgroundColor: searchVisible ? "rgba(244,196,48,0.15)" : ELEVATED,
+              alignItems: "center", justifyContent: "center",
+            }}
+            activeOpacity={0.7}
+          >
+            <FontAwesome name={searchVisible ? "times" : "search"} size={16} color={searchVisible ? BRAND : INK} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── Search bar ── */}
@@ -552,6 +570,13 @@ export default function FriendsScreen() {
       )}
 
       <QRModal visible={qrVisible} onClose={() => setQrVisible(false)} />
+
+      <TransactionHistoryModal
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        currentUserId={user?.id ?? ""}
+        friendMap={friendMap}
+      />
 
       {/* ── Request detail modal ── */}
       {detailRequest && (() => {

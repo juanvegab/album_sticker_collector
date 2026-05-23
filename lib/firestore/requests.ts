@@ -10,9 +10,10 @@ import {
   increment,
   arrayUnion,
   setDoc,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { StickerRequest } from "@/types/request";
+import type { StickerRequest, RequestStatus } from "@/types/request";
 
 const ALBUM_ID = "world-cup-2026";
 
@@ -175,6 +176,36 @@ export function subscribeToMyToDeliver(
   return onSnapshot(q, (snap) => {
     onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)));
   });
+}
+
+/**
+ * Fetches completed transactions (received / rejected / cancelled) for a user.
+ * Runs two parallel queries (as sender and as recipient) and merges client-side
+ * to avoid needing a composite Firestore index.
+ */
+export async function fetchTransactionHistory(userId: string): Promise<StickerRequest[]> {
+  const COMPLETED: RequestStatus[] = ["received", "rejected", "cancelled"];
+
+  const [sentSnap, receivedSnap] = await Promise.all([
+    getDocs(query(collection(db, "requests"), where("fromUserId", "==", userId))),
+    getDocs(query(collection(db, "requests"), where("toUserId",   "==", userId))),
+  ]);
+
+  const seen = new Set<string>();
+  const all: StickerRequest[] = [];
+
+  for (const snap of [sentSnap, receivedSnap]) {
+    for (const d of snap.docs) {
+      if (seen.has(d.id)) continue;
+      seen.add(d.id);
+      all.push({ id: d.id, ...d.data() } as StickerRequest);
+    }
+  }
+
+  return all
+    .filter((r) => COMPLETED.includes(r.status))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 50);
 }
 
 /** All outgoing requests (for history/tracking) */
