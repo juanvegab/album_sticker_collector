@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Tabs, useRouter } from "expo-router";
+import { useState, useCallback } from "react";
+import { Tabs, useRouter, useFocusEffect } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
-import { View, Text, TouchableOpacity, Platform, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, Platform, ActivityIndicator, StyleSheet, BackHandler } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFriends } from "@/hooks/useFriends";
 import { useStickerRequests } from "@/hooks/useStickerRequests";
@@ -134,6 +134,18 @@ export default function TabLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { collectionLoaded } = useCollection();
+
+  // Prevent Android back gesture from navigating to auth screens
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "android") return;
+      const handler = BackHandler.addEventListener("hardwareBackPress", () => {
+        BackHandler.exitApp();
+        return true;
+      });
+      return () => handler.remove();
+    }, [])
+  );
 
   return (
     <View style={{ flex: 1 }}>

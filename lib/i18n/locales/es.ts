@@ -118,6 +118,9 @@ const es = {
   album: {
     title: "El Álbum 2026",
     group: "Grupo {{letter}}",
+    filterRepeated: "Filtrando por repetidas",
+    filterOwned: "Filtrando por tengo",
+    filterMissing: "Filtrando por faltan",
   },
   collection: {
     haveTab: "Tengo ✅",
@@ -249,6 +252,8 @@ const es = {
     confirmGive: "Dar {{count}} postal(es)",
     selectToGive: "Selecciona postales a dar",
     cantGiveAny: "No puedo dar ninguna",
+    selectAll: "Seleccionar todas",
+    deselectAll: "Deseleccionar todas",
     acceptedBodyPartial: "Te puede dar: {{stickers}}",
     pendingDelivery: "Pendiente de entrega",
     waitingDelivery: "Esperas {{count}} postal(es)",

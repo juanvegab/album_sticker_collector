@@ -117,7 +117,7 @@ export default function FriendsScreen() {
   async function handleShare() {
     if (!user) return;
     const link = `${INVITE_BASE}/${user.id}`;
-    await Share.share({ message: t("friends.inviteMsg", { link }), url: link });
+    await Share.share({ message: t("friends.inviteMsg", { link }) });
   }
 
   async function handleAcceptFriend(requesterId: string) {

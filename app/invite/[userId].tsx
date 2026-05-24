@@ -1,17 +1,32 @@
 import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Image } from "react-native";
+import {
+  View, Text, TouchableOpacity, ActivityIndicator, Image, StatusBar,
+} from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
-import { getProfile, sendFriendRequest, acceptFriendRequest } from "@/lib/firestore/users";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getProfile, acceptFriendRequest } from "@/lib/firestore/users";
 import { sendPushNotification } from "@/lib/notifications";
 import type { UserProfile } from "@/types/user";
+
+// ── Design tokens (same as app) ────────────────────────────────────────
+const BG      = "#0B0B0E";
+const SURFACE = "#15161B";
+const CARD    = "#1C1D24";
+const INK     = "#F5F4EE";
+const DIM     = "rgba(245,244,238,0.45)";
+const DIM3    = "rgba(245,244,238,0.08)";
+const BRAND   = "#F4C430";
+const GREEN   = "#22C55E";
+const RED     = "#EF4444";
 
 export default function InviteScreen() {
   const { t } = useTranslation();
   const { userId: inviterId } = useLocalSearchParams<{ userId: string }>();
   const { user } = useUser();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [inviter, setInviter] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +46,6 @@ export default function InviteScreen() {
     setActing(true);
     try {
       await acceptFriendRequest(user.id, inviterId);
-      // Notify the inviter
       if (inviter.expoPushToken) {
         const myName = user.firstName ?? user.emailAddresses[0]?.emailAddress ?? t("account.userFallback");
         await sendPushNotification(
@@ -50,7 +64,6 @@ export default function InviteScreen() {
     if (!user || !inviterId) return;
     setActing(true);
     try {
-      // Just navigate away — don't add to pendingFrom since user didn't initiate
       setDone("rejected");
     } finally {
       setActing(false);
@@ -59,8 +72,9 @@ export default function InviteScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#2563eb" />
+      <View style={{ flex: 1, backgroundColor: BG, alignItems: "center", justifyContent: "center" }}>
+        <StatusBar barStyle="light-content" backgroundColor={BG} />
+        <ActivityIndicator size="large" color={BRAND} />
       </View>
     );
   }
@@ -68,105 +82,165 @@ export default function InviteScreen() {
   if (!inviter) {
     return (
       <>
-        <Stack.Screen options={{ title: t("friends.addFriend") }} />
-        <View className="flex-1 items-center justify-center bg-white px-8">
-          <Text className="text-5xl mb-3">🔍</Text>
-          <Text className="text-gray-500 text-base text-center">{t("friends.userNotFound")}</Text>
+        <Stack.Screen options={{ title: t("friends.addFriend"), headerStyle: { backgroundColor: SURFACE }, headerTintColor: INK }} />
+        <View style={{ flex: 1, backgroundColor: BG, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+          <StatusBar barStyle="light-content" backgroundColor={BG} />
+          <Text style={{ fontSize: 48, marginBottom: 12 }}>🔍</Text>
+          <Text style={{ color: DIM, fontSize: 15, textAlign: "center" }}>{t("friends.userNotFound")}</Text>
         </View>
       </>
     );
   }
 
+  const avatarInitial = inviter.name[0]?.toUpperCase() ?? "?";
+
   return (
     <>
-      <Stack.Screen options={{ title: t("friends.addFriend") }} />
-      <View className="flex-1 bg-white items-center justify-center px-8">
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar barStyle="light-content" backgroundColor={BG} />
+      <View style={{
+        flex: 1, backgroundColor: BG,
+        alignItems: "center", justifyContent: "center",
+        paddingHorizontal: 32, paddingTop: insets.top, paddingBottom: insets.bottom + 24,
+      }}>
+
+        {/* App badge */}
+        <View style={{
+          backgroundColor: BRAND, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 6,
+          marginBottom: 32,
+        }}>
+          <Text style={{ color: "#0B0B0E", fontWeight: "800", fontSize: 13, letterSpacing: 0.5 }}>
+            El Álbum 2026
+          </Text>
+        </View>
 
         {/* Avatar */}
         {inviter.avatarUrl ? (
           <Image
             source={{ uri: inviter.avatarUrl }}
-            style={{ width: 96, height: 96, borderRadius: 48, marginBottom: 16 }}
+            style={{ width: 96, height: 96, borderRadius: 48, marginBottom: 16, borderWidth: 3, borderColor: CARD }}
           />
         ) : (
-          <View className="w-24 h-24 rounded-full bg-blue-100 items-center justify-center mb-4">
-            <Text className="text-4xl font-bold text-blue-600">
-              {inviter.name[0]?.toUpperCase()}
+          <View style={{
+            width: 96, height: 96, borderRadius: 48,
+            backgroundColor: CARD, alignItems: "center", justifyContent: "center",
+            marginBottom: 16, borderWidth: 2, borderColor: DIM3,
+          }}>
+            <Text style={{ fontSize: 36, fontWeight: "800", color: BRAND }}>
+              {avatarInitial}
             </Text>
           </View>
         )}
 
         {isSelf ? (
           <>
-            <Text className="text-xl font-bold text-gray-800 mb-2">{t("friends.itsYou")}</Text>
-            <Text className="text-gray-500 text-base text-center mb-8">{t("friends.itsYouHint")}</Text>
+            <Text style={{ color: INK, fontSize: 20, fontWeight: "800", textAlign: "center", marginBottom: 8 }}>
+              {t("friends.itsYou")}
+            </Text>
+            <Text style={{ color: DIM, fontSize: 14, textAlign: "center", marginBottom: 32, lineHeight: 21 }}>
+              {t("friends.itsYouHint")}
+            </Text>
             <TouchableOpacity
               onPress={() => router.replace("/(tabs)/friends")}
-              className="bg-blue-600 rounded-2xl py-4 px-8"
+              style={{ backgroundColor: BRAND, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 32, width: "100%", alignItems: "center" }}
+              activeOpacity={0.85}
             >
-              <Text className="text-white font-bold text-base">{t("friends.goToFriends")}</Text>
+              <Text style={{ color: "#0B0B0E", fontWeight: "800", fontSize: 16 }}>
+                {t("friends.goToFriends")}
+              </Text>
             </TouchableOpacity>
           </>
         ) : alreadyFriends ? (
           <>
-            <Text className="text-xl font-bold text-gray-800 mb-2">{inviter.name}</Text>
-            <Text className="text-gray-500 text-base text-center mb-8">{t("friends.alreadyFriends")}</Text>
+            <Text style={{ color: INK, fontSize: 22, fontWeight: "800", textAlign: "center", marginBottom: 4 }}>
+              {inviter.name}
+            </Text>
+            <Text style={{ color: DIM, fontSize: 14, textAlign: "center", marginBottom: 32 }}>
+              {t("friends.alreadyFriends")}
+            </Text>
             <TouchableOpacity
               onPress={() => router.replace("/(tabs)/friends")}
-              className="bg-blue-600 rounded-2xl py-4 px-8"
+              style={{ backgroundColor: BRAND, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 32, width: "100%", alignItems: "center" }}
+              activeOpacity={0.85}
             >
-              <Text className="text-white font-bold text-base">{t("friends.goToFriends")}</Text>
+              <Text style={{ color: "#0B0B0E", fontWeight: "800", fontSize: 16 }}>
+                {t("friends.goToFriends")}
+              </Text>
             </TouchableOpacity>
           </>
         ) : done === "accepted" ? (
           <>
-            <Text className="text-5xl mb-4">🎉</Text>
-            <Text className="text-xl font-bold text-gray-800 mb-2">{t("friends.nowFriends", { name: inviter.name })}</Text>
+            <Text style={{ fontSize: 48, marginBottom: 12 }}>🎉</Text>
+            <Text style={{ color: INK, fontSize: 20, fontWeight: "800", textAlign: "center", marginBottom: 8 }}>
+              {t("friends.nowFriends", { name: inviter.name })}
+            </Text>
             <TouchableOpacity
               onPress={() => router.replace("/(tabs)/friends")}
-              className="bg-blue-600 rounded-2xl py-4 px-8 mt-4"
+              style={{ backgroundColor: BRAND, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 32, width: "100%", alignItems: "center", marginTop: 24 }}
+              activeOpacity={0.85}
             >
-              <Text className="text-white font-bold text-base">{t("friends.goToFriends")}</Text>
+              <Text style={{ color: "#0B0B0E", fontWeight: "800", fontSize: 16 }}>
+                {t("friends.goToFriends")}
+              </Text>
             </TouchableOpacity>
           </>
         ) : done === "rejected" ? (
           <>
-            <Text className="text-gray-500 text-base text-center mb-8">{t("friends.requestDeclined")}</Text>
+            <Text style={{ color: DIM, fontSize: 15, textAlign: "center", marginBottom: 32 }}>
+              {t("friends.requestDeclined")}
+            </Text>
             <TouchableOpacity
-              onPress={() => router.replace("/(tabs)/album")}
-              className="bg-gray-100 rounded-2xl py-4 px-8"
+              onPress={() => router.replace("/(tabs)/resumen")}
+              style={{ backgroundColor: CARD, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 32, borderWidth: 1, borderColor: DIM3, width: "100%", alignItems: "center" }}
+              activeOpacity={0.85}
             >
-              <Text className="text-gray-700 font-bold text-base">{t("common.ok")}</Text>
+              <Text style={{ color: INK, fontWeight: "700", fontSize: 15 }}>
+                {t("common.ok")}
+              </Text>
             </TouchableOpacity>
           </>
         ) : (
           <>
-            <Text className="text-2xl font-bold text-gray-800 mb-1">{inviter.name}</Text>
-            <Text className="text-gray-500 text-base text-center mb-8">
+            <Text style={{ color: INK, fontSize: 24, fontWeight: "800", textAlign: "center", marginBottom: 4 }}>
+              {inviter.name}
+            </Text>
+            <Text style={{ color: DIM, fontSize: 14, textAlign: "center", marginBottom: 32, lineHeight: 21 }}>
               {t("friends.addTitle", { name: inviter.name })}
             </Text>
-            <View className="flex-row gap-4 w-full">
-              <TouchableOpacity
-                onPress={handleReject}
-                disabled={acting}
-                className="flex-1 bg-gray-100 rounded-2xl py-4 items-center"
-                activeOpacity={0.8}
-              >
-                <Text className="text-gray-700 font-semibold text-base">{t("friends.reject")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleAccept}
-                disabled={acting}
-                className="flex-1 bg-blue-600 rounded-2xl py-4 items-center"
-                activeOpacity={0.8}
-              >
-                {acting ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white font-bold text-base">{t("friends.accept")}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+
+            <TouchableOpacity
+              onPress={handleAccept}
+              disabled={acting}
+              style={{
+                backgroundColor: GREEN, borderRadius: 16,
+                paddingVertical: 16, width: "100%", alignItems: "center",
+                marginBottom: 12,
+              }}
+              activeOpacity={0.85}
+            >
+              {acting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>
+                  {t("friends.accept")}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleReject}
+              disabled={acting}
+              style={{
+                backgroundColor: CARD, borderRadius: 16,
+                paddingVertical: 14, width: "100%", alignItems: "center",
+                borderWidth: 1, borderColor: DIM3,
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: DIM, fontWeight: "600", fontSize: 15 }}>
+                {t("friends.reject")}
+              </Text>
+            </TouchableOpacity>
           </>
         )}
       </View>

@@ -118,6 +118,9 @@ const pt = {
   album: {
     title: "O Álbum 2026",
     group: "Grupo {{letter}}",
+    filterRepeated: "Filtrando por repetidas",
+    filterOwned: "Filtrando por tenho",
+    filterMissing: "Filtrando por faltam",
   },
   collection: {
     haveTab: "Tenho ✅",
@@ -249,6 +252,8 @@ const pt = {
     confirmGive: "Dar {{count}} figurinha(s)",
     selectToGive: "Selecione figurinhas para dar",
     cantGiveAny: "Não posso dar nenhuma",
+    selectAll: "Selecionar todas",
+    deselectAll: "Desmarcar todas",
     acceptedBodyPartial: "Pode te dar: {{stickers}}",
     pendingDelivery: "Entrega pendente",
     waitingDelivery: "Aguardando {{count}} figurinha(s)",

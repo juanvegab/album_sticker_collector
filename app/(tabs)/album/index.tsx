@@ -132,6 +132,7 @@ const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
   emptyLabel?: string;
   showCompleted?: boolean;
 }) => {
+  const { t } = useTranslation();
   const ownedCount = useCollectionStore(
     useCallback(
       (state) => {
@@ -152,12 +153,12 @@ const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
   const isFWC = section.id === "FWC";
   const isCC  = section.id === "CC";
   const subtitle = isFWC
-    ? `Especiales · ${total}`
+    ? `${t("resumen.fwcName")} · ${total}`
     : isCC
     ? `Sección CC · ${total}`
     : (() => {
         const group = TEAM_GROUP[section.id];
-        return group ? `Grupo ${group}` : section.name;
+        return group ? t("album.group", { letter: group }) : section.name;
       })();
 
   const isComplete = ownedCount >= total;
@@ -324,7 +325,7 @@ export default function AlbumScreen() {
   const activeSectionIdRef = useRef(fwcSection.id);
 
   // ── Fix 4: scroll to section from Resumen ──
-  const { scrollTo } = useLocalSearchParams<{ scrollTo?: string }>();
+  const { scrollTo, filter: filterParam } = useLocalSearchParams<{ scrollTo?: string; filter?: string }>();
   useEffect(() => {
     if (!scrollTo || !collectionLoaded) return;
     if (scrollTo === "FWC") {
@@ -340,6 +341,21 @@ export default function AlbumScreen() {
     if (first) handleSelectSection(first);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollTo, collectionLoaded]);
+
+  // ── Filter from Resumen stats tap ──
+  const [filterToast, setFilterToast] = useState<string | null>(null);
+  const filterToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!filterParam || !collectionLoaded) return;
+    const valid: FilterType[] = ["owned", "missing", "repeated"];
+    if (!valid.includes(filterParam as FilterType)) return;
+    setActiveFilter(filterParam as FilterType);
+    // Show tooltip
+    if (filterToastTimer.current) clearTimeout(filterToastTimer.current);
+    setFilterToast(filterParam);
+    filterToastTimer.current = setTimeout(() => setFilterToast(null), 3000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterParam, collectionLoaded]);
 
   const rightListRef = useRef<FlatList<FlatItem>>(null);
   const rightPanelHeight = useRef(0);
@@ -393,6 +409,7 @@ export default function AlbumScreen() {
       parts.push(...groupBySection(matched));
       parts.push("");
     }
+    parts.push(lang === "es" ? "🌐 elalbum2026.com" : "🌐 elalbum2026.com");
     return parts.join("\n").trim();
   }, [shareOwned, shareMissing, shareRepeated, ownedSet, duplicates, lang]);
 
@@ -902,6 +919,34 @@ export default function AlbumScreen() {
           </TouchableOpacity>
         </View>
       </Modal>
+
+      {/* ── Filter toast — shown for 3s after navigating from Resumen stats ── */}
+      {filterToast && (
+        <View
+          style={{
+            position: "absolute",
+            top: insets.top + 60,
+            left: 0, right: 0,
+            alignItems: "center",
+            zIndex: 200,
+            pointerEvents: "none",
+          }}
+        >
+          <View style={{
+            backgroundColor: "rgba(244,196,48,0.95)",
+            borderRadius: 20,
+            paddingHorizontal: 18, paddingVertical: 9,
+          }}>
+            <Text style={{ color: "#0B0B0E", fontWeight: "700", fontSize: 13 }}>
+              {filterToast === "repeated"
+                ? t("album.filterRepeated")
+                : filterToast === "owned"
+                ? t("album.filterOwned")
+                : t("album.filterMissing")}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }

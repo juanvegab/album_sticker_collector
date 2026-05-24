@@ -118,6 +118,9 @@ const en = {
   album: {
     title: "The 2026 Album",
     group: "Group {{letter}}",
+    filterRepeated: "Filtering by duplicates",
+    filterOwned: "Filtering by owned",
+    filterMissing: "Filtering by missing",
   },
   collection: {
     haveTab: "Have ✅",
@@ -249,6 +252,8 @@ const en = {
     confirmGive: "Give {{count}} sticker(s)",
     selectToGive: "Select stickers to give",
     cantGiveAny: "I can't give any",
+    selectAll: "Select all",
+    deselectAll: "Deselect all",
     acceptedBodyPartial: "Can give you: {{stickers}}",
     pendingDelivery: "Pending delivery",
     waitingDelivery: "Waiting for {{count}} sticker(s)",

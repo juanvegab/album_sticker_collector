@@ -30,7 +30,7 @@ interface Props {
 export function RespondToRequestModal({ request, onClose }: Props) {
   const { t } = useTranslation();
   const { user } = useUser();
-  const { duplicates } = useCollection();
+  const { duplicates, setDuplicates } = useCollection();
   const [selected, setSelected] = useState<string[]>([]);
   const [acting, setActing] = useState(false);
 
@@ -38,6 +38,7 @@ export function RespondToRequestModal({ request, onClose }: Props) {
 
   const available = request.stickers.filter((id) => (duplicates[id] ?? 0) > 0);
   const unavailable = request.stickers.filter((id) => (duplicates[id] ?? 0) === 0);
+  const allSelected = available.length > 0 && available.every((id) => selected.includes(id));
 
   function toggle(id: string) {
     setSelected((prev) =>
@@ -45,11 +46,24 @@ export function RespondToRequestModal({ request, onClose }: Props) {
     );
   }
 
+  function handleSelectAll() {
+    if (allSelected) {
+      setSelected([]);
+    } else {
+      setSelected(available);
+    }
+  }
+
   async function handleConfirm() {
     if (!user || selected.length === 0) return;
     setActing(true);
     try {
       await acceptStickerRequest(request.id, user.id, selected);
+      // Update local collection immediately so other pending requests
+      // reflect the reduced stock without waiting for Firestore sync
+      for (const id of selected) {
+        setDuplicates(id, Math.max(0, (duplicates[id] ?? 0) - 1));
+      }
       const senderProfile = await getProfile(request.fromUserId);
       if (senderProfile?.expoPushToken) {
         const myName = user.firstName ?? user.emailAddresses[0]?.emailAddress ?? t("account.userFallback");
@@ -121,13 +135,22 @@ export function RespondToRequestModal({ request, onClose }: Props) {
           {/* Available stickers */}
           {available.length > 0 ? (
             <>
-              <Text style={{
-                color: DIM, fontSize: 11, fontWeight: "700",
-                letterSpacing: 1.2, textTransform: "uppercase",
-                marginBottom: 10,
+              <View style={{
+                flexDirection: "row", alignItems: "center",
+                justifyContent: "space-between", marginBottom: 10,
               }}>
-                {t("requests.youCanGive", { count: available.length })}
-              </Text>
+                <Text style={{
+                  color: DIM, fontSize: 11, fontWeight: "700",
+                  letterSpacing: 1.2, textTransform: "uppercase",
+                }}>
+                  {t("requests.youCanGive", { count: available.length })}
+                </Text>
+                <TouchableOpacity onPress={handleSelectAll} activeOpacity={0.7}>
+                  <Text style={{ color: BRAND, fontSize: 12, fontWeight: "700" }}>
+                    {allSelected ? t("requests.deselectAll") : t("requests.selectAll")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               {available.map((id) => {
                 const sticker = ALL_STICKERS_MAP.get(id);
                 const isSelected = selected.includes(id);

@@ -125,13 +125,29 @@ export function ImportModal({ visible, onClose }: Props) {
     onClose();
   }
 
+  /**
+   * Normalize CC sticker lines before sending to AI.
+   * Converts "CC 🥤: 1, 2, 3" → "CC1, CC2, CC3" so the AI receives valid IDs.
+   */
+  function preprocessText(raw: string): string {
+    return raw.replace(/^CC[^\n:]*:\s*(.+)$/gim, (_, nums: string) => {
+      const ids = nums
+        .split(/[\s,]+/)
+        .map((n) => n.trim())
+        .filter((n) => /^\d{1,2}$/.test(n))
+        .map((n) => `CC${n}`);
+      // If no bare numbers found, keep original line (IDs like CC1 already present)
+      return ids.length > 0 ? ids.join(", ") : nums;
+    });
+  }
+
   async function handleAnalyze() {
     if (!text.trim()) return;
     setLoading(true);
     try {
       const token = await getToken();
       if (!token) throw new Error("No auth token");
-      const res = await parseCollectionWithAI(text.trim(), token);
+      const res = await parseCollectionWithAI(preprocessText(text.trim()), token);
       setResult(res);
       setStep("preview");
     } catch {

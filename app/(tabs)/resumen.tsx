@@ -35,14 +35,18 @@ type SectionGroup = {
 };
 
 // ── StatCard ──────────────────────────────────────────────────────────
-function StatCard({ value, label, valueColor }: {
-  value: number; label: string; valueColor: string;
+function StatCard({ value, label, valueColor, onPress }: {
+  value: number; label: string; valueColor: string; onPress?: () => void;
 }) {
   return (
-    <View style={{
-      flex: 1, backgroundColor: "#1C1D24", borderRadius: 12,
-      paddingVertical: 14, paddingHorizontal: 10, alignItems: "center",
-    }}>
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+      style={{
+        flex: 1, backgroundColor: "#1C1D24", borderRadius: 12,
+        paddingVertical: 14, paddingHorizontal: 10, alignItems: "center",
+      }}
+    >
       <Text style={{ color: valueColor, fontSize: 28, fontWeight: "800", lineHeight: 32 }}>
         {value}
       </Text>
@@ -50,7 +54,7 @@ function StatCard({ value, label, valueColor }: {
         letterSpacing: 0.8, marginTop: 4 }}>
         {label}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -290,9 +294,24 @@ export default function ResumenScreen() {
 
         {/* Stats row */}
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
-          <StatCard value={owned} label={t("resumen.owned")} valueColor="#22C55E" />
-          <StatCard value={missing} label={t("resumen.missing")} valueColor="#F5F4EE" />
-          <StatCard value={duplicateCount} label={t("resumen.repeated")} valueColor="#F2853A" />
+          <StatCard
+            value={owned}
+            label={t("resumen.owned")}
+            valueColor="#22C55E"
+            onPress={() => router.navigate({ pathname: "/(tabs)/album", params: { filter: "owned" } })}
+          />
+          <StatCard
+            value={missing}
+            label={t("resumen.missing")}
+            valueColor="#F5F4EE"
+            onPress={() => router.navigate({ pathname: "/(tabs)/album", params: { filter: "missing" } })}
+          />
+          <StatCard
+            value={duplicateCount}
+            label={t("resumen.repeated")}
+            valueColor="#F2853A"
+            onPress={() => router.navigate({ pathname: "/(tabs)/album", params: { filter: "repeated" } })}
+          />
         </View>
 
         {/* Section title row */}
