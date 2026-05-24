@@ -151,11 +151,11 @@ Country name → FIFA code mapping (common names, any language):
   USA/United States/Estados Unidos → USA
   Uzbekistan/Uzbekistán → UZB
   Special/Specials/Especiales/Especiais/FWC/World Cup → FWC
-  CC/Coca-Cola/Sponsors → CC
+  CC/Coca-Cola/Coca/CocaCola/Sponsors/Patrocinadores → CC
 
 Additional rules:
 - FWC 🏆, FWC 🌎, FWC 📜, FWC ⭐, etc. → ALL map to section "FWC"
-- CC 🥤, CC ☕, etc. → ALL map to section "CC"
+- CC 🥤, CC ☕, "Coca Cola", "Coca", "CocaCola", etc. → ALL map to section "CC"
 - Numbers may be 0-padded: "00" → 0, "04" → 4
 - For duplicates: list each NUMBER once per EXTRA copy (ARG3 appears twice as extra → [3,3])
 - Album/edition titles like "Usa Méx Can 26", "Figuritas App - Lista" → ignore
