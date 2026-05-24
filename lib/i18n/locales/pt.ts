@@ -178,7 +178,7 @@ const pt = {
     cameraPermission: "Precisamos de acesso à câmera para escanear o QR do seu amigo",
     allowCamera: "Permitir câmera",
     invite: "Convidar",
-    inviteMsg: "Entre no El Álbum 2026 e vamos conectar nossas coleções! 📲\n{{link}}",
+    inviteMsg: "Entre no El Álbum 2026 e vamos conectar nossas coleções! 📲",
     pendingRequests: "Solicitações de amizade",
     myFriends: "Meus amigos",
     noFriends: "Ainda sem amigos",

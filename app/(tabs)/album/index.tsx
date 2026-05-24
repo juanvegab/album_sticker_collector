@@ -933,11 +933,11 @@ export default function AlbumScreen() {
           }}
         >
           <View style={{
-            backgroundColor: "rgba(244,196,48,0.95)",
+            backgroundColor: "#F2853A",
             borderRadius: 20,
             paddingHorizontal: 18, paddingVertical: 9,
           }}>
-            <Text style={{ color: "#0B0B0E", fontWeight: "700", fontSize: 13 }}>
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
               {filterToast === "repeated"
                 ? t("album.filterRepeated")
                 : filterToast === "owned"

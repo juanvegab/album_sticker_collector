@@ -117,7 +117,10 @@ export default function FriendsScreen() {
   async function handleShare() {
     if (!user) return;
     const link = `${INVITE_BASE}/${user.id}`;
-    await Share.share({ message: t("friends.inviteMsg", { link }) });
+    // Pass url separately so iOS native "Copy" button copies the link correctly.
+    // The message text does not include the link to avoid duplication in apps
+    // that display both fields (WhatsApp, iMessage, etc.).
+    await Share.share({ message: t("friends.inviteMsg"), url: link });
   }
 
   async function handleAcceptFriend(requesterId: string) {

@@ -85,11 +85,81 @@ MODE B — PARTIAL LIST (manual lists, WhatsApp, our app's ✅ TENGO format):
     I need: MEX4, NOR13
   Example output: {"owned":{"AUT":[2],"FWC":[1]},"missing":{"MEX":[4],"NOR":[13]},"duplicates":{"ARG":[3]}}
 
+SECTION HEADER RECOGNITION — very important:
+Sticker lists are often grouped under country/section labels. These labels may appear as:
+  a) FIFA code (e.g. "MEX", "BRA", "FWC", "CC")
+  b) FIFA code + emoji (e.g. "MEX 🇲🇽:", "BRA 🇧🇷:", "FWC 🏆:", "CC 🥤:")
+  c) Country/section name in any language (e.g. "México:", "Brazil:", "Brasil:", "Especiales:", "Special stickers:", "Especiais:")
+  d) Name + emoji (e.g. "México 🇲🇽:", "Brasil 🇧🇷:", "Especiales 🏆:")
+
+When a section header is followed by numbers (without a code prefix), those numbers belong to that section:
+  "México 🇲🇽: 1, 4, 9"  → MEX1, MEX4, MEX9
+  "Brasil: 1, 2, 5, 8"    → BRA1, BRA2, BRA5, BRA8
+  "CC 🥤: 1, 3, 7"        → CC1, CC3, CC7
+  "Especiales: 3, 7, 12"  → FWC3, FWC7, FWC12
+
+When sticker IDs already include the code prefix, use them directly:
+  "México 🇲🇽: MEX1, MEX4" → MEX1, MEX4
+
+Country name → FIFA code mapping (common names, any language):
+  Argentina/Argentina → ARG
+  Algeria/Argelia/Algérie → ALG
+  Australia/Australia → AUS
+  Austria/Austria → AUT
+  Belgium/Bélgica/Belgique → BEL
+  Bosnia/Bosnia-Herzegovina → BIH
+  Brazil/Brasil/Brésil → BRA
+  Canada/Canadá → CAN
+  Ivory Coast/Costa de Marfil/Côte d'Ivoire → CIV
+  Congo RD/Congo DR/RD Congo → COD
+  Colombia/Colombia → COL
+  Cape Verde/Cabo Verde → CPV
+  Croatia/Croacia/Croatie → CRO
+  Curaçao/Curazao → CUW
+  Czech Republic/República Checa/Czechia → CZE
+  Ecuador/Ecuador → ECU
+  Egypt/Egipto/Égypte → EGY
+  England/Inglaterra → ENG
+  Spain/España/Espagne → ESP
+  France/Francia → FRA
+  Germany/Alemania/Deutschland → GER
+  Ghana/Ghana → GHA
+  Haiti/Haití → HAI
+  Iran/Irán → IRN
+  Iraq/Irak/Irak → IRQ
+  Jordan/Jordania → JOR
+  Japan/Japón/Japon → JPN
+  South Korea/Corea del Sur/Corée du Sud → KOR
+  Saudi Arabia/Arabia Saudita → KSA
+  Morocco/Marruecos/Maroc → MAR
+  Mexico/México/Mexique → MEX
+  Netherlands/Países Bajos/Holland/Holanda → NED
+  Norway/Noruega/Norvège → NOR
+  New Zealand/Nueva Zelanda → NZL
+  Panama/Panamá → PAN
+  Paraguay/Paraguay → PAR
+  Portugal/Portugal → POR
+  Qatar/Catar/Katar → QAT
+  South Africa/Sudáfrica/Afrique du Sud → RSA
+  Scotland/Escocia/Écosse → SCO
+  Senegal/Senegal → SEN
+  Switzerland/Suiza/Suisse → SUI
+  Sweden/Suecia/Suède → SWE
+  Tunisia/Túnez/Tunisie → TUN
+  Turkey/Turquía/Türkiye → TUR
+  Uruguay/Uruguay → URU
+  USA/United States/Estados Unidos → USA
+  Uzbekistan/Uzbekistán → UZB
+  Special/Specials/Especiales/Especiais/FWC/World Cup → FWC
+  CC/Coca-Cola/Sponsors → CC
+
 Additional rules:
 - FWC 🏆, FWC 🌎, FWC 📜, FWC ⭐, etc. → ALL map to section "FWC"
+- CC 🥤, CC ☕, etc. → ALL map to section "CC"
 - Numbers may be 0-padded: "00" → 0, "04" → 4
 - For duplicates: list each NUMBER once per EXTRA copy (ARG3 appears twice as extra → [3,3])
 - Album/edition titles like "Usa Méx Can 26", "Figuritas App - Lista" → ignore
+- Sticker IDs that include section prefix AND the section is already known → use the number only (e.g. under "MEX" section, "MEX3" → 3)
 
 Pasted text:
 ---
