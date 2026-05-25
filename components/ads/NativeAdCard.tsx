@@ -18,7 +18,7 @@ import { View, Text } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { usePremiumStore } from "@/store/premiumStore";
 
-export const AD_HEIGHT = 60;
+export const AD_HEIGHT = 90;
 
 const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
