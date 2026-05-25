@@ -799,7 +799,7 @@ export default function AlbumScreen() {
             color: "rgba(245,244,238,0.38)", fontSize: 11,
             fontWeight: "700", letterSpacing: 1.2, marginBottom: 14,
           }}>
-            FILTRAR POSTALES
+            {t("album.filterStickers")}
           </Text>
           {([
             { key: "all",      label: t("album.filterAll"),   count: total },

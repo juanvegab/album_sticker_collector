@@ -125,6 +125,7 @@ const es = {
     filterAllLabel: "Todas",
     repeated: "Repetidas",
     shareList: "COMPARTIR LISTA",
+    filterStickers: "FILTRAR POSTALES",
   },
   collection: {
     haveTab: "Tengo ✅",

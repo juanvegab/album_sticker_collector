@@ -125,6 +125,7 @@ const pt = {
     filterAllLabel: "Todas",
     repeated: "Repetidas",
     shareList: "COMPARTILHAR LISTA",
+    filterStickers: "FILTRAR FIGURINHAS",
   },
   collection: {
     haveTab: "Tenho ✅",

@@ -125,6 +125,7 @@ const en = {
     filterAllLabel: "All",
     repeated: "Duplicates",
     shareList: "SHARE LIST",
+    filterStickers: "FILTER STICKERS",
   },
   collection: {
     haveTab: "Have ✅",
