@@ -1,14 +1,17 @@
 import "../global.css";
 import { useEffect, useState } from "react";
+import { Linking } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ClerkProvider, ClerkLoaded, useAuth, useUser } from "@clerk/clerk-expo";
 import { Slot, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SecureStore from "expo-secure-store";
+import * as Notifications from "expo-notifications";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useFirebaseUser } from "@/hooks/useFirebaseUser";
 import { usePremium } from "@/hooks/usePremium";
+import { useFeatureFlagsStore } from "@/store/featureFlagsStore";
 import { initI18n } from "@/lib/i18n";
 import { createOrUpdateProfile } from "@/lib/firestore/users";
 import { SplashView } from "@/components/SplashView";
@@ -38,9 +41,32 @@ function AppRoot() {
   const segments = useSegments();
   const router = useRouter();
   const [i18nReady, setI18nReady] = useState(false);
+  const loadFlags = useFeatureFlagsStore((s) => s.loadFlags);
 
   // Initialize premium/trial only when signed in
   usePremium();
+
+  // Load feature flags once Firebase auth is ready
+  useEffect(() => {
+    if (!fbUser) return;
+    loadFlags().catch(() => {});
+  }, [fbUser?.uid]);
+
+  // ── Notification deep-link listener ───────────────────────────────────
+  // Fires when the user taps a push notification (app in foreground or background).
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = (response.notification.request.content.data ?? {}) as Record<string, string>;
+
+      if (data.url) {
+        // Broadcast notification with a clickable link
+        Linking.openURL(data.url).catch(console.error);
+      } else if (data.screen === "friends") {
+        router.navigate("/(tabs)/friends");
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     initI18n().finally(() => setI18nReady(true));

@@ -30,17 +30,26 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
 /**
  * Sends a push notification via Expo Push API.
- * Called from the client — acceptable while Firestore rules are open.
- * Move to a Cloud Function once Firebase Auth is wired up.
+ *
+ * The optional `data` field controls deep-linking when the user taps the notification:
+ *   { screen: "friends" }            → opens the Friends tab
+ *   { type: "broadcast", url: "…" }  → opens the URL in the browser
  */
 export async function sendPushNotification(
   expoPushToken: string,
   title: string,
-  body: string
+  body: string,
+  data?: Record<string, string>
 ): Promise<void> {
   await fetch("https://exp.host/--/api/v2/push/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ to: expoPushToken, title, body, sound: "default" }),
+    body: JSON.stringify({
+      to: expoPushToken,
+      title,
+      body,
+      sound: "default",
+      data: data ?? {},
+    }),
   });
 }

@@ -84,7 +84,8 @@ export default function FriendDetailScreen() {
         await sendPushNotification(
           friendProfile.expoPushToken,
           t("requests.notifTitle", { name: myName }),
-          t("requests.notifBody", { count: selected.length })
+          t("requests.notifBody", { count: selected.length }),
+          { screen: "friends" }
         );
       }
 

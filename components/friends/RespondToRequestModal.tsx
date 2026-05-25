@@ -73,7 +73,8 @@ export function RespondToRequestModal({ request, onClose }: Props) {
         await sendPushNotification(
           senderProfile.expoPushToken,
           t("requests.acceptedTitle", { name: myName }),
-          t("requests.acceptedBodyPartial", { stickers: names })
+          t("requests.acceptedBodyPartial", { stickers: names }),
+          { screen: "friends" }
         );
       }
       onClose();

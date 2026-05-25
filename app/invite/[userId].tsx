@@ -51,7 +51,8 @@ export default function InviteScreen() {
         await sendPushNotification(
           inviter.expoPushToken,
           t("friends.acceptedTitle", { name: myName }),
-          t("friends.acceptedBody")
+          t("friends.acceptedBody"),
+          { screen: "friends" }
         );
       }
       setDone("accepted");

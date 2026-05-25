@@ -10,6 +10,31 @@ setGlobalOptions({ region: "us-central1" });
 const clerkSecretKey = defineSecret("CLERK_SECRET_KEY");
 const anthropicKey   = defineSecret("ANTHROPIC_API_KEY");
 
+// ── Helpers ───────────────────────────────────────────────────────────
+
+/** Split an array into chunks of at most `size` items. */
+function chunk(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+/**
+ * Returns the admin userId list from Firestore (config/broadcast_admin).
+ * Document shape: { adminUserIds: ["user_xxx", ...] }
+ * Create this document manually in the Firebase console.
+ */
+async function getAdminUserIds() {
+  try {
+    const snap = await admin.firestore().doc("config/broadcast_admin").get();
+    if (!snap.exists) return [];
+    const data = snap.data();
+    return Array.isArray(data.adminUserIds) ? data.adminUserIds : [];
+  } catch {
+    return [];
+  }
+}
+
 // ── Valid sticker IDs (mirrored from world-cup-2026.ts) ───────────────
 // Team sections: 20 stickers each (1–20, badge at 1, team photo at 13)
 const TEAM_SECTION_IDS = [
@@ -358,5 +383,140 @@ exports.createFirebaseToken = onRequest(
       console.error("Token exchange error:", error.message);
       res.status(401).json({ error: "Invalid or expired token" });
     }
+  }
+);
+
+/**
+ * broadcastNotification
+ *
+ * Sends a push notification to all (or selected) users.
+ * Only callers whose Clerk userId appears in Firestore's
+ * `config/broadcast_admin → adminUserIds` array are allowed.
+ *
+ * Request body:
+ *   {
+ *     title:    string           (required)
+ *     body:     string           (required)
+ *     url?:     string           (optional — opens in browser on tap)
+ *     userIds?: string[]         (optional — target specific users; omit for all)
+ *   }
+ *
+ * Example curl:
+ *   curl -X POST \
+ *     -H "Authorization: Bearer <clerk_session_token>" \
+ *     -H "Content-Type: application/json" \
+ *     -d '{"title":"Nueva versión","body":"Android ya disponible!","url":"https://elalbum2026.com"}' \
+ *     https://us-central1-control-de-postales.cloudfunctions.net/broadcastNotification
+ */
+exports.broadcastNotification = onRequest(
+  { secrets: [clerkSecretKey], timeoutSeconds: 120 },
+  async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    // 1. Verify Clerk token
+    const authHeader = req.headers.authorization || "";
+    const sessionToken = authHeader.replace("Bearer ", "").trim();
+    if (!sessionToken) {
+      res.status(401).json({ error: "Missing authorization header" });
+      return;
+    }
+
+    let callerUserId;
+    try {
+      const payload = await verifyToken(sessionToken, {
+        secretKey: clerkSecretKey.value(),
+      });
+      callerUserId = payload.sub;
+    } catch (err) {
+      console.error("Token verification failed:", err.message);
+      res.status(401).json({ error: "Invalid or expired token" });
+      return;
+    }
+
+    // 2. Check admin permission
+    const adminIds = await getAdminUserIds();
+    if (!adminIds.includes(callerUserId)) {
+      console.warn(`[broadcastNotification] Unauthorized attempt by ${callerUserId}`);
+      res.status(403).json({ error: "Forbidden — not an admin" });
+      return;
+    }
+
+    // 3. Parse and validate body
+    const { title, body, url, userIds } = req.body || {};
+    if (!title || !body || typeof title !== "string" || typeof body !== "string") {
+      res.status(400).json({ error: "title and body are required strings" });
+      return;
+    }
+
+    // 4. Collect push tokens
+    let tokens = [];
+    if (Array.isArray(userIds) && userIds.length > 0) {
+      // Targeted broadcast — only specific users
+      const profiles = await Promise.all(
+        userIds.map((uid) =>
+          admin.firestore().collection("users").doc(uid).get()
+        )
+      );
+      tokens = profiles
+        .filter((s) => s.exists)
+        .map((s) => s.data().expoPushToken)
+        .filter(Boolean);
+    } else {
+      // Full broadcast — all users with a push token
+      const snap = await admin.firestore().collection("users").get();
+      tokens = snap.docs
+        .map((d) => d.data().expoPushToken)
+        .filter(Boolean);
+    }
+
+    if (tokens.length === 0) {
+      res.json({ sent: 0, message: "No push tokens found" });
+      return;
+    }
+
+    // 5. Send in batches of 100 (Expo Push API limit)
+    const notifData = { type: "broadcast", ...(url ? { url } : {}) };
+    const batches = chunk(tokens, 100);
+    let sent = 0;
+
+    for (const batch of batches) {
+      try {
+        const messages = batch.map((token) => ({
+          to: token,
+          title,
+          body,
+          sound: "default",
+          data: notifData,
+        }));
+
+        const expRes = await fetch("https://exp.host/--/api/v2/push/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(messages),
+        });
+
+        if (expRes.ok) {
+          sent += batch.length;
+        } else {
+          console.error("[broadcastNotification] Expo error:", await expRes.text());
+        }
+      } catch (err) {
+        console.error("[broadcastNotification] Batch error:", err.message);
+      }
+    }
+
+    console.log(`[broadcastNotification] Sent to ${sent}/${tokens.length} tokens by ${callerUserId}`);
+    res.json({ sent, total: tokens.length });
   }
 );

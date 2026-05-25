@@ -134,7 +134,8 @@ export default function FriendsScreen() {
         await sendPushNotification(
           rProfile.expoPushToken,
           t("friends.acceptedTitle", { name: myName }),
-          t("friends.acceptedBody")
+          t("friends.acceptedBody"),
+          { screen: "friends" }
         );
       }
     } catch { Alert.alert(t("common.error")); }
@@ -159,7 +160,8 @@ export default function FriendsScreen() {
         await sendPushNotification(
           giverProfile.expoPushToken,
           t("requests.receivedTitle", { name: myName }),
-          t("requests.receivedBody")
+          t("requests.receivedBody"),
+          { screen: "friends" }
         );
       }
     } catch (e) {
