@@ -121,6 +121,10 @@ const pt = {
     filterRepeated: "Filtrando por repetidas",
     filterOwned: "Filtrando por tenho",
     filterMissing: "Filtrando por faltam",
+    filterAll: "Todas",
+    filterAllLabel: "Todas",
+    repeated: "Repetidas",
+    shareList: "COMPARTILHAR LISTA",
   },
   collection: {
     haveTab: "Tenho ✅",

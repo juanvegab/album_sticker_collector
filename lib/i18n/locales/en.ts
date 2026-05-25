@@ -121,6 +121,10 @@ const en = {
     filterRepeated: "Filtering by duplicates",
     filterOwned: "Filtering by owned",
     filterMissing: "Filtering by missing",
+    filterAll: "All",
+    filterAllLabel: "All",
+    repeated: "Duplicates",
+    shareList: "SHARE LIST",
   },
   collection: {
     haveTab: "Have ✅",

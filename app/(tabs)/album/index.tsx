@@ -622,7 +622,7 @@ export default function AlbumScreen() {
             {pct}%
             <Text style={{ color: "rgba(245,244,238,0.38)", fontSize: 12, fontWeight: "600" }}>
               {` · ${ownedMain}/${total}`}
-              {repeatedCount > 0 ? ` · Repetidas ${repeatedCount}` : ""}
+              {repeatedCount > 0 ? ` · ${t("album.repeated")} ${repeatedCount}` : ""}
             </Text>
           </Text>
         </View>
@@ -802,10 +802,10 @@ export default function AlbumScreen() {
             FILTRAR POSTALES
           </Text>
           {([
-            { key: "all",      label: "Todas",     count: total },
-            { key: "owned",    label: "Tengo",     count: ownedMain },
-            { key: "missing",  label: "Faltan",    count: missing },
-            { key: "repeated", label: "Repetidas", count: repeatedCount },
+            { key: "all",      label: t("album.filterAll"),   count: total },
+            { key: "owned",    label: t("account.have"),      count: ownedMain },
+            { key: "missing",  label: t("account.missing"),   count: missing },
+            { key: "repeated", label: t("album.repeated"),    count: repeatedCount },
           ] as { key: FilterType; label: string; count: number }[]).map(({ key, label, count }) => {
             const isActive = activeFilter === key;
             return (
@@ -869,12 +869,12 @@ export default function AlbumScreen() {
             color: "rgba(245,244,238,0.38)", fontSize: 11,
             fontWeight: "700", letterSpacing: 1.2, marginBottom: 14,
           }}>
-            {lang === "es" ? "COMPARTIR LISTA" : "SHARE LIST"}
+            {t("album.shareList")}
           </Text>
           {([
-            { label: lang === "es" ? "Repetidas 🔁" : "Duplicates 🔁", value: shareRepeated, set: setShareRepeated },
-            { label: lang === "es" ? "Me faltan ❌"  : "Missing ❌",    value: shareMissing,  set: setShareMissing  },
-            { label: lang === "es" ? "Tengo ✅"       : "Have ✅",       value: shareOwned,    set: setShareOwned    },
+            { label: `${t("album.repeated")} 🔁`,  value: shareRepeated, set: setShareRepeated },
+            { label: `${t("account.missing")} ❌`,  value: shareMissing,  set: setShareMissing  },
+            { label: `${t("account.have")} ✅`,     value: shareOwned,    set: setShareOwned    },
           ]).map(({ label, value, set }) => (
             <TouchableOpacity
               key={label}
