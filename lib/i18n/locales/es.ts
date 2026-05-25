@@ -218,7 +218,7 @@ const es = {
     emptyHint: "Aquí aparecerán tus intercambios completados, rechazados y cancelados.",
     unknownUser: "Usuario desconocido",
     youRequested: "Pediste",
-    theyRequested: "Te pidieron",
+    theyRequested: "Te pidió",
     nStickers: "{{count}} postales",
     nStickers_one: "1 postal",
     nStickers_other: "{{count}} postales",

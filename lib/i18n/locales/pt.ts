@@ -218,7 +218,7 @@ const pt = {
     emptyHint: "Suas trocas concluídas, recusadas e canceladas aparecerão aqui.",
     unknownUser: "Usuário desconhecido",
     youRequested: "Você pediu",
-    theyRequested: "Te pediram",
+    theyRequested: "Te pediu",
     nStickers: "{{count}} figurinhas",
     nStickers_one: "1 figurinha",
     nStickers_other: "{{count}} figurinhas",

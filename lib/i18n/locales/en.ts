@@ -218,7 +218,7 @@ const en = {
     emptyHint: "Your completed, declined and cancelled exchanges will appear here.",
     unknownUser: "Unknown user",
     youRequested: "You requested",
-    theyRequested: "They requested",
+    theyRequested: "Requested from you",
     nStickers: "{{count}} stickers",
     nStickers_one: "1 sticker",
     nStickers_other: "{{count}} stickers",
