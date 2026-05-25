@@ -4,6 +4,8 @@ const pt = {
     error: "Erro",
     ok: "OK",
     back: "Voltar",
+    irreversible: "Esta ação não pode ser desfeita.",
+    yesCancel: "Sim, cancelar",
   },
   auth: {
     welcome: "Bem-vindo",
@@ -129,6 +131,14 @@ const pt = {
     markAll: "Marcar tudo",
     unmarkAll: "Desmarcar tudo",
     clearDuplicates: "Limpar repetidas",
+    sectionCompleted: "Completo ✓",
+    sectionEmpty: "Nenhuma marcada",
+    sectionNoResults: "Sem resultados",
+    sectionNoDuplicates: "Sem repetidas",
+    shareHeader: "Meu Álbum 2026 ⚽",
+    shareDuplicates: "🔁 REPETIDAS ({{count}})",
+    shareMissing: "❌ FALTAM ({{count}})",
+    shareHave: "✅ TENHO ({{count}})",
   },
   collection: {
     haveTab: "Tenho ✅",
@@ -218,6 +228,7 @@ const pt = {
     selCount: "{{count}} sel.",
     removeFriend: "Remover amigo",
     searchPlaceholder: "Buscar amigo...",
+    addTitle: "{{name}} quer se conectar com você",
   },
   history: {
     title: "Histórico",
@@ -234,6 +245,9 @@ const pt = {
     receivedFrom: "De {{name}}",
     requested: "Figurinhas pedidas",
     given: "Figurinhas dadas",
+    statusCompleted: "Concluído",
+    statusRejected: "Recusado",
+    statusCancelled: "Cancelado",
   },
   requests: {
     incoming:"Solicitações recebidas",
@@ -358,6 +372,9 @@ const pt = {
     importError: "Não foi possível analisar. Verifique o formato e tente novamente.",
     importPremiumOnly: "Disponível para usuários em período de teste ou premium",
     importNewSection: "novas",
+    importDupesPill: "repetidas",
+    importAlbumOf: "do seu álbum",
+    importPackLabel: "FIGURINHAS",
   },
   premium: {
     lastDay: "⏳ Último dia sem anúncios",

@@ -236,7 +236,7 @@ const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
           {getSectionName(section.id, i18n.language, section.name)}
         </Text>
         <Text style={{ color: isEmpty ? textSub : showCompleted ? "#4ADE80" : textSub, fontSize: 11, fontWeight: "500" }}>
-          {isEmpty ? emptyLabel : showCompleted ? "Completado ✓" : subtitle}
+          {isEmpty ? emptyLabel : showCompleted ? t("album.sectionCompleted") : subtitle}
         </Text>
       </View>
 
@@ -390,23 +390,23 @@ export default function AlbumScreen() {
     const allStickers = WORLD_CUP_2026.sections.flatMap((s) => s.stickers);
     const mainStickers = allStickers.filter((s) => !CC_STICKER_IDS.has(s.id));
     const parts: string[] = [];
-    parts.push(lang === "es" ? "Mi Álbum 2026 ⚽" : "My 2026 Album ⚽");
+    parts.push(t("album.shareHeader"));
     parts.push("");
     if (shareRepeated) {
       const matched = allStickers.filter((s) => (duplicates[s.id] ?? 0) > 0);
-      parts.push(lang === "es" ? `🔁 REPETIDAS (${matched.length})` : `🔁 DUPLICATES (${matched.length})`);
+      parts.push(t("album.shareDuplicates", { count: matched.length }));
       parts.push(...groupBySection(matched));
       parts.push("");
     }
     if (shareMissing) {
       const matched = mainStickers.filter((s) => !ownedSet.has(s.id));
-      parts.push(lang === "es" ? `❌ ME FALTAN (${matched.length})` : `❌ MISSING (${matched.length})`);
+      parts.push(t("album.shareMissing", { count: matched.length }));
       parts.push(...groupBySection(matched));
       parts.push("");
     }
     if (shareOwned) {
       const matched = allStickers.filter((s) => ownedSet.has(s.id));
-      parts.push(lang === "es" ? `✅ TENGO (${matched.length})` : `✅ HAVE (${matched.length})`);
+      parts.push(t("album.shareHave", { count: matched.length }));
       parts.push(...groupBySection(matched));
       parts.push("");
     }
@@ -432,9 +432,9 @@ export default function AlbumScreen() {
     const emptyLabelFor = (section: AlbumSection): string => {
       const total = section.stickers.length;
       const owned = section.stickers.filter((s) => ownedSet.has(s.id)).length;
-      if (activeFilter === "owned")    return "Te faltan todas";
-      if (activeFilter === "missing")  return owned >= total ? "Completado ✓" : "Sin resultados";
-      if (activeFilter === "repeated") return "Sin repetidas";
+      if (activeFilter === "owned")    return t("album.sectionEmpty");
+      if (activeFilter === "missing")  return owned >= total ? t("album.sectionCompleted") : t("album.sectionNoResults");
+      if (activeFilter === "repeated") return t("album.sectionNoDuplicates");
       return "";
     };
 

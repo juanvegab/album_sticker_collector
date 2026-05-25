@@ -71,6 +71,7 @@ type Entry = { sticker: AlbumSticker; isNew: boolean };
 // ── Sub-components ─────────────────────────────────────────────────────
 
 function PackIllustration() {
+  const { t } = useTranslation();
   const ILLUS = 260;
   const cellSize = ILLUS / 4;
   return (
@@ -98,7 +99,7 @@ function PackIllustration() {
           EL ÁLBUM
         </Text>
         <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: "600", letterSpacing: 1, textAlign: "center" }}>
-          {`2026 · ${PACK_SIZE} POSTALES`}
+          {`2026 · ${PACK_SIZE} ${t("import.importPackLabel")}`}
         </Text>
       </View>
     </View>
@@ -106,6 +107,7 @@ function PackIllustration() {
 }
 
 function ResultCard({ entry }: { entry: Entry }) {
+  const { t } = useTranslation();
   const color = colorForSection(entry.sticker.sectionId, TEAM_GROUP);
   const dark = needsDarkText(color);
   const textColor = dark ? "rgba(0,0,0,0.7)" : "#fff";
@@ -142,7 +144,7 @@ function ResultCard({ entry }: { entry: Entry }) {
           paddingHorizontal: 6, paddingVertical: 2,
         }}>
           <Text style={{ color: "#fff", fontSize: 7, fontWeight: "800", letterSpacing: 0.5 }}>
-            REPETIDA
+            {t("sobre.input.repetida")}
           </Text>
         </View>
       )}

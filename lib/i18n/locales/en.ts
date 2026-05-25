@@ -4,6 +4,8 @@ const en = {
     error: "Error",
     ok: "OK",
     back: "Back",
+    irreversible: "This action cannot be undone.",
+    yesCancel: "Yes, cancel",
   },
   auth: {
     welcome: "Welcome",
@@ -129,6 +131,14 @@ const en = {
     markAll: "Mark all",
     unmarkAll: "Unmark all",
     clearDuplicates: "Clear duplicates",
+    sectionCompleted: "Completed ✓",
+    sectionEmpty: "None owned",
+    sectionNoResults: "No results",
+    sectionNoDuplicates: "No duplicates",
+    shareHeader: "My 2026 Album ⚽",
+    shareDuplicates: "🔁 DUPLICATES ({{count}})",
+    shareMissing: "❌ MISSING ({{count}})",
+    shareHave: "✅ HAVE ({{count}})",
   },
   collection: {
     haveTab: "Have ✅",
@@ -218,6 +228,7 @@ const en = {
     selCount: "{{count}} sel.",
     removeFriend: "Remove friend",
     searchPlaceholder: "Search friend...",
+    addTitle: "{{name}} wants to connect with you",
   },
   history: {
     title: "History",
@@ -234,6 +245,9 @@ const en = {
     receivedFrom: "From {{name}}",
     requested: "Requested stickers",
     given: "Given stickers",
+    statusCompleted: "Completed",
+    statusRejected: "Declined",
+    statusCancelled: "Cancelled",
   },
   requests: {
     incoming: "Incoming requests",
@@ -358,6 +372,9 @@ const en = {
     importError: "Could not parse the list. Check the format and try again.",
     importPremiumOnly: "Available for trial or premium users",
     importNewSection: "new",
+    importDupesPill: "duplicates",
+    importAlbumOf: "of your album",
+    importPackLabel: "STICKERS",
   },
   premium: {
     lastDay: "⏳ Last day without ads",

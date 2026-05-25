@@ -62,7 +62,7 @@ export function RequestDetailModal({
   cancelLabel = "Cancelar pedido",
   onClose,
 }: Props) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const [cancelling, setCancelling] = useState(false);
   const sortedStickers = useMemo(() => sortStickerIds(stickers), [stickers]);
@@ -72,12 +72,12 @@ export function RequestDetailModal({
   async function handleCancel() {
     if (!onCancel) return;
     Alert.alert(
-      "¿Cancelar pedido?",
-      "Esta acción no se puede deshacer.",
+      t("requests.cancelRequest"),
+      t("common.irreversible"),
       [
-        { text: "No", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Sí, cancelar",
+          text: t("common.yesCancel"),
           style: "destructive",
           onPress: async () => {
             setCancelling(true);
@@ -85,7 +85,7 @@ export function RequestDetailModal({
               await onCancel();
               onClose();
             } catch {
-              Alert.alert("Error", "No se pudo cancelar el pedido.");
+              Alert.alert(t("common.error"), t("requests.errorReject"));
             } finally {
               setCancelling(false);
             }
@@ -95,7 +95,7 @@ export function RequestDetailModal({
     );
   }
 
-  const dateStr = new Date(request.createdAt).toLocaleDateString("es-AR", {
+  const dateStr = new Date(request.createdAt).toLocaleDateString(i18n.language === "pt" ? "pt-BR" : i18n.language === "en" ? "en-US" : "es-AR", {
     day: "numeric", month: "short",
   });
 

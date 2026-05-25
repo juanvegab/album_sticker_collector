@@ -341,7 +341,7 @@ export function ImportModal({ visible, onClose }: Props) {
                             color: DIM, fontSize: 11, fontWeight: "700",
                             letterSpacing: 1, textTransform: "uppercase",
                           }}>
-                            Grupo {item.letter}
+                            {t("album.group", { letter: item.letter })}
                           </Text>
                           <View style={{ flex: 1, height: 1, backgroundColor: DIM3, marginLeft: 8 }} />
                         </View>
@@ -393,7 +393,7 @@ export function ImportModal({ visible, onClose }: Props) {
                                 borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3,
                               }}>
                                 <Text style={{ color: ORANGE, fontSize: 11, fontWeight: "700" }}>
-                                  {dupCount} repetidas
+                                  {dupCount} {t("import.importDupesPill")}
                                 </Text>
                               </View>
                             )}
@@ -472,7 +472,7 @@ export function ImportModal({ visible, onClose }: Props) {
                   {confirmedNew}
                 </Text>
                 <Text style={{ color: GREEN, fontSize: 11, fontWeight: "700", marginTop: 4, letterSpacing: 0.5 }}>
-                  NUEVAS
+                  {t("import.importNewStickers").toUpperCase()}
                 </Text>
               </View>
               {confirmedDupes > 0 && (
@@ -484,7 +484,7 @@ export function ImportModal({ visible, onClose }: Props) {
                     {confirmedDupes}
                   </Text>
                   <Text style={{ color: ORANGE, fontSize: 11, fontWeight: "700", marginTop: 4, letterSpacing: 0.5 }}>
-                    REPETIDAS
+                    {t("album.repeated").toUpperCase()}
                   </Text>
                 </View>
               )}
@@ -502,7 +502,7 @@ export function ImportModal({ visible, onClose }: Props) {
                 <Text style={{ color: BRAND, fontSize: 20, fontWeight: "800", marginLeft: 2 }}>%</Text>
                 <Text style={{ flex: 1 }} />
                 <Text style={{ color: DIM, fontSize: 13, fontWeight: "600" }}>
-                  de tu álbum
+                  {t("import.importAlbumOf")}
                 </Text>
               </View>
               <View style={{ height: 5, backgroundColor: DIM3, borderRadius: 99, overflow: "hidden" }}>

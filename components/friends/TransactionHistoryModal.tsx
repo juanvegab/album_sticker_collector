@@ -43,12 +43,12 @@ function sortStickerIds(ids: string[]): string[] {
   });
 }
 
-function statusMeta(status: RequestStatus): { label: string; color: string; icon: string } {
+function statusMeta(status: RequestStatus, t: (key: string) => string): { label: string; color: string; icon: string } {
   switch (status) {
-    case "received":  return { label: "Completado", color: GREEN,  icon: "check-circle"  };
-    case "rejected":  return { label: "Rechazado",  color: RED,    icon: "close-circle"  };
-    case "cancelled": return { label: "Cancelado",  color: GREY,   icon: "cancel"        };
-    default:          return { label: status,        color: ORANGE, icon: "clock-outline" };
+    case "received":  return { label: t("history.statusCompleted"), color: GREEN,  icon: "check-circle"  };
+    case "rejected":  return { label: t("history.statusRejected"),  color: RED,    icon: "close-circle"  };
+    case "cancelled": return { label: t("history.statusCancelled"), color: GREY,   icon: "cancel"        };
+    default:          return { label: status,                        color: ORANGE, icon: "clock-outline" };
   }
 }
 
@@ -82,7 +82,7 @@ function TransactionDetail({ item, currentUserId, friendMap, onBack }: DetailPro
     ? (friendMap[item.toUserId]?.name ?? t("history.unknownUser"))
     : item.fromUserName;
 
-  const { color: statusColor, label: statusLabel, icon: statusIcon } = statusMeta(item.status);
+  const { color: statusColor, label: statusLabel, icon: statusIcon } = statusMeta(item.status, t);
 
   const requestedSorted = useMemo(() => sortStickerIds(item.stickers),              [item.stickers]);
   const givenSorted     = useMemo(() => sortStickerIds(item.givenStickers ?? []),   [item.givenStickers]);
@@ -258,7 +258,7 @@ export function TransactionHistoryModal({ visible, onClose, currentUserId, frien
                 const otherName = isSender
                   ? (friendMap[item.toUserId]?.name ?? t("history.unknownUser"))
                   : item.fromUserName;
-                const { color: statusColor, label: statusLabel, icon: statusIcon } = statusMeta(item.status);
+                const { color: statusColor, label: statusLabel, icon: statusIcon } = statusMeta(item.status, t);
                 const stickerCount = item.stickers.length;
 
                 return (

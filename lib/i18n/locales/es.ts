@@ -4,6 +4,8 @@ const es = {
     error: "Error",
     ok: "OK",
     back: "Volver",
+    irreversible: "Esta acción no se puede deshacer.",
+    yesCancel: "Sí, cancelar",
   },
   auth: {
     welcome: "Bienvenido",
@@ -129,6 +131,14 @@ const es = {
     markAll: "Marcar todo",
     unmarkAll: "Desmarcar todo",
     clearDuplicates: "Limpiar repetidas",
+    sectionCompleted: "Completado ✓",
+    sectionEmpty: "Te faltan todas",
+    sectionNoResults: "Sin resultados",
+    sectionNoDuplicates: "Sin repetidas",
+    shareHeader: "Mi Álbum 2026 ⚽",
+    shareDuplicates: "🔁 REPETIDAS ({{count}})",
+    shareMissing: "❌ ME FALTAN ({{count}})",
+    shareHave: "✅ TENGO ({{count}})",
   },
   collection: {
     haveTab: "Tengo ✅",
@@ -218,6 +228,7 @@ const es = {
     selCount: "{{count}} sel.",
     removeFriend: "Eliminar amigo",
     searchPlaceholder: "Buscar amigo...",
+    addTitle: "{{name}} quiere conectarse contigo",
   },
   history: {
     title: "Historial",
@@ -234,6 +245,9 @@ const es = {
     receivedFrom: "De {{name}}",
     requested: "Postales pedidas",
     given: "Postales dadas",
+    statusCompleted: "Completado",
+    statusRejected: "Rechazado",
+    statusCancelled: "Cancelado",
   },
   requests: {
     incoming: "Solicitudes recibidas",
@@ -358,6 +372,9 @@ const es = {
     importError: "No se pudo analizar. Verificá el formato e intentá de nuevo.",
     importPremiumOnly: "Disponible para usuarios en período de prueba o premium",
     importNewSection: "nuevas",
+    importDupesPill: "repetidas",
+    importAlbumOf: "de tu álbum",
+    importPackLabel: "POSTALES",
   },
   premium: {
     lastDay: "⏳ Último día sin anuncios",
