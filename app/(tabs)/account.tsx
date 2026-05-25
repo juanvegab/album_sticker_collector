@@ -513,13 +513,6 @@ export default function AccountScreen() {
           />
         </View>
 
-        {/* ── Footer ── */}
-        <View style={{ alignItems: "center", marginTop: 8, marginBottom: 4 }}>
-          <Text style={{ color: DIM, fontSize: 12 }}>
-            El Álbum 2026 · v1.1.1
-          </Text>
-        </View>
-
         {/* ── Danger zone ── */}
         <View style={{ marginBottom: 8 }}>
           <SettingsRow
@@ -539,6 +532,13 @@ export default function AccountScreen() {
               : <FontAwesome name="trash-o" size={15} color={RED} />
             }
           />
+        </View>
+
+        {/* ── Footer ── */}
+        <View style={{ alignItems: "center", marginTop: 8, marginBottom: 4 }}>
+          <Text style={{ color: DIM, fontSize: 12 }}>
+            El Álbum 2026 · v1.1.3
+          </Text>
         </View>
       </ScrollView>
 
