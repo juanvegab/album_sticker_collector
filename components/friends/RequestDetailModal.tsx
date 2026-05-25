@@ -6,7 +6,7 @@ import {
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { StickerRequest } from "@/types/request";
-import { ALL_STICKERS_MAP, WORLD_CUP_2026 } from "@/lib/data/world-cup-2026";
+import { ALL_STICKERS_MAP, ALBUM_SECTIONS_MAP, WORLD_CUP_2026 } from "@/lib/data/world-cup-2026";
 
 // Section order index for sorting (FWC=0, MEX=1, …)
 const SECTION_ORDER = new Map(WORLD_CUP_2026.sections.map((s, i) => [s.id, i]));
@@ -141,21 +141,70 @@ export function RequestDetailModal({
             {stickersLabel.toUpperCase()} · {sortedStickers.length}
           </Text>
 
-          {/* Sticker list */}
-          <View style={{
-            backgroundColor: ELEVATED,
-            borderRadius: 14, padding: 14,
-            maxHeight: 200,
-          }}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={{
-                color: stickersColor,
-                fontSize: 13, lineHeight: 22, flexWrap: "wrap",
-              }}>
-                {sortedStickers.join("   ·   ")}
-              </Text>
-            </ScrollView>
-          </View>
+          {/* Sticker list — grouped by section */}
+          <ScrollView
+            style={{ maxHeight: 280 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {(() => {
+              // Group stickers by sectionId preserving sort order
+              const groups: { sectionId: string; ids: string[] }[] = [];
+              for (const id of sortedStickers) {
+                const sticker = ALL_STICKERS_MAP.get(id);
+                if (!sticker) continue;
+                const last = groups[groups.length - 1];
+                if (last && last.sectionId === sticker.sectionId) {
+                  last.ids.push(id);
+                } else {
+                  groups.push({ sectionId: sticker.sectionId, ids: [id] });
+                }
+              }
+              return groups.map(({ sectionId, ids }) => {
+                const section = ALBUM_SECTIONS_MAP.get(sectionId);
+                return (
+                  <View key={sectionId} style={{ marginBottom: 12 }}>
+                    {/* Section header */}
+                    <View style={{
+                      flexDirection: "row", alignItems: "center", gap: 6,
+                      marginBottom: 6,
+                    }}>
+                      <Text style={{ fontSize: 16 }}>{section?.emoji ?? "🌍"}</Text>
+                      <Text style={{
+                        color: DIM, fontSize: 11, fontWeight: "700",
+                        letterSpacing: 0.8, textTransform: "uppercase",
+                      }}>
+                        {section?.name ?? sectionId}
+                      </Text>
+                    </View>
+                    {/* Stickers */}
+                    {ids.map((id) => {
+                      const s = ALL_STICKERS_MAP.get(id);
+                      return (
+                        <View key={id} style={{
+                          flexDirection: "row", alignItems: "center",
+                          paddingVertical: 5, gap: 10,
+                          borderBottomWidth: 1,
+                          borderBottomColor: "rgba(245,244,238,0.05)",
+                        }}>
+                          <Text style={{
+                            color: stickersColor, fontSize: 12,
+                            fontWeight: "700", width: 44,
+                          }}>
+                            {id}
+                          </Text>
+                          <Text style={{
+                            color: DIM, fontSize: 12, flex: 1,
+                          }} numberOfLines={1}>
+                            {s?.name ?? "—"}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              });
+            })()}
+          </ScrollView>
 
           {/* Cancel button */}
           {onCancel && (
