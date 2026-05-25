@@ -1,17 +1,44 @@
 /**
  * NativeAdCard — inline ad shown at the start of each album section.
- * Height must match AD_HEIGHT constant in album/index.tsx (60px).
+ * Height matches AD_HEIGHT constant (60px) used in album/index.tsx.
+ *
+ * API used (react-native-google-mobile-ads v8+):
+ *  - NativeAd.createForAdRequest(unitId)  → async, returns a data object
+ *  - <NativeAdView nativeAd={...}>        → the React component for rendering
  *
  * Guards:
- *  - isPremium → renders nothing (null, no space taken)
- *  - Expo Go → renders a small placeholder (same height, no crash)
- *  - Dev build / Prod build → renders real NativeAd from AdMob
- *  - ErrorBoundary → catches native render crashes (e.g. certain Android devices)
+ *  - isPremium  → null (no space consumed)
+ *  - Expo Go    → placeholder (keeps layout stable, no crash)
+ *  - Real build → loads ad async then renders via NativeAdView
+ *  - ErrorBoundary → catches any remaining render crashes silently
  */
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text } from "react-native";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import { usePremiumStore } from "@/store/premiumStore";
 
-// ── ErrorBoundary — catches native AdMob render crashes ───────────────
+export const AD_HEIGHT = 60;
+
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+// Lazy-load AdMob only in real builds — avoids Expo Go crash
+let NativeAdClass: any = null;   // data class  → use .createForAdRequest()
+let NativeAdView: any = null;    // React component → <NativeAdView nativeAd={...}>
+let TestIds: any = null;
+
+if (!isExpoGo) {
+  try {
+    const admob = require("react-native-google-mobile-ads");
+    NativeAdClass = admob.NativeAd;      // NOT a component — factory class
+    NativeAdView  = admob.NativeAdView;  // actual React component
+    TestIds       = admob.TestIds;
+  } catch {
+    // silently fall back to placeholder
+  }
+}
+
+// ── ErrorBoundary — last-resort catch for native render errors ─────────
 class AdErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { crashed: boolean }
@@ -27,47 +54,80 @@ class AdErrorBoundary extends React.Component<
     console.warn("[NativeAdCard] render error caught:", error?.message);
   }
   render() {
-    if (this.state.crashed) return null; // silent fallback — no space consumed
+    if (this.state.crashed) return null;
     return this.props.children;
   }
 }
-import Constants, { ExecutionEnvironment } from "expo-constants";
-import { usePremiumStore } from "@/store/premiumStore";
 
-const isExpoGo =
-  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+// ── Inner loader + renderer ────────────────────────────────────────────
+function NativeAdInner({ adIndex }: { adIndex: number }) {
+  const [nativeAd, setNativeAd] = useState<any>(null);
 
-// Lazy-load the native AdMob module only in real builds
-let NativeAdViewComponent: any = null;
-let NativeAdManager: any = null;
-let TestIds: any = null;
+  const unitId: string = __DEV__
+    ? TestIds?.NATIVE ?? ""
+    : require("@/lib/ads/config").AD_UNITS.NATIVE;
 
-if (!isExpoGo) {
-  try {
-    const admob = require("react-native-google-mobile-ads");
-    NativeAdViewComponent = admob.NativeAd;
-    NativeAdManager = admob.NativeAdManager;
-    TestIds = admob.TestIds;
-  } catch {
-    // silently fall back to placeholder
+  useEffect(() => {
+    if (!NativeAdClass || !unitId) return;
+    let destroyed = false;
+    let loadedAd: any = null;
+
+    NativeAdClass.createForAdRequest(unitId)
+      .then((ad: any) => {
+        if (destroyed) { ad.destroy(); return; }
+        loadedAd = ad;
+        setNativeAd(ad);
+      })
+      .catch((err: any) =>
+        console.warn("[NativeAdCard] load failed:", err?.message)
+      );
+
+    return () => {
+      destroyed = true;
+      loadedAd?.destroy();
+    };
+  }, [unitId]);
+
+  // While loading, hold space so the list doesn't jump
+  if (!nativeAd || !NativeAdView) {
+    return <View style={{ height: AD_HEIGHT }} />;
   }
+
+  return (
+    <NativeAdView
+      nativeAd={nativeAd}
+      style={{
+        height: AD_HEIGHT,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 10,
+        backgroundColor: "#fff8e7",
+        borderBottomWidth: 1,
+        borderBottomColor: "#fde68a",
+      }}
+    >
+      <Text style={{ fontSize: 10, color: "#92400e", marginRight: 6 }}>AD</Text>
+      <Text style={{ fontSize: 11, color: "#78350f", flex: 1 }} numberOfLines={1}>
+        {nativeAd.headline ?? ""}
+      </Text>
+    </NativeAdView>
+  );
 }
 
-export const AD_HEIGHT = 60;
-
+// ── Public component ──────────────────────────────────────────────────
 interface Props {
-  /** Unique index used as adKey so each slot loads independently */
+  /** Unique index so each ad slot loads independently */
   adIndex: number;
 }
 
 export const NativeAdCard = React.memo(({ adIndex }: Props) => {
   const showAds = usePremiumStore((s) => s.showAds());
 
-  // Premium users see nothing — no space consumed
+  // Premium users → nothing rendered, no space consumed
   if (!showAds) return null;
 
-  // Expo Go or module unavailable → placeholder (keeps layout stable)
-  if (isExpoGo || !NativeAdViewComponent) {
+  // Expo Go or module failed to load → stable placeholder
+  if (isExpoGo || !NativeAdClass) {
     return (
       <View
         style={{
@@ -87,41 +147,9 @@ export const NativeAdCard = React.memo(({ adIndex }: Props) => {
     );
   }
 
-  // Real build → AdMob NativeAd wrapped in ErrorBoundary
-  const unitId = __DEV__
-    ? TestIds.NATIVE
-    : require("@/lib/ads/config").AD_UNITS.NATIVE;
-
   return (
     <AdErrorBoundary>
-      <View style={{ height: AD_HEIGHT }}>
-        <NativeAdViewComponent
-          adKey={`native-${adIndex}`}
-          unitId={unitId}
-          onAdLoaded={() => {}}
-          onAdFailedToLoad={(err: any) =>
-            console.warn("[NativeAdCard] failed:", err?.message)
-          }
-        >
-          {/* Minimal native ad layout */}
-          <View
-            style={{
-              flex: 1,
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 10,
-              backgroundColor: "#fff8e7",
-              borderBottomWidth: 1,
-              borderBottomColor: "#fde68a",
-            }}
-          >
-            <Text style={{ fontSize: 10, color: "#92400e", marginRight: 6 }}>AD</Text>
-            <Text style={{ fontSize: 11, color: "#78350f", flex: 1 }} numberOfLines={2}>
-              {/* headline rendered by NativeAd */}
-            </Text>
-          </View>
-        </NativeAdViewComponent>
-      </View>
+      <NativeAdInner adIndex={adIndex} />
     </AdErrorBoundary>
   );
 });
