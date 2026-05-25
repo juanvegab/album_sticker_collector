@@ -166,7 +166,7 @@ const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
 
   function handleContextMenu() {
     const ids = section.stickers.map((s) => s.id);
-    const options = ["Marcar todo", "Desmarcar todo", "Limpiar repetidas", "Cancelar"];
+    const options = [t("album.markAll"), t("album.unmarkAll"), t("album.clearDuplicates"), t("common.cancel")];
     const cancelIndex = 3;
 
     function runAction(index: number) {
@@ -200,10 +200,10 @@ const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
       );
     } else {
       Alert.alert(getSectionName(section.id, i18n.language, section.name), undefined, [
-        { text: "Marcar todo",      onPress: () => runAction(0) },
-        { text: "Desmarcar todo",   onPress: () => runAction(1) },
-        { text: "Limpiar repetidas", onPress: () => runAction(2) },
-        { text: "Cancelar", style: "cancel" },
+        { text: t("album.markAll"),       onPress: () => runAction(0) },
+        { text: t("album.unmarkAll"),     onPress: () => runAction(1) },
+        { text: t("album.clearDuplicates"), onPress: () => runAction(2) },
+        { text: t("common.cancel"), style: "cancel" },
       ]);
     }
   }

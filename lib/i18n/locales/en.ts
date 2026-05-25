@@ -126,6 +126,9 @@ const en = {
     repeated: "Duplicates",
     shareList: "SHARE LIST",
     filterStickers: "FILTER STICKERS",
+    markAll: "Mark all",
+    unmarkAll: "Unmark all",
+    clearDuplicates: "Clear duplicates",
   },
   collection: {
     haveTab: "Have ✅",

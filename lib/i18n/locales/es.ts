@@ -126,6 +126,9 @@ const es = {
     repeated: "Repetidas",
     shareList: "COMPARTIR LISTA",
     filterStickers: "FILTRAR POSTALES",
+    markAll: "Marcar todo",
+    unmarkAll: "Desmarcar todo",
+    clearDuplicates: "Limpiar repetidas",
   },
   collection: {
     haveTab: "Tengo ✅",

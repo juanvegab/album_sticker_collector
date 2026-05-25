@@ -126,6 +126,9 @@ const pt = {
     repeated: "Repetidas",
     shareList: "COMPARTILHAR LISTA",
     filterStickers: "FILTRAR FIGURINHAS",
+    markAll: "Marcar tudo",
+    unmarkAll: "Desmarcar tudo",
+    clearDuplicates: "Limpar repetidas",
   },
   collection: {
     haveTab: "Tenho ✅",
