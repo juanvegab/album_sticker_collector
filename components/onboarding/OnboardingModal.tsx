@@ -15,6 +15,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useCollection } from "@/hooks/useCollection";
@@ -38,8 +39,8 @@ type Slide = {
   icon: string;
   iconBg: string;
   iconColor: string;
-  title: string;
-  body: string;
+  titleKey: string;
+  bodyKey: string;
   isImport?: true;
 };
 
@@ -48,29 +49,29 @@ const SLIDES: Slide[] = [
     icon: "star-four-points",
     iconBg: "rgba(244,196,48,0.15)",
     iconColor: BRAND,
-    title: "Bienvenido al Álbum 2026",
-    body: "Tu álbum del Mundial de fútbol, siempre en el bolsillo. 980 postales, 48 selecciones — todo organizado para vos.",
+    titleKey: "onboarding.slide1Title",
+    bodyKey: "onboarding.slide1Body",
   },
   {
     icon: "camera-outline",
     iconBg: "rgba(242,133,58,0.15)",
     iconColor: ORANGE,
-    title: "Escaneá tus postales",
-    body: "Sacá una foto al dorso de tus postales y el app detecta los códigos automáticamente. Sin tipear nada.",
+    titleKey: "onboarding.slide2Title",
+    bodyKey: "onboarding.slide2Body",
   },
   {
     icon: "swap-horizontal",
     iconBg: "rgba(43,111,227,0.15)",
     iconColor: "#2B6FE3",
-    title: "Intercambiá con amigos",
-    body: "Agregá amigos con QR, ve sus repetidas y coordiná intercambios. Sabés exactamente qué tenés para dar.",
+    titleKey: "onboarding.slide3Title",
+    bodyKey: "onboarding.slide3Body",
   },
   {
     icon: "file-import-outline",
     iconBg: "rgba(244,196,48,0.15)",
     iconColor: BRAND,
-    title: "¿Ya tenés postales?",
-    body: "Pegá tu lista en cualquier formato — WhatsApp, Excel, notas. La IA la entiende y actualiza tu colección sola.",
+    titleKey: "onboarding.slide4Title",
+    bodyKey: "onboarding.slide4Body",
     isImport: true,
   },
 ];
@@ -96,6 +97,7 @@ function Dots({ count, active }: { count: number; active: number }) {
 
 // ── Main component ─────────────────────────────────────────────────────
 export function OnboardingModal() {
+  const { t } = useTranslation();
   const { user } = useUser();
   const { collectionLoaded } = useCollection();
   const insets = useSafeAreaInsets();
@@ -206,14 +208,14 @@ export function OnboardingModal() {
                     color: INK, fontSize: 22, fontWeight: "800",
                     lineHeight: 28, marginBottom: 10,
                   }}>
-                    {item.title}
+                    {t(item.titleKey as any)}
                   </Text>
 
                   {/* Body */}
                   <Text style={{
                     color: DIM, fontSize: 15, lineHeight: 23, marginBottom: 28,
                   }}>
-                    {item.body}
+                    {t(item.bodyKey as any)}
                   </Text>
 
                   {/* Import CTA — only on last slide */}
@@ -231,7 +233,7 @@ export function OnboardingModal() {
                     >
                       <MaterialCommunityIcons name="file-import-outline" size={18} color={BRAND} />
                       <Text style={{ color: BRAND, fontSize: 15, fontWeight: "700" }}>
-                        Importar mi colección ahora
+                        {t("onboarding.importCTA")}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -253,7 +255,7 @@ export function OnboardingModal() {
                   }}
                 >
                   <Text style={{ fontSize: 16, fontWeight: "800", color: "#fff" }}>
-                    Continuar
+                    {t("onboarding.skipBtn")}
                   </Text>
                 </TouchableOpacity>
               )}

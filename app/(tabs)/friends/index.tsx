@@ -232,7 +232,7 @@ export default function FriendsScreen() {
         <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
           <TextInput
             autoFocus
-            placeholder="Buscar amigo..."
+            placeholder={t("friends.searchPlaceholder")}
             placeholderTextColor="rgba(245,244,238,0.35)"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -390,7 +390,7 @@ export default function FriendsScreen() {
                         {toName}
                       </Text>
                       <Text style={{ color: DIM, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
-                        {req.stickers.length} postales · {preview}{more > 0 ? ` +${more}` : ""}
+                        {t("requests.stickerCount", { count: req.stickers.length })} · {preview}{more > 0 ? ` +${more}` : ""}
                       </Text>
                     </View>
                     <View style={{
@@ -399,7 +399,7 @@ export default function FriendsScreen() {
                       borderWidth: 1, borderColor: "rgba(244,196,48,0.4)",
                     }}>
                       <Text style={{ color: BRAND, fontSize: 10, fontWeight: "800", letterSpacing: 0.5 }}>
-                        ENVIADO
+                        {t("requests.sent").toUpperCase()}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -411,7 +411,7 @@ export default function FriendsScreen() {
           {/* ── To deliver (I accepted, need to hand over stickers) ── */}
           {toDeliver.length > 0 && (
             <>
-              <SectionLabel text="Para entregar" count={toDeliver.length} />
+              <SectionLabel text={t("requests.toDeliver")} count={toDeliver.length} />
               {toDeliver.map((req) => {
                 const given = req.givenStickers ?? [];
                 const preview = given.slice(0, 4).join(" · ");
@@ -434,7 +434,7 @@ export default function FriendsScreen() {
                           {req.fromUserName}
                         </Text>
                         <Text style={{ color: DIM, fontSize: 12, marginTop: 2 }}>
-                          {given.length} postal(es) a entregar
+                          {t("requests.toDeliverCount", { count: given.length })}
                         </Text>
                       </View>
                       <View style={{
@@ -443,7 +443,7 @@ export default function FriendsScreen() {
                         borderWidth: 1, borderColor: GREEN,
                       }}>
                         <Text style={{ color: GREEN, fontSize: 10, fontWeight: "800", letterSpacing: 0.5 }}>
-                          A ENTREGAR
+                          {t("requests.toDeliverLabel").toUpperCase()}
                         </Text>
                       </View>
                     </View>
@@ -467,6 +467,7 @@ export default function FriendsScreen() {
                 const preview = given.slice(0, 4).join(" · ");
                 const more = given.length - 4;
                 const isActing = actingOn === req.id;
+                const giverName = friendMap[req.toUserId]?.name ?? req.toUserId;
                 return (
                   <View key={req.id} style={{
                     backgroundColor: SURFACE, marginHorizontal: 16, marginBottom: 8,
@@ -479,10 +480,10 @@ export default function FriendsScreen() {
                       activeOpacity={0.7}
                       style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
                     >
-                      <Avatar name={req.fromUserName} />
+                      <Avatar name={giverName} />
                       <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={{ color: INK, fontSize: 15, fontWeight: "700" }} numberOfLines={1}>
-                          {req.fromUserName} · {t("requests.waitingDelivery", { count: given.length })}
+                        <Text style={{ color: INK, fontSize: 15, fontWeight: "700" }}>
+                          {t("requests.waitingDeliveryFrom", { count: given.length, name: giverName })}
                         </Text>
                         {given.length > 0 && (
                           <Text style={{ color: DIM, fontSize: 11, marginTop: 2 }} numberOfLines={1}>
@@ -592,11 +593,11 @@ export default function FriendsScreen() {
           return (
             <RequestDetailModal
               request={req}
-              title={`Para ${toName}`}
+              title={t("requests.detailForName", { name: toName })}
               stickers={req.stickers}
-              stickersLabel="Postales pedidas"
+              stickersLabel={t("requests.stickersRequested")}
               stickersColor={INK}
-              cancelLabel="Cancelar pedido"
+              cancelLabel={t("requests.cancelRequest")}
               onClose={() => setDetailRequest(null)}
               onCancel={async () => {
                 await cancelOutgoingRequest(req.id);
@@ -611,11 +612,11 @@ export default function FriendsScreen() {
           return (
             <RequestDetailModal
               request={req}
-              title={`Para ${req.fromUserName}`}
+              title={t("requests.detailForName", { name: req.fromUserName })}
               stickers={req.givenStickers ?? []}
-              stickersLabel="Postales a entregar"
+              stickersLabel={t("requests.stickersToDeliver")}
               stickersColor={GREEN}
-              cancelLabel="Cancelar entrega"
+              cancelLabel={t("requests.cancelDelivery")}
               onClose={() => setDetailRequest(null)}
               onCancel={async () => {
                 // toUserId = user.id → restore my own duplicates
@@ -627,14 +628,15 @@ export default function FriendsScreen() {
         }
 
         // mode === "delivery" — I am fromUser, waiting to receive
+        const deliveryGiverName = friendMap[req.toUserId]?.name ?? req.toUserId;
         return (
           <RequestDetailModal
             request={req}
-            title={`De ${req.fromUserName}`}
+            title={t("requests.detailFromName", { name: deliveryGiverName })}
             stickers={req.givenStickers ?? []}
-            stickersLabel="Postales a recibir"
+            stickersLabel={t("requests.stickersToReceive")}
             stickersColor={ORANGE}
-            cancelLabel="Eliminar pedido aceptado"
+            cancelLabel={t("requests.cancelAccepted")}
             onClose={() => setDetailRequest(null)}
             onCancel={async () => {
               await cancelAcceptedRequest(req.id, req.toUserId, req.givenStickers ?? []);
