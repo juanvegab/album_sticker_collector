@@ -266,6 +266,8 @@ const en = {
     waitingDelivery: "Waiting for {{count}} stickers",
     waitingDeliveryFrom_one: "Waiting for 1 sticker\nfrom {{name}}",
     waitingDeliveryFrom_other: "Waiting for {{count}} stickers\nfrom {{name}}",
+    willDeliver_one: "Will give you 1 sticker",
+    willDeliver_other: "Will give you {{count}} stickers",
     stickerCount_one: "1 sticker",
     stickerCount_other: "{{count}} stickers",
     sent: "Sent",

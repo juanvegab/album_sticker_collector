@@ -266,6 +266,8 @@ const pt = {
     waitingDelivery: "Aguardando {{count}} figurinhas",
     waitingDeliveryFrom_one: "Aguardando 1 figurinha\nde {{name}}",
     waitingDeliveryFrom_other: "Aguardando {{count}} figurinhas\nde {{name}}",
+    willDeliver_one: "Te entregará 1 figurinha",
+    willDeliver_other: "Te entregará {{count}} figurinhas",
     stickerCount_one: "1 figurinha",
     stickerCount_other: "{{count}} figurinhas",
     sent: "Enviado",

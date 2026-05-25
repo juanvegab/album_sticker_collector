@@ -482,11 +482,14 @@ export default function FriendsScreen() {
                     >
                       <Avatar name={giverName} />
                       <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={{ color: INK, fontSize: 15, fontWeight: "700" }}>
-                          {t("requests.waitingDeliveryFrom", { count: given.length, name: giverName })}
+                        <Text style={{ color: INK, fontSize: 15, fontWeight: "700" }} numberOfLines={1}>
+                          {giverName}
+                        </Text>
+                        <Text style={{ color: DIM, fontSize: 12, marginTop: 2 }}>
+                          {t("requests.willDeliver", { count: given.length })}
                         </Text>
                         {given.length > 0 && (
-                          <Text style={{ color: DIM, fontSize: 11, marginTop: 2 }} numberOfLines={1}>
+                          <Text style={{ color: DIM, fontSize: 11, marginTop: 1 }} numberOfLines={1}>
                             {preview}{more > 0 ? ` +${more}` : ""}
                           </Text>
                         )}
