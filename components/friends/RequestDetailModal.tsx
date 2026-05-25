@@ -177,29 +177,12 @@ export function RequestDetailModal({
                       </Text>
                     </View>
                     {/* Stickers */}
-                    {ids.map((id) => {
-                      const s = ALL_STICKERS_MAP.get(id);
-                      return (
-                        <View key={id} style={{
-                          flexDirection: "row", alignItems: "center",
-                          paddingVertical: 5, gap: 10,
-                          borderBottomWidth: 1,
-                          borderBottomColor: "rgba(245,244,238,0.05)",
-                        }}>
-                          <Text style={{
-                            color: stickersColor, fontSize: 12,
-                            fontWeight: "700", width: 44,
-                          }}>
-                            {id}
-                          </Text>
-                          <Text style={{
-                            color: DIM, fontSize: 12, flex: 1,
-                          }} numberOfLines={1}>
-                            {s?.name ?? "—"}
-                          </Text>
-                        </View>
-                      );
-                    })}
+                    <Text style={{
+                      color: stickersColor, fontSize: 13,
+                      fontWeight: "600", lineHeight: 20,
+                    }}>
+                      {ids.join("  ·  ")}
+                    </Text>
                   </View>
                 );
               });
