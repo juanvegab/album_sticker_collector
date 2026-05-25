@@ -6,7 +6,9 @@ import {
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { StickerRequest } from "@/types/request";
+import { useTranslation } from "react-i18next";
 import { ALL_STICKERS_MAP, ALBUM_SECTIONS_MAP, WORLD_CUP_2026 } from "@/lib/data/world-cup-2026";
+import { getSectionName } from "@/lib/data/sectionNames";
 
 // Section order index for sorting (FWC=0, MEX=1, …)
 const SECTION_ORDER = new Map(WORLD_CUP_2026.sections.map((s, i) => [s.id, i]));
@@ -60,6 +62,7 @@ export function RequestDetailModal({
   cancelLabel = "Cancelar pedido",
   onClose,
 }: Props) {
+  const { i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const [cancelling, setCancelling] = useState(false);
   const sortedStickers = useMemo(() => sortStickerIds(stickers), [stickers]);
@@ -173,7 +176,7 @@ export function RequestDetailModal({
                         color: DIM, fontSize: 11, fontWeight: "700",
                         letterSpacing: 0.8, textTransform: "uppercase",
                       }}>
-                        {section?.name ?? sectionId}
+                        {getSectionName(sectionId, i18n.language, section?.name ?? sectionId)}
                       </Text>
                     </View>
                     {/* Stickers */}

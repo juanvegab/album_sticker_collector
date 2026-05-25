@@ -1,0 +1,126 @@
+/**
+ * Localized section (country) names.
+ * Spanish names live in the data file (world-cup-2026.ts) — this file
+ * provides overrides for EN and PT only.
+ * Falls back to the Spanish name from ALBUM_SECTIONS_MAP if a key is missing.
+ */
+
+const en: Record<string, string> = {
+  FWC: "Specials",
+  AUT: "Austria",
+  BEL: "Belgium",
+  BIH: "Bosnia and Herzegovina",
+  CRO: "Croatia",
+  CZE: "Czech Republic",
+  ENG: "England",
+  FRA: "France",
+  GER: "Germany",
+  NED: "Netherlands",
+  NOR: "Norway",
+  POR: "Portugal",
+  SCO: "Scotland",
+  ESP: "Spain",
+  SUI: "Switzerland",
+  SWE: "Sweden",
+  TUR: "Turkey",
+  ARG: "Argentina",
+  BRA: "Brazil",
+  COL: "Colombia",
+  ECU: "Ecuador",
+  PAR: "Paraguay",
+  URU: "Uruguay",
+  CAN: "Canada",
+  CUW: "Curaçao",
+  HAI: "Haiti",
+  MEX: "Mexico",
+  PAN: "Panama",
+  USA: "United States",
+  ALG: "Algeria",
+  CPV: "Cape Verde",
+  COD: "DR Congo",
+  EGY: "Egypt",
+  GHA: "Ghana",
+  CIV: "Ivory Coast",
+  MAR: "Morocco",
+  SEN: "Senegal",
+  RSA: "South Africa",
+  TUN: "Tunisia",
+  AUS: "Australia",
+  IRN: "Iran",
+  IRQ: "Iraq",
+  JPN: "Japan",
+  JOR: "Jordan",
+  KOR: "South Korea",
+  KSA: "Saudi Arabia",
+  QAT: "Qatar",
+  UZB: "Uzbekistan",
+  NZL: "New Zealand",
+  CC:  "Coca-Cola",
+};
+
+const pt: Record<string, string> = {
+  FWC: "Especiais",
+  AUT: "Áustria",
+  BEL: "Bélgica",
+  BIH: "Bósnia e Herzegovina",
+  CRO: "Croácia",
+  CZE: "República Tcheca",
+  ENG: "Inglaterra",
+  FRA: "França",
+  GER: "Alemanha",
+  NED: "Países Baixos",
+  NOR: "Noruega",
+  POR: "Portugal",
+  SCO: "Escócia",
+  ESP: "Espanha",
+  SUI: "Suíça",
+  SWE: "Suécia",
+  TUR: "Turquia",
+  ARG: "Argentina",
+  BRA: "Brasil",
+  COL: "Colômbia",
+  ECU: "Equador",
+  PAR: "Paraguai",
+  URU: "Uruguai",
+  CAN: "Canadá",
+  CUW: "Curaçao",
+  HAI: "Haiti",
+  MEX: "México",
+  PAN: "Panamá",
+  USA: "Estados Unidos",
+  ALG: "Argélia",
+  CPV: "Cabo Verde",
+  COD: "Congo RD",
+  EGY: "Egito",
+  GHA: "Gana",
+  CIV: "Costa do Marfim",
+  MAR: "Marrocos",
+  SEN: "Senegal",
+  RSA: "África do Sul",
+  TUN: "Tunísia",
+  AUS: "Austrália",
+  IRN: "Irã",
+  IRQ: "Iraque",
+  JPN: "Japão",
+  JOR: "Jordânia",
+  KOR: "Coreia do Sul",
+  KSA: "Arábia Saudita",
+  QAT: "Catar",
+  UZB: "Uzbequistão",
+  NZL: "Nova Zelândia",
+  CC:  "Coca-Cola",
+};
+
+const SECTION_NAMES: Record<string, Record<string, string>> = { en, pt };
+
+/**
+ * Returns the localized section name for the given language.
+ * Falls back to the Spanish name (from the data file) if no translation exists.
+ */
+export function getSectionName(
+  sectionId: string,
+  lang: string,
+  fallback: string
+): string {
+  return SECTION_NAMES[lang]?.[sectionId] ?? fallback;
+}
