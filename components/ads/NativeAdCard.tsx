@@ -2,14 +2,15 @@
  * NativeAdCard — inline ad shown at the start of each album section.
  * Height matches AD_HEIGHT constant (60px) used in album/index.tsx.
  *
- * API used (react-native-google-mobile-ads v8+):
- *  - NativeAd.createForAdRequest(unitId)  → async, returns a data object
- *  - <NativeAdView nativeAd={...}>        → the React component for rendering
+ * API (react-native-google-mobile-ads v8+):
+ *  - NativeAd.createForAdRequest(unitId) → async, returns a data object
+ *  - <NativeAdView nativeAd={...}>       → React component for rendering
+ *  - <NativeAsset assetType={...}>       → registers elements for click/impression tracking
  *
  * Guards:
  *  - isPremium  → null (no space consumed)
  *  - Expo Go    → placeholder (keeps layout stable, no crash)
- *  - Real build → loads ad async then renders via NativeAdView
+ *  - Real build → loads ad async then renders via NativeAdView + NativeAsset
  *  - ErrorBoundary → catches any remaining render crashes silently
  */
 import React, { useState, useEffect } from "react";
@@ -24,15 +25,19 @@ const isExpoGo =
 
 // Lazy-load AdMob only in real builds — avoids Expo Go crash
 let NativeAdClass: any = null;   // data class  → use .createForAdRequest()
-let NativeAdView: any = null;    // React component → <NativeAdView nativeAd={...}>
+let NativeAdViewComp: any = null; // <NativeAdView nativeAd={...}>
+let NativeAssetComp: any = null;  // <NativeAsset assetType={...}>
+let NativeAssetType: any = null;
 let TestIds: any = null;
 
 if (!isExpoGo) {
   try {
     const admob = require("react-native-google-mobile-ads");
-    NativeAdClass = admob.NativeAd;      // NOT a component — factory class
-    NativeAdView  = admob.NativeAdView;  // actual React component
-    TestIds       = admob.TestIds;
+    NativeAdClass    = admob.NativeAd;
+    NativeAdViewComp = admob.NativeAdView;
+    NativeAssetComp  = admob.NativeAsset;
+    NativeAssetType  = admob.NativeAssetType;
+    TestIds          = admob.TestIds;
   } catch {
     // silently fall back to placeholder
   }
@@ -89,28 +94,64 @@ function NativeAdInner({ adIndex }: { adIndex: number }) {
   }, [unitId]);
 
   // While loading, hold space so the list doesn't jump
-  if (!nativeAd || !NativeAdView) {
+  if (!nativeAd || !NativeAdViewComp) {
     return <View style={{ height: AD_HEIGHT }} />;
   }
 
+  // NativeAsset wraps each element so AdMob can register clicks/impressions.
+  // Direct child only — no extra <View> wrapper inside NativeAsset.
   return (
-    <NativeAdView
+    <NativeAdViewComp
       nativeAd={nativeAd}
       style={{
         height: AD_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 10,
+        gap: 6,
         backgroundColor: "#fff8e7",
         borderBottomWidth: 1,
         borderBottomColor: "#fde68a",
       }}
     >
-      <Text style={{ fontSize: 10, color: "#92400e", marginRight: 6 }}>AD</Text>
-      <Text style={{ fontSize: 11, color: "#78350f", flex: 1 }} numberOfLines={1}>
-        {nativeAd.headline ?? ""}
+      {/* "AD" label — required attribution */}
+      <Text style={{
+        fontSize: 9, color: "#92400e", fontWeight: "700",
+        borderWidth: 1, borderColor: "#92400e",
+        borderRadius: 3, paddingHorizontal: 3, paddingVertical: 1,
+      }}>
+        AD
       </Text>
-    </NativeAdView>
+
+      {/* Headline — registered with AdMob for click tracking */}
+      {NativeAssetComp && NativeAssetType ? (
+        <NativeAssetComp assetType={NativeAssetType.HEADLINE}>
+          <Text
+            style={{ fontSize: 11, color: "#78350f", flex: 1 }}
+            numberOfLines={2}
+          >
+            {nativeAd.headline ?? ""}
+          </Text>
+        </NativeAssetComp>
+      ) : (
+        <Text style={{ fontSize: 11, color: "#78350f", flex: 1 }} numberOfLines={2}>
+          {nativeAd.headline ?? ""}
+        </Text>
+      )}
+
+      {/* Call to action — registered for click tracking */}
+      {NativeAssetComp && NativeAssetType && nativeAd.callToAction ? (
+        <NativeAssetComp assetType={NativeAssetType.CALL_TO_ACTION}>
+          <Text style={{
+            fontSize: 10, color: "#fff", fontWeight: "700",
+            backgroundColor: "#f59e0b", borderRadius: 6,
+            paddingHorizontal: 8, paddingVertical: 4,
+          }}>
+            {nativeAd.callToAction}
+          </Text>
+        </NativeAssetComp>
+      ) : null}
+    </NativeAdViewComp>
   );
 }
 
@@ -141,7 +182,7 @@ export const NativeAdCard = React.memo(({ adIndex }: Props) => {
         }}
       >
         <Text style={{ color: "#9ca3af", fontSize: 11 }}>
-          📢 Anuncio — visible en Dev/Prod build
+          📢 Ad — visible in Dev/Prod build
         </Text>
       </View>
     );
