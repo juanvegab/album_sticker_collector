@@ -15,6 +15,7 @@ import { NativeAdCard, AD_HEIGHT } from "@/components/ads/NativeAdCard";
 import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialBanner } from "@/components/premium/TrialBanner";
 import { WORLD_CUP_2026, TEAM_GROUP, FIFA_TO_ISO, CC_STICKER_IDS } from "@/lib/data/world-cup-2026";
+import { getSectionName } from "@/lib/data/sectionNames";
 import { GROUP_COLORS, colorForSection, needsDarkText } from "@/lib/design/groupColors";
 import { usePremiumStore } from "@/store/premiumStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -132,7 +133,7 @@ const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
   emptyLabel?: string;
   showCompleted?: boolean;
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const ownedCount = useCollectionStore(
     useCallback(
       (state) => {
@@ -158,7 +159,7 @@ const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
     ? `Sección CC · ${total}`
     : (() => {
         const group = TEAM_GROUP[section.id];
-        return group ? t("album.group", { letter: group }) : section.name;
+        return group ? t("album.group", { letter: group }) : getSectionName(section.id, i18n.language, section.name);
       })();
 
   const isComplete = ownedCount >= total;
@@ -194,11 +195,11 @@ const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
 
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options, cancelButtonIndex: cancelIndex, title: section.name },
+        { options, cancelButtonIndex: cancelIndex, title: getSectionName(section.id, i18n.language, section.name) },
         runAction
       );
     } else {
-      Alert.alert(section.name, undefined, [
+      Alert.alert(getSectionName(section.id, i18n.language, section.name), undefined, [
         { text: "Marcar todo",      onPress: () => runAction(0) },
         { text: "Desmarcar todo",   onPress: () => runAction(1) },
         { text: "Limpiar repetidas", onPress: () => runAction(2) },
@@ -232,7 +233,7 @@ const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
       {/* Name + subtitle / emptyLabel / completado */}
       <View style={{ flex: 1 }}>
         <Text style={{ color: textMain, fontSize: 15, fontWeight: "700", lineHeight: 19 }} numberOfLines={1}>
-          {section.name}
+          {getSectionName(section.id, i18n.language, section.name)}
         </Text>
         <Text style={{ color: isEmpty ? textSub : showCompleted ? "#4ADE80" : textSub, fontSize: 11, fontWeight: "500" }}>
           {isEmpty ? emptyLabel : showCompleted ? "Completado ✓" : subtitle}
@@ -381,7 +382,7 @@ export default function AlbumScreen() {
       for (const section of WORLD_CUP_2026.sections) {
         const ids = stickers.filter((s) => s.sectionId === section.id).map((s) => s.id);
         if (ids.length === 0) continue;
-        lines.push(`${section.name} ${section.emoji}: ${ids.join(", ")}`);
+        lines.push(`${getSectionName(section.id, lang, section.name)} ${section.emoji}: ${ids.join(", ")}`);
       }
       return lines;
     }
