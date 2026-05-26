@@ -5,10 +5,12 @@ const TRIAL_DAYS = 3;
 interface PremiumState {
   isPremium: boolean;
   isPurchasing: boolean;
+  isLoadingPremium: boolean;
   firstOpenDate: number | null;
   setIsPremium: (value: boolean) => void;
   setFirstOpenDate: (date: number) => void;
   setIsPurchasing: (value: boolean) => void;
+  setIsLoadingPremium: (value: boolean) => void;
   trialDaysLeft: () => number;
   isTrialActive: () => boolean;
   showAds: () => boolean;
@@ -17,15 +19,17 @@ interface PremiumState {
 export const usePremiumStore = create<PremiumState>((set, get) => ({
   isPremium: false,
   isPurchasing: false,
+  isLoadingPremium: true, // safe default: deny access until state is resolved
   firstOpenDate: null,
 
   setIsPremium: (value) => set({ isPremium: value }),
   setFirstOpenDate: (date) => set({ firstOpenDate: date }),
   setIsPurchasing: (value) => set({ isPurchasing: value }),
+  setIsLoadingPremium: (value) => set({ isLoadingPremium: value }),
 
   trialDaysLeft: () => {
     const { firstOpenDate } = get();
-    if (!firstOpenDate) return TRIAL_DAYS;
+    if (!firstOpenDate) return 0; // unknown state → no trial access
     const elapsed = Date.now() - firstOpenDate;
     const daysElapsed = elapsed / (1000 * 60 * 60 * 24);
     return Math.max(0, Math.ceil(TRIAL_DAYS - daysElapsed));

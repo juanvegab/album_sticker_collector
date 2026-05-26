@@ -52,14 +52,15 @@ function SobreFAB() {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { isPremium, isTrialActive } = usePremium();
+  const { isPremium, isTrialActive, isLoadingPremium } = usePremium();
   const [showScan, setShowScan] = useState(false);
   const TAB_BAR_H = Platform.OS === "ios" ? 49 : 56;
   const bottom = TAB_BAR_H + insets.bottom + 12;
 
-  const scanAvailable = FEATURES.SCAN_ENABLED && (isPremium || isTrialActive);
-  // Trial expired and not premium — show lock nudge
-  const scanLocked = FEATURES.SCAN_ENABLED && !isPremium && !isTrialActive;
+  // While loading, treat as non-premium to avoid granting premature access
+  const scanAvailable = FEATURES.SCAN_ENABLED && !isLoadingPremium && (isPremium || isTrialActive);
+  // Trial expired and not premium — show lock nudge (only once loading is done)
+  const scanLocked = FEATURES.SCAN_ENABLED && !isLoadingPremium && !isPremium && !isTrialActive;
 
   const label = scanAvailable ? t("scan.fab") : t("sobre.fab");
   const icon = scanAvailable ? "camera-outline" : "email-open-outline";

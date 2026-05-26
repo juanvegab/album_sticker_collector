@@ -9,7 +9,8 @@ import { initPurchases, checkPremiumStatus } from "@/lib/purchases";
 export function usePremium() {
   const { user } = useUser();
   const fbUser = useFirebaseUser();
-  const { setFirstOpenDate, setIsPremium, isPremium, isTrialActive, trialDaysLeft, showAds } =
+  const { setFirstOpenDate, setIsPremium, isPremium, isTrialActive, trialDaysLeft, showAds,
+    isLoadingPremium, setIsLoadingPremium } =
     usePremiumStore();
 
   useEffect(() => {
@@ -24,19 +25,29 @@ export function usePremium() {
           const snap = await getDoc(ref);
           if (snap.exists()) {
             const data = snap.data();
-            setFirstOpenDate(data.firstOpenDate);
+            // Guard: only use firstOpenDate if it's a valid number
+            if (typeof data.firstOpenDate === "number") {
+              setFirstOpenDate(data.firstOpenDate);
+            } else {
+              // Document exists but missing firstOpenDate — fix it now
+              const firstOpenDate = Date.now();
+              await setDoc(ref, { firstOpenDate }, { merge: true });
+              setFirstOpenDate(firstOpenDate);
+            }
             setIsPremium(data.isPremium ?? false);
           } else {
+            // First time user — create document with current timestamp
             const firstOpenDate = Date.now();
             await setDoc(ref, { firstOpenDate, isPremium: false });
             setFirstOpenDate(firstOpenDate);
           }
         } catch {
-          setFirstOpenDate(Date.now());
+          // Firestore failed — default to trial expired (safe side)
+          // Don't call setFirstOpenDate here to avoid granting fake trial access
         }
-      } else {
-        setFirstOpenDate(Date.now());
       }
+      // If fbUser is null: do NOT set firstOpenDate — keep it null so trial stays locked
+      // until Firebase Auth is ready and we can verify against Firestore.
 
       // RevenueCat is always initialized regardless of Firestore state
       try {
@@ -55,10 +66,12 @@ export function usePremium() {
       } catch {
         // RevenueCat unavailable (e.g. Expo Go, no network)
       }
+
+      setIsLoadingPremium(false);
     };
 
     init().catch(console.error);
   }, [user?.id, fbUser?.uid]);
 
-  return { isPremium, isTrialActive, trialDaysLeft, showAds };
+  return { isPremium, isTrialActive, trialDaysLeft, showAds, isLoadingPremium };
 }

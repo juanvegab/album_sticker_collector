@@ -537,7 +537,7 @@ export default function AccountScreen() {
         {/* ── Footer ── */}
         <View style={{ alignItems: "center", marginTop: 8, marginBottom: 4 }}>
           <Text style={{ color: DIM, fontSize: 12 }}>
-            El Álbum 2026 · v1.1.4
+            El Álbum 2026 · v1.1.5
           </Text>
         </View>
       </ScrollView>
