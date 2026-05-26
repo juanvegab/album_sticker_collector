@@ -2,6 +2,11 @@ import { create } from "zustand";
 
 const TRIAL_DAYS = 3;
 
+// ── DEV: force expired trial state for simulator testing ──────────────
+// Set to true to simulate a non-premium user with expired trial.
+// Remember to set back to false before building.
+export const __FORCE_TRIAL_EXPIRED__ = __DEV__ && false;
+
 interface PremiumState {
   isPremium: boolean;
   isPurchasing: boolean;
@@ -19,7 +24,7 @@ interface PremiumState {
 export const usePremiumStore = create<PremiumState>((set, get) => ({
   isPremium: false,
   isPurchasing: false,
-  isLoadingPremium: true, // safe default: deny access until state is resolved
+  isLoadingPremium: true,
   firstOpenDate: null,
 
   setIsPremium: (value) => set({ isPremium: value }),
@@ -28,6 +33,7 @@ export const usePremiumStore = create<PremiumState>((set, get) => ({
   setIsLoadingPremium: (value) => set({ isLoadingPremium: value }),
 
   trialDaysLeft: () => {
+    if (__FORCE_TRIAL_EXPIRED__) return 0;
     const { firstOpenDate } = get();
     if (!firstOpenDate) return 0; // unknown state → no trial access
     const elapsed = Date.now() - firstOpenDate;
@@ -38,5 +44,5 @@ export const usePremiumStore = create<PremiumState>((set, get) => ({
   isTrialActive: () => get().trialDaysLeft() > 0,
 
   // Ads show only when trial expired AND not premium
-  showAds: () => !get().isPremium && !get().isTrialActive(),
+  showAds: () => __FORCE_TRIAL_EXPIRED__ || (!get().isPremium && !get().isTrialActive()),
 }));

@@ -1,76 +1,105 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useUser } from "@clerk/clerk-expo";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useFirebaseUser } from "@/hooks/useFirebaseUser";
-import { usePremiumStore } from "@/store/premiumStore";
+import { usePremiumStore, __FORCE_TRIAL_EXPIRED__ } from "@/store/premiumStore";
 import { initPurchases, checkPremiumStatus } from "@/lib/purchases";
+
+// Max ms to wait for Firebase Auth before proceeding with RC-only
+const FIREBASE_AUTH_TIMEOUT_MS = 5000;
 
 export function usePremium() {
   const { user } = useUser();
   const fbUser = useFirebaseUser();
-  const { setFirstOpenDate, setIsPremium, isPremium, isTrialActive, trialDaysLeft, showAds,
-    isLoadingPremium, setIsLoadingPremium } =
-    usePremiumStore();
+  const hasInitialized = useRef(false);
+
+  const {
+    setFirstOpenDate, setIsPremium, isPremium, isTrialActive,
+    trialDaysLeft, showAds, isLoadingPremium, setIsLoadingPremium,
+  } = usePremiumStore();
+
+  // Reset when user changes (e.g. sign out / sign in as different user)
+  useEffect(() => {
+    hasInitialized.current = false;
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
+    if (__FORCE_TRIAL_EXPIRED__) { setIsLoadingPremium(false); return; }
 
-    const init = async () => {
-      const ref = doc(db, "users", user.id, "profile", "premium");
+    // If fbUser is still null (Firebase Auth not ready), wait up to 5s.
+    // When fbUser arrives the effect re-runs with a real value — cancel the timeout.
+    // If timeout fires first, proceed without Firestore (RC-only mode).
+    if (fbUser === null) {
+      const timeout = setTimeout(() => {
+        if (!hasInitialized.current) runInit(null);
+      }, FIREBASE_AUTH_TIMEOUT_MS);
+      return () => clearTimeout(timeout);
+    }
 
-      // Load Firestore premium state only if Firebase Auth is ready
-      if (fbUser) {
+    // fbUser is ready — run immediately (cancel any pending timeout implicitly
+    // because this branch doesn't set one, and the previous cleanup cleared it)
+    if (!hasInitialized.current) runInit(fbUser);
+
+    async function runInit(firebaseUser: typeof fbUser) {
+      hasInitialized.current = true;
+      const ref = doc(db, "users", user!.id, "profile", "premium");
+
+      // ── Step 1: Firestore — read firstOpenDate + manual premium flag ──
+      let manualPremium = false;
+
+      if (firebaseUser) {
         try {
           const snap = await getDoc(ref);
           if (snap.exists()) {
             const data = snap.data();
-            // Guard: only use firstOpenDate if it's a valid number
+
+            // firstOpenDate — only trust if it's a real number
             if (typeof data.firstOpenDate === "number") {
               setFirstOpenDate(data.firstOpenDate);
             } else {
-              // Document exists but missing firstOpenDate — fix it now
-              const firstOpenDate = Date.now();
-              await setDoc(ref, { firstOpenDate }, { merge: true });
-              setFirstOpenDate(firstOpenDate);
+              const fod = Date.now();
+              await setDoc(ref, { firstOpenDate: fod }, { merge: true });
+              setFirstOpenDate(fod);
             }
-            setIsPremium(data.isPremium ?? false);
+
+            // Manual premium (grandfathered users set directly in Firestore)
+            manualPremium = data.isPremium === true;
+
           } else {
-            // First time user — create document with current timestamp
-            const firstOpenDate = Date.now();
-            await setDoc(ref, { firstOpenDate, isPremium: false });
-            setFirstOpenDate(firstOpenDate);
+            // New user — create doc with trial start
+            const fod = Date.now();
+            await setDoc(ref, { firstOpenDate: fod, isPremium: false });
+            setFirstOpenDate(fod);
           }
         } catch {
-          // Firestore failed — default to trial expired (safe side)
-          // Don't call setFirstOpenDate here to avoid granting fake trial access
+          // Firestore unavailable — proceed with defaults (no trial, no manual premium)
         }
       }
-      // If fbUser is null: do NOT set firstOpenDate — keep it null so trial stays locked
-      // until Firebase Auth is ready and we can verify against Firestore.
 
-      // RevenueCat is always initialized regardless of Firestore state
+      // ── Step 2: RevenueCat — authoritative for paid purchases ──
+      // RC result always wins over Firestore isPremium.
+      // manualPremium (grandfathered) is additive — stays true even if RC says false.
+      let rcPremium = false;
       try {
-        await initPurchases(user.id);
-        const premiumFromRC = await checkPremiumStatus();
-        if (premiumFromRC) {
-          setIsPremium(true);
-          if (fbUser) {
-            try {
-              await setDoc(ref, { isPremium: true }, { merge: true });
-            } catch {
-              // Firestore sync failed — RC state is still applied in-memory
-            }
-          }
+        await initPurchases(user!.id);
+        rcPremium = await checkPremiumStatus();
+
+        // Sync RC result back to Firestore (only when it's true — don't overwrite manual)
+        if (rcPremium && firebaseUser) {
+          try {
+            await setDoc(ref, { isPremium: true }, { merge: true });
+          } catch { /* Firestore sync failed — in-memory state still correct */ }
         }
       } catch {
-        // RevenueCat unavailable (e.g. Expo Go, no network)
+        // RC unavailable (no network, Expo Go) — fall back to manualPremium only
       }
 
+      // ── Step 3: Resolve final state ──
+      setIsPremium(rcPremium || manualPremium);
       setIsLoadingPremium(false);
-    };
-
-    init().catch(console.error);
+    }
   }, [user?.id, fbUser?.uid]);
 
   return { isPremium, isTrialActive, trialDaysLeft, showAds, isLoadingPremium };

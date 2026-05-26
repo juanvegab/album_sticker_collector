@@ -123,11 +123,9 @@ export function TrialBanner() {
           </Text>
         )}
       </TouchableOpacity>
-      <TouchableOpacity onPress={handleRestore} disabled={isPurchasing} activeOpacity={0.7}>
-        <Text style={{ color: "rgba(239,68,68,0.6)", fontSize: 11, textAlign: "center" }}>
-          {t("premium.restorePurchases")}
-        </Text>
-      </TouchableOpacity>
+      <Text style={{ color: "rgba(239,68,68,0.5)", fontSize: 11, textAlign: "center" }}>
+        {t("premium.oneTimePurchase")}
+      </Text>
     </View>
   );
 }
