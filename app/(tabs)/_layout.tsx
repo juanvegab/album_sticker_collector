@@ -3,12 +3,17 @@ import { Tabs, useRouter, useFocusEffect } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
-import { View, Text, TouchableOpacity, Platform, ActivityIndicator, StyleSheet, BackHandler } from "react-native";
+import { View, Text, TouchableOpacity, Platform, ActivityIndicator, StyleSheet, BackHandler, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFriends } from "@/hooks/useFriends";
 import { useStickerRequests } from "@/hooks/useStickerRequests";
 import { useCollection } from "@/hooks/useCollection";
 import { usePremium } from "@/hooks/usePremium";
+import { usePremiumStore } from "@/store/premiumStore";
+import { useUser } from "@clerk/clerk-expo";
+import { purchaseNoAds } from "@/lib/purchases";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { ScanStickersModal } from "@/components/stickers/ScanStickersModal";
 import { FEATURES } from "@/constants/featureFlags";
 
@@ -52,15 +57,35 @@ function SobreFAB() {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { isPremium, isTrialActive, isLoadingPremium } = usePremium();
+  const { showAds } = usePremium();
+  const { setIsPremium, isPurchasing, setIsPurchasing } = usePremiumStore();
+  const { user } = useUser();
   const [showScan, setShowScan] = useState(false);
+
+  async function handlePurchase() {
+    setIsPurchasing(true);
+    try {
+      const success = await purchaseNoAds();
+      if (success) {
+        setIsPremium(true);
+        if (user) {
+          await setDoc(doc(db, "users", user.id, "profile", "premium"), { isPremium: true }, { merge: true });
+        }
+      }
+    } catch (err: any) {
+      if (err?.code !== 1 && err?.message !== "no_package") {
+        Alert.alert("Error", "No se pudo completar la compra. Intenta de nuevo.");
+      }
+    } finally {
+      setIsPurchasing(false);
+    }
+  }
   const TAB_BAR_H = Platform.OS === "ios" ? 49 : 56;
   const bottom = TAB_BAR_H + insets.bottom + 12;
 
-  // While loading, treat as non-premium to avoid granting premature access
-  const scanAvailable = FEATURES.SCAN_ENABLED && !isLoadingPremium && (isPremium || isTrialActive);
-  // Trial expired and not premium — show lock nudge (only once loading is done)
-  const scanLocked = FEATURES.SCAN_ENABLED && !isLoadingPremium && !isPremium && !isTrialActive;
+  // showAds = trial expired AND not premium — same condition used for banner/ads
+  const scanAvailable = FEATURES.SCAN_ENABLED && !showAds();
+  const scanLocked = FEATURES.SCAN_ENABLED && showAds();
 
   const label = scanAvailable ? t("scan.fab") : t("sobre.fab");
   const icon = scanAvailable ? "camera-outline" : "email-open-outline";
@@ -76,7 +101,8 @@ function SobreFAB() {
         {/* Scanner lock nudge — only when trial expired */}
         {scanLocked && (
           <TouchableOpacity
-            onPress={() => router.push("/(tabs)/account")}
+            onPress={handlePurchase}
+            disabled={isPurchasing}
             activeOpacity={0.85}
             style={{
               flexDirection: "row", alignItems: "center", gap: 6,
@@ -85,10 +111,16 @@ function SobreFAB() {
               borderWidth: 1, borderColor: "rgba(244,196,48,0.35)",
             }}
           >
-            <MaterialCommunityIcons name="lock-outline" size={13} color="#F4C430" />
-            <Text style={{ color: "#F4C430", fontWeight: "700", fontSize: 13 }}>
-              Recuperar escáner →
-            </Text>
+            {isPurchasing ? (
+              <ActivityIndicator size="small" color="#F4C430" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="lock-outline" size={13} color="#F4C430" />
+                <Text style={{ color: "#F4C430", fontWeight: "700", fontSize: 13 }}>
+                  Recuperar escáner →
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         )}
 

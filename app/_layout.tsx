@@ -15,6 +15,7 @@ import { useFeatureFlagsStore } from "@/store/featureFlagsStore";
 import { initI18n } from "@/lib/i18n";
 import { createOrUpdateProfile } from "@/lib/firestore/users";
 import { SplashView } from "@/components/SplashView";
+import Toast from "react-native-toast-message";
 
 const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -128,6 +129,7 @@ export default function RootLayout() {
           <AppRoot />
         </ClerkLoaded>
       </ClerkProvider>
+      <Toast />
     </SafeAreaProvider>
   );
 }
