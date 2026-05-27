@@ -199,12 +199,17 @@ const SectionHeader = React.memo(({ section, emptyLabel, showCompleted }: {
         runAction
       );
     } else {
-      Alert.alert(getSectionName(section.id, i18n.language, section.name), undefined, [
-        { text: t("album.markAll"),       onPress: () => runAction(0) },
-        { text: t("album.unmarkAll"),     onPress: () => runAction(1) },
-        { text: t("album.clearDuplicates"), onPress: () => runAction(2) },
-        { text: t("common.cancel"), style: "cancel" },
-      ]);
+      Alert.alert(
+        getSectionName(section.id, i18n.language, section.name),
+        undefined,
+        [
+          { text: t("album.markAll"),         onPress: () => runAction(0) },
+          { text: t("album.unmarkAll"),       onPress: () => runAction(1) },
+          { text: t("album.clearDuplicates"), onPress: () => runAction(2) },
+          { text: t("common.cancel"),         style: "cancel" },
+        ],
+        { cancelable: true }
+      );
     }
   }
 
