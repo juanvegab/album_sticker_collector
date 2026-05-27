@@ -13,7 +13,8 @@ import { useFirebaseUser } from "@/hooks/useFirebaseUser";
 import { usePremium } from "@/hooks/usePremium";
 import { useFeatureFlagsStore } from "@/store/featureFlagsStore";
 import { initI18n } from "@/lib/i18n";
-import { createOrUpdateProfile } from "@/lib/firestore/users";
+import { createOrUpdateProfile, saveExpoPushToken } from "@/lib/firestore/users";
+import { registerForPushNotifications } from "@/lib/notifications";
 import { SplashView } from "@/components/SplashView";
 import Toast from "react-native-toast-message";
 
@@ -78,6 +79,14 @@ function AppRoot() {
     if (!user || !fbUser) return;
     const name = user.firstName ?? user.emailAddresses[0]?.emailAddress ?? "Usuario";
     createOrUpdateProfile(user.id, name, user.imageUrl ?? undefined).catch(console.error);
+  }, [user?.id, fbUser?.uid]);
+
+  // Request push notification permissions on login and save token to Firestore
+  useEffect(() => {
+    if (!user || !fbUser) return;
+    registerForPushNotifications().then((token) => {
+      if (token) saveExpoPushToken(user.id, token).catch(console.error);
+    });
   }, [user?.id, fbUser?.uid]);
 
   // GDPR/EU consent for AdMob — only runs in real builds (UMP SDK not available in Expo Go)

@@ -12,10 +12,10 @@ import { useFriends } from "@/hooks/useFriends";
 import { useStickerRequests } from "@/hooks/useStickerRequests";
 import {
   acceptFriendRequest, rejectFriendRequest,
-  getProfile, saveExpoPushToken,
+  getProfile,
 } from "@/lib/firestore/users";
 import { markRequestReceived, cancelOutgoingRequest, cancelAcceptedRequest } from "@/lib/firestore/requests";
-import { sendPushNotification, registerForPushNotifications } from "@/lib/notifications";
+import { sendPushNotification } from "@/lib/notifications";
 import { RequestCard } from "@/components/friends/RequestCard";
 import { RequestDetailModal } from "@/components/friends/RequestDetailModal";
 import { TransactionHistoryModal } from "@/components/friends/TransactionHistoryModal";
@@ -100,13 +100,6 @@ export default function FriendsScreen() {
     () => Object.fromEntries(friendProfiles.map((f) => [f.userId, f])),
     [friendProfiles]
   );
-
-  useEffect(() => {
-    if (!user) return;
-    registerForPushNotifications().then((token) => {
-      if (token) saveExpoPushToken(user.id, token).catch(console.error);
-    });
-  }, [user?.id]);
 
   async function loadPendingProfile(userId: string) {
     if (pendingProfiles[userId]) return;
