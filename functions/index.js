@@ -528,3 +528,110 @@ exports.broadcastNotification = onRequest(
     res.json({ sent, total: tokens.length });
   }
 );
+
+/**
+ * migrateUserData
+ *
+ * Called on first login with the Production build.
+ * Looks up the user's external_id (= their old Clerk Dev ID) and copies
+ * their Firestore data (collection, premium, friends) to their new prod ID.
+ * Idempotent — safe to call on every login, returns early if already migrated.
+ */
+exports.migrateUserData = onRequest(
+  { secrets: [clerkSecretKey, clerkSecretKeyDev] },
+  async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+
+    // 1. Verify Clerk token → get prod user ID
+    const authHeader = req.headers.authorization || "";
+    const sessionToken = authHeader.replace("Bearer ", "").trim();
+    if (!sessionToken) {
+      res.status(401).json({ error: "Missing authorization header" });
+      return;
+    }
+
+    let prodUserId;
+    try {
+      const payload = await verifyClerkToken(sessionToken);
+      prodUserId = payload.sub;
+    } catch (err) {
+      res.status(401).json({ error: "Invalid or expired token" });
+      return;
+    }
+
+    // 2. Get external_id (= dev Clerk user ID) from Clerk API
+    let devUserId;
+    try {
+      const clerkRes = await fetch(`https://api.clerk.com/v1/users/${prodUserId}`, {
+        headers: { Authorization: `Bearer ${clerkSecretKey.value()}` },
+      });
+      if (!clerkRes.ok) throw new Error(`Clerk API ${clerkRes.status}`);
+      const clerkUser = await clerkRes.json();
+      devUserId = clerkUser.external_id;
+    } catch (err) {
+      console.error("[migrateUserData] Could not fetch Clerk user:", err.message);
+      res.json({ migrated: false, reason: "clerk_api_error" });
+      return;
+    }
+
+    if (!devUserId) {
+      // New user with no dev account — nothing to migrate
+      res.json({ migrated: false, reason: "no_external_id" });
+      return;
+    }
+
+    // 3. Check if already migrated (prod collection already exists)
+    const prodCollRef = admin.firestore()
+      .doc(`users/${prodUserId}/collections/world-cup-2026`);
+    const prodCollSnap = await prodCollRef.get();
+
+    if (prodCollSnap.exists) {
+      res.json({ migrated: false, reason: "already_migrated" });
+      return;
+    }
+
+    // 4. Read dev collection data
+    const devCollRef = admin.firestore()
+      .doc(`users/${devUserId}/collections/world-cup-2026`);
+    const devCollSnap = await devCollRef.get();
+
+    if (!devCollSnap.exists) {
+      res.json({ migrated: false, reason: "no_dev_collection" });
+      return;
+    }
+
+    // 5. Copy collection
+    await prodCollRef.set(devCollSnap.data());
+
+    // 6. Copy premium profile
+    const devPremRef = admin.firestore().doc(`users/${devUserId}/profile/premium`);
+    const devPremSnap = await devPremRef.get();
+    if (devPremSnap.exists) {
+      await admin.firestore()
+        .doc(`users/${prodUserId}/profile/premium`)
+        .set(devPremSnap.data());
+    }
+
+    // 7. Copy social data (friends, pendingFrom) — IDs may be dev IDs but
+    //    they still work while dual-key is active; will be cleaned up later
+    const devUserSnap = await admin.firestore().doc(`users/${devUserId}`).get();
+    if (devUserSnap.exists) {
+      const d = devUserSnap.data();
+      if (d.friends?.length || d.pendingFrom?.length) {
+        await admin.firestore().doc(`users/${prodUserId}`).set(
+          { friends: d.friends ?? [], pendingFrom: d.pendingFrom ?? [] },
+          { merge: true }
+        );
+      }
+    }
+
+    console.log(`[migrateUserData] ✅ ${devUserId} → ${prodUserId}`);
+    res.json({ migrated: true, devUserId, prodUserId });
+  }
+);

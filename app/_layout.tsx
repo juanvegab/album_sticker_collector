@@ -35,10 +35,13 @@ const tokenCache = {
   },
 };
 
+const MIGRATE_URL =
+  "https://us-central1-control-de-postales.cloudfunctions.net/migrateUserData";
+
 function AppRoot() {
   useFirebaseAuth();
   const fbUser = useFirebaseUser();
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const { user } = useUser();
   const segments = useSegments();
   const router = useRouter();
@@ -86,6 +89,19 @@ function AppRoot() {
     if (!user || !fbUser) return;
     registerForPushNotifications().then((token) => {
       if (token) saveExpoPushToken(user.id, token).catch(console.error);
+    });
+  }, [user?.id, fbUser?.uid]);
+
+  // Lazy migration: copy Firestore data from Dev ID → Prod ID on first login.
+  // The Cloud Function checks external_id and is idempotent (safe to call every login).
+  useEffect(() => {
+    if (!user || !fbUser) return;
+    getToken().then((token) => {
+      if (!token) return;
+      fetch(MIGRATE_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {}); // fire-and-forget — collection subscription picks up new data
     });
   }, [user?.id, fbUser?.uid]);
 

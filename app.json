@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vegaba.elalbum2026",
-      "buildNumber": "32",
+      "buildNumber": "33",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Usamos la cámara para escanear los códigos del dorso de tus postales y para conectarte con amigos mediante códigos QR."
