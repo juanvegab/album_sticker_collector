@@ -7,8 +7,27 @@ const { verifyToken } = require("@clerk/backend");
 admin.initializeApp();
 setGlobalOptions({ region: "us-central1" });
 
-const clerkSecretKey = defineSecret("CLERK_SECRET_KEY");
-const anthropicKey   = defineSecret("ANTHROPIC_API_KEY");
+const clerkSecretKey    = defineSecret("CLERK_SECRET_KEY");
+const clerkSecretKeyDev = defineSecret("CLERK_SECRET_KEY_DEV");
+const anthropicKey      = defineSecret("ANTHROPIC_API_KEY");
+
+// ── Clerk token verification (prod + dev fallback) ───────────────────
+/**
+ * Verifies a Clerk session token against the production secret key.
+ * Falls back to the dev secret key to support users still on old builds
+ * during the transition period (Development → Production Clerk migration).
+ */
+async function verifyClerkToken(sessionToken) {
+  try {
+    return await verifyToken(sessionToken, { secretKey: clerkSecretKey.value() });
+  } catch (prodErr) {
+    try {
+      return await verifyToken(sessionToken, { secretKey: clerkSecretKeyDev.value() });
+    } catch {
+      throw prodErr; // throw the original prod error for logging
+    }
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -266,7 +285,7 @@ function extractJSON(text) {
  * { owned: string[], duplicates: Record<string, number> } with validated IDs.
  */
 exports.importCollection = onRequest(
-  { secrets: [clerkSecretKey, anthropicKey], timeoutSeconds: 60 },
+  { secrets: [clerkSecretKey, clerkSecretKeyDev, anthropicKey], timeoutSeconds: 60 },
   async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
@@ -287,9 +306,7 @@ exports.importCollection = onRequest(
 
     let clerkUserId;
     try {
-      const payload = await verifyToken(sessionToken, {
-        secretKey: clerkSecretKey.value(),
-      });
+      const payload = await verifyClerkToken(sessionToken);
       clerkUserId = payload.sub;
     } catch (err) {
       console.error("Token verification failed:", err.message);
@@ -349,7 +366,7 @@ exports.importCollection = onRequest(
  * Exchanges a Clerk session token for a Firebase custom token.
  */
 exports.createFirebaseToken = onRequest(
-  { secrets: [clerkSecretKey] },
+  { secrets: [clerkSecretKey, clerkSecretKeyDev] },
   async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
@@ -368,14 +385,7 @@ exports.createFirebaseToken = onRequest(
     }
 
     try {
-      const secretKey = clerkSecretKey.value();
-      // Derive the Clerk instance URL from the secret key
-      // sk_test_Xxx → https://boss-eel-60.clerk.accounts.dev
-      // sk_live_Xxx → production URL
-      const payload = await verifyToken(sessionToken, {
-        secretKey,
-      });
-
+      const payload = await verifyClerkToken(sessionToken);
       const clerkUserId = payload.sub;
       const firebaseToken = await admin.auth().createCustomToken(clerkUserId);
       res.json({ token: firebaseToken });
@@ -409,7 +419,7 @@ exports.createFirebaseToken = onRequest(
  *     https://us-central1-control-de-postales.cloudfunctions.net/broadcastNotification
  */
 exports.broadcastNotification = onRequest(
-  { secrets: [clerkSecretKey], timeoutSeconds: 120 },
+  { secrets: [clerkSecretKey, clerkSecretKeyDev], timeoutSeconds: 120 },
   async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
@@ -434,9 +444,7 @@ exports.broadcastNotification = onRequest(
 
     let callerUserId;
     try {
-      const payload = await verifyToken(sessionToken, {
-        secretKey: clerkSecretKey.value(),
-      });
+      const payload = await verifyClerkToken(sessionToken);
       callerUserId = payload.sub;
     } catch (err) {
       console.error("Token verification failed:", err.message);

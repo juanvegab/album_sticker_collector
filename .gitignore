@@ -44,3 +44,9 @@ google-service-account.json
 
 # Android App Bundles
 *.aab
+firebase-adminsdk.json
+
+# Migration / export data (contains user emails)
+clerk-dev-users.csv
+mapping.json
+scripts/

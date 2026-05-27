@@ -62,7 +62,7 @@ export default function SignInScreen() {
     setGoogleLoading(true);
     try {
       const { createdSessionId, setActive } = await startGoogleFlow({
-        redirectUrl: Linking.createURL("/(tabs)/album", { scheme: "controldepostales" }),
+        redirectUrl: Linking.createURL("oauth-native-callback", { scheme: "controldepostales" }),
       });
       if (createdSessionId && setActive) await setActive({ session: createdSessionId });
     } catch (err: any) {
@@ -76,7 +76,7 @@ export default function SignInScreen() {
     setAppleLoading(true);
     try {
       const { createdSessionId, setActive } = await startAppleFlow({
-        redirectUrl: Linking.createURL("/(tabs)/album", { scheme: "controldepostales" }),
+        redirectUrl: Linking.createURL("oauth-native-callback", { scheme: "controldepostales" }),
       });
       if (createdSessionId && setActive) await setActive({ session: createdSessionId });
     } catch (err: any) {
