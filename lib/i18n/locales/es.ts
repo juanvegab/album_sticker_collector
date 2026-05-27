@@ -33,6 +33,10 @@ const es = {
     errorCode: "Código inválido",
     tryAgain: "Intenta de nuevo",
     emailPassword: "Email y contraseña",
+    resetPassword: "Establecé tu contraseña",
+    resetPasswordDesc: "Tu cuenta fue actualizada. Enviamos un código a {{email}} para que establezcas una nueva contraseña.",
+    newPassword: "Nueva contraseña",
+    setNewPassword: "Guardar contraseña",
   },
   tabs: {
     resumen: "Resumen",

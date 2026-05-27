@@ -48,6 +48,8 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [pendingVerification, setPendingVerification] = useState(false);
+  const [pendingPasswordReset, setPendingPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -95,10 +97,109 @@ export default function SignUpScreen() {
         await setSignInActive({ session: result.createdSessionId });
       }
     } catch (err: any) {
-      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorSignIn"));
+      const code = err.errors?.[0]?.code ?? "";
+      // Account has no password (migrated from Dev) — trigger password reset flow
+      if (
+        code === "strategy_for_user_invalid" ||
+        code === "form_password_not_set" ||
+        code === "form_identifier_not_found" ||
+        err.errors?.[0]?.message?.toLowerCase().includes("verification strategy")
+      ) {
+        await startPasswordReset();
+      } else {
+        Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorSignIn"));
+      }
     } finally {
       setLoading(false);
     }
+  }
+
+  // ── Password reset flow (for migrated users without a password) ─────
+  async function startPasswordReset() {
+    if (!signInLoaded) return;
+    try {
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email,
+      });
+      setPendingPasswordReset(true);
+    } catch (err: any) {
+      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorSignIn"));
+    }
+  }
+
+  async function handlePasswordReset() {
+    if (!signInLoaded) return;
+    setLoading(true);
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code,
+        password: newPassword,
+      });
+      if (result.status === "complete") {
+        await setSignInActive({ session: result.createdSessionId });
+      }
+    } catch (err: any) {
+      Alert.alert(t("auth.errorCode"), err.errors?.[0]?.message ?? t("auth.tryAgain"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Password reset screen (migrated users) ─────────────────────────
+  if (pendingPasswordReset) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1, backgroundColor: "#0B0B0E" }}
+      >
+        <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
+        <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24 }}>
+          <Text style={{ fontSize: 32, marginBottom: 8 }}>🔑</Text>
+          <Text style={{ color: "#F5F4EE", fontSize: 26, fontWeight: "800", marginBottom: 8 }}>
+            {t("auth.resetPassword")}
+          </Text>
+          <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 14, lineHeight: 20, marginBottom: 32 }}>
+            {t("auth.resetPasswordDesc", { email })}
+          </Text>
+
+          <TextInput
+            style={{ ...INPUT_STYLE, fontSize: 28, textAlign: "center", letterSpacing: 10, marginBottom: 16 }}
+            placeholder="000000"
+            placeholderTextColor={PLACEHOLDER_COLOR}
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+            maxLength={6}
+          />
+
+          <TextInput
+            style={{ ...INPUT_STYLE, marginBottom: 24 }}
+            placeholder={t("auth.newPassword")}
+            placeholderTextColor={PLACEHOLDER_COLOR}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+          />
+
+          <TouchableOpacity
+            onPress={handlePasswordReset}
+            disabled={loading}
+            style={{ backgroundColor: "#F4C430", borderRadius: 999, height: 54, alignItems: "center", justifyContent: "center" }}
+            activeOpacity={0.85}
+          >
+            {loading ? (
+              <ActivityIndicator color="#0B0B0E" />
+            ) : (
+              <Text style={{ color: "#0B0B0E", fontWeight: "800", fontSize: 17 }}>
+                {t("auth.setNewPassword")}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    );
   }
 
   // ── Verification screen ─────────────────────────────────────────────

@@ -33,6 +33,10 @@ const en = {
     errorCode: "Invalid code",
     tryAgain: "Try again",
     emailPassword: "Email and password",
+    resetPassword: "Set your password",
+    resetPasswordDesc: "Your account was updated. We sent a code to {{email}} so you can set a new password.",
+    newPassword: "New password",
+    setNewPassword: "Save password",
   },
   tabs: {
     resumen: "Summary",
