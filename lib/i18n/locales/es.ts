@@ -43,7 +43,7 @@ const es = {
     collection: "Colección",
     stats: "Estadísticas",
     album: "Álbum",
-    friends: "Amigos",
+    friends: "Intercambios",
     account: "Mi Cuenta",
   },
   resumen: {
@@ -203,7 +203,7 @@ const es = {
     deleteError: "No se pudo eliminar la cuenta. Intenta de nuevo.",
   },
   friends: {
-    tab: "Amigos",
+    tab: "Intercambios",
     addFriend: "Agregar amigo",
     myQR: "Mi QR",
     myQRHint: "Pide a tu amigo que escanee este código para conectarse contigo",

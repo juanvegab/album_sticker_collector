@@ -402,13 +402,31 @@ export default function SignUpScreen() {
 
         {/* Password */}
         <TextInput
-          style={{ ...INPUT_STYLE, marginBottom: 28 }}
+          style={{ ...INPUT_STYLE, marginBottom: !isSignUp ? 10 : 28 }}
           placeholder={t("auth.password")}
           placeholderTextColor={PLACEHOLDER_COLOR}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
         />
+
+        {/* Forgot password (sign-in only) */}
+        {!isSignUp && (
+          <TouchableOpacity
+            onPress={startPasswordReset}
+            disabled={!email.trim() || loading}
+            style={{ alignSelf: "flex-end", marginBottom: 22 }}
+            activeOpacity={0.7}
+          >
+            <Text style={{
+              color: email.trim() ? "#F4C430" : "rgba(245,244,238,0.3)",
+              fontSize: 13,
+              fontWeight: "600",
+            }}>
+              ¿Olvidaste tu contraseña?
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Submit */}
         <TouchableOpacity

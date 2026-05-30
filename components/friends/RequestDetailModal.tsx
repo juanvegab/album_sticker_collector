@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   Modal, View, Text, TouchableOpacity,
-  ScrollView, ActivityIndicator, Alert,
+  ScrollView, ActivityIndicator, Alert, Share,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -46,6 +46,8 @@ interface Props {
   stickersLabel: string;
   /** Color accent for the sticker list (green = owned, orange = given) */
   stickersColor?: string;
+  /** If provided, a "Compartir lista" button appears */
+  shareText?: string;
   /** If provided, a cancel/delete button appears at the bottom */
   onCancel?: () => Promise<void>;
   cancelLabel?: string;
@@ -58,6 +60,7 @@ export function RequestDetailModal({
   stickers,
   stickersLabel,
   stickersColor = INK,
+  shareText,
   onCancel,
   cancelLabel = "Cancelar pedido",
   onClose,
@@ -192,25 +195,50 @@ export function RequestDetailModal({
             })()}
           </ScrollView>
 
+          {/* Share button */}
+          {shareText && (
+            <TouchableOpacity
+              onPress={() => Share.share({ message: shareText })}
+              style={{
+                marginTop: 18,
+                borderRadius: 14, paddingVertical: 15,
+                alignItems: "center",
+                backgroundColor: "rgba(244,196,48,0.12)",
+                borderWidth: 1, borderColor: "rgba(244,196,48,0.5)",
+                flexDirection: "row", justifyContent: "center", gap: 8,
+              }}
+              activeOpacity={0.7}
+            >
+              <FontAwesome name="share" size={14} color="#F4C430" />
+              <Text style={{ color: "#F4C430", fontSize: 15, fontWeight: "700" }}>
+                Compartir lista
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {/* Cancel button */}
           {onCancel && (
             <TouchableOpacity
               onPress={handleCancel}
               disabled={cancelling}
               style={{
-                marginTop: 18,
+                marginTop: 12,
                 borderRadius: 14, paddingVertical: 15,
                 alignItems: "center",
                 backgroundColor: "rgba(239,68,68,0.12)",
                 borderWidth: 1, borderColor: RED,
+                flexDirection: "row", justifyContent: "center", gap: 8,
               }}
               activeOpacity={0.7}
             >
               {cancelling
                 ? <ActivityIndicator color={RED} size="small" />
-                : <Text style={{ color: RED, fontSize: 15, fontWeight: "700" }}>
-                    {cancelLabel}
-                  </Text>
+                : <>
+                    <FontAwesome name="trash-o" size={14} color={RED} />
+                    <Text style={{ color: RED, fontSize: 15, fontWeight: "700" }}>
+                      {cancelLabel}
+                    </Text>
+                  </>
               }
             </TouchableOpacity>
           )}

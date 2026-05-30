@@ -56,6 +56,11 @@ service cloud.firestore {
         resource.data.fromUserId == request.auth.uid ||
         resource.data.toUserId == request.auth.uid
       );
+
+      // Only the sender can delete their own external requests (toUserId == "external").
+      allow delete: if request.auth != null &&
+        resource.data.fromUserId == request.auth.uid &&
+        resource.data.toUserId == "external";
     }
   }
 }

@@ -43,7 +43,7 @@ const en = {
     collection: "Collection",
     stats: "Stats",
     album: "Album",
-    friends: "Friends",
+    friends: "Trades",
     account: "My Account",
   },
   resumen: {
@@ -203,7 +203,7 @@ const en = {
     deleteError: "Could not delete account. Please try again.",
   },
   friends: {
-    tab: "Friends",
+    tab: "Trades",
     addFriend: "Add friend",
     myQR: "My QR",
     myQRHint: "Ask your friend to scan this code to connect with you",

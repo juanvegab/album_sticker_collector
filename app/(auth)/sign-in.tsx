@@ -10,10 +10,9 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import { useOAuth } from "@clerk/clerk-expo";
+import { useSSO } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import * as Linking from "expo-linking";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -46,8 +45,8 @@ const GRID_TOP = ICON_TOP + 90 + 12; // icon height + gap
 export default function SignInScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { startOAuthFlow: startGoogleFlow } = useOAuth({ strategy: "oauth_google" });
-  const { startOAuthFlow: startAppleFlow } = useOAuth({ strategy: "oauth_apple" });
+  const { startSSOFlow: startGoogleFlow } = useSSO();
+  const { startSSOFlow: startAppleFlow } = useSSO();
   const router = useRouter();
 
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -61,12 +60,21 @@ export default function SignInScreen() {
   async function handleGoogle() {
     setGoogleLoading(true);
     try {
-      const { createdSessionId, setActive } = await startGoogleFlow({
-        redirectUrl: Linking.createURL("oauth-native-callback", { scheme: "controldepostales" }),
-      });
-      if (createdSessionId && setActive) await setActive({ session: createdSessionId });
+      const redirectUrl = "controldepostales://oauth-native-callback";
+      const result = await startGoogleFlow({ strategy: "oauth_google", redirectUrl });
+      const { createdSessionId, setActive } = result;
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+      } else if (!createdSessionId) {
+        const errMsg = result.signIn?.firstFactorVerification?.error?.longMessage
+          ?? result.signIn?.firstFactorVerification?.error?.message
+          ?? t("auth.errorGoogle");
+        Alert.alert(t("common.error"), errMsg);
+      }
     } catch (err: any) {
-      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorGoogle"));
+      const clerkErrors = err?.errors ?? [];
+      const detail = clerkErrors.map((e: any) => e.longMessage ?? e.message).join("\n");
+      Alert.alert(t("common.error"), detail || t("auth.errorGoogle"));
     } finally {
       setGoogleLoading(false);
     }
@@ -75,12 +83,16 @@ export default function SignInScreen() {
   async function handleApple() {
     setAppleLoading(true);
     try {
-      const { createdSessionId, setActive } = await startAppleFlow({
-        redirectUrl: Linking.createURL("oauth-native-callback", { scheme: "controldepostales" }),
-      });
-      if (createdSessionId && setActive) await setActive({ session: createdSessionId });
+      const redirectUrl = "controldepostales://oauth-native-callback";
+      const result = await startAppleFlow({ strategy: "oauth_apple", redirectUrl });
+      const { createdSessionId, setActive } = result;
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+      }
     } catch (err: any) {
-      Alert.alert(t("common.error"), err.errors?.[0]?.message ?? t("auth.errorApple"));
+      const clerkErrors = err?.errors ?? [];
+      const detail = clerkErrors.map((e: any) => e.longMessage ?? e.message).join("\n");
+      Alert.alert(t("common.error"), detail || t("auth.errorApple"));
     } finally {
       setAppleLoading(false);
     }

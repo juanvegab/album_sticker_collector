@@ -15,6 +15,7 @@ import { purchaseNoAds } from "@/lib/purchases";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ScanStickersModal } from "@/components/stickers/ScanStickersModal";
+import { WhatsNewModal } from "@/components/WhatsNewModal";
 import { FEATURES } from "@/constants/featureFlags";
 
 // ── Icons ─────────────────────────────────────────────────────────────
@@ -252,6 +253,9 @@ export default function TabLayout() {
 
       {/* Global FAB — Abrir sobre */}
       <SobreFAB />
+
+      {/* ── What's new modal — shown once per version on app open ── */}
+      <WhatsNewModal />
 
       {/* ── Loading overlay — hides zero-state while Firestore syncs ── */}
       {!collectionLoaded && (

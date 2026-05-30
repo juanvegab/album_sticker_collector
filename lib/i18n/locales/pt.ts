@@ -39,7 +39,7 @@ const pt = {
     collection: "Coleção",
     stats: "Estatísticas",
     album: "Álbum",
-    friends: "Amigos",
+    friends: "Trocas",
     account: "Minha Conta",
   },
   resumen: {
@@ -199,7 +199,7 @@ const pt = {
     deleteError: "Não foi possível excluir a conta. Tente novamente.",
   },
   friends: {
-    tab: "Amigos",
+    tab: "Trocas",
     addFriend: "Adicionar amigo",
     myQR: "Meu QR",
     myQRHint: "Peça ao seu amigo para escanear este código para se conectar com você",

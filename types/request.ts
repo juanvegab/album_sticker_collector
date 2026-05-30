@@ -10,4 +10,5 @@ export interface StickerRequest {
   status: RequestStatus;
   createdAt: number;
   updatedAt: number;
+  isExternal?: boolean;  // request created from an external (non-app) friend's list
 }

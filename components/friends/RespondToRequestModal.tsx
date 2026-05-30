@@ -183,7 +183,7 @@ export function RespondToRequestModal({ request, onClose }: Props) {
                         <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>✓</Text>
                       )}
                     </View>
-                    <Text style={{ color: DIM, fontSize: 11, width: 52 }} numberOfLines={1}>{id}</Text>
+                    <Text style={{ color: DIM, fontSize: 14, width: 60 }} numberOfLines={1}>{id}</Text>
                     <Text style={{ color: INK, fontSize: 13, flex: 1 }} numberOfLines={1}>
                       {sticker?.name ?? id}
                     </Text>
@@ -236,7 +236,7 @@ export function RespondToRequestModal({ request, onClose }: Props) {
                       borderWidth: 2, borderColor: DIM3,
                       marginRight: 12, flexShrink: 0,
                     }} />
-                    <Text style={{ color: DIM, fontSize: 11, width: 52 }} numberOfLines={1}>{id}</Text>
+                    <Text style={{ color: DIM, fontSize: 14, width: 60 }} numberOfLines={1}>{id}</Text>
                     <Text style={{ color: DIM, fontSize: 13, flex: 1 }} numberOfLines={1}>
                       {sticker?.name ?? id}
                     </Text>

@@ -3,6 +3,7 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   onSnapshot,
@@ -133,6 +134,8 @@ export async function markRequestReceived(
   await batch.commit();
 }
 
+const byDateDesc = (a: StickerRequest, b: StickerRequest) => b.createdAt - a.createdAt;
+
 /** Pending incoming requests to respond to (toUser) */
 export function subscribeToIncomingRequests(
   userId: string,
@@ -144,7 +147,7 @@ export function subscribeToIncomingRequests(
     where("status", "==", "pending")
   );
   return onSnapshot(q, (snap) => {
-    onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)));
+    onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)).sort(byDateDesc));
   });
 }
 
@@ -159,7 +162,7 @@ export function subscribeToMyPendingDeliveries(
     where("status", "==", "accepted")
   );
   return onSnapshot(q, (snap) => {
-    onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)));
+    onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)).sort(byDateDesc));
   });
 }
 
@@ -174,7 +177,7 @@ export function subscribeToMyToDeliver(
     where("status", "==", "accepted")
   );
   return onSnapshot(q, (snap) => {
-    onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)));
+    onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)).sort(byDateDesc));
   });
 }
 
@@ -208,6 +211,35 @@ export async function fetchTransactionHistory(userId: string): Promise<StickerRe
     .slice(0, 50);
 }
 
+/**
+ * Creates a request from an external (non-app) friend's duplicate list.
+ * The request is immediately "accepted" with givenStickers pre-filled.
+ * It shows up in the user's "Por Recibir" (pendingDeliveries) section.
+ */
+export async function createExternalRequest(
+  userId: string,
+  stickerIds: string[],
+  listName?: string
+): Promise<string> {
+  const ref = await addDoc(collection(db, "requests"), {
+    fromUserId: userId,
+    fromUserName: listName?.trim() || "Intercambio externo",
+    toUserId: "external",
+    stickers: stickerIds,
+    givenStickers: stickerIds,
+    status: "accepted",
+    isExternal: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+  return ref.id;
+}
+
+/** Permanently deletes an external request document. */
+export async function deleteExternalRequest(requestId: string): Promise<void> {
+  await deleteDoc(doc(db, "requests", requestId));
+}
+
 /** All outgoing requests (for history/tracking) */
 export function subscribeToOutgoingRequests(
   userId: string,
@@ -219,6 +251,6 @@ export function subscribeToOutgoingRequests(
     where("status", "==", "pending")
   );
   return onSnapshot(q, (snap) => {
-    onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)));
+    onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as StickerRequest)).sort(byDateDesc));
   });
 }

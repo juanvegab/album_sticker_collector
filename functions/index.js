@@ -534,11 +534,17 @@ exports.broadcastNotification = onRequest(
  *
  * Called on first login with the Production build.
  * Looks up the user's external_id (= their old Clerk Dev ID) and copies
- * their Firestore data (collection, premium, friends) to their new prod ID.
- * Idempotent — safe to call on every login, returns early if already migrated.
+ * their Firestore data (collection, premium, friends, requests) to their new prod ID.
+ *
+ * Handles Apple Sign-In users whose private relay email changes per app:
+ * falls back to name-based matching against dev Clerk when external_id is absent.
+ *
+ * Idempotent — safe to call on every login:
+ *   - Premium is always synced (one-way: dev premium → prod premium, never downgrades)
+ *   - Collection + friends + requests are only copied once (guarded by collection existence)
  */
 exports.migrateUserData = onRequest(
-  { secrets: [clerkSecretKey, clerkSecretKeyDev] },
+  { secrets: [clerkSecretKey, clerkSecretKeyDev], timeoutSeconds: 120 },
   async (req, res) => {
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
@@ -565,73 +571,423 @@ exports.migrateUserData = onRequest(
       return;
     }
 
-    // 2. Get external_id (= dev Clerk user ID) from Clerk API
+    const db = admin.firestore();
+
+    // ── Helper: sync premium one-way (dev premium → prod premium, never downgrades) ──
+    async function syncPremium(devId, prodId) {
+      try {
+        const devPremSnap = await db.doc(`users/${devId}/profile/premium`).get();
+        if (!devPremSnap.exists) return;
+        if (!devPremSnap.data().isPremium) return; // dev not premium → don't touch prod
+        await db.doc(`users/${prodId}/profile/premium`)
+          .set({ isPremium: true }, { merge: true });
+        console.log(`[migrateUserData] ✅ premium synced ${devId} → ${prodId}`);
+      } catch (err) {
+        console.error("[migrateUserData] premium sync error:", err.message);
+      }
+    }
+
+    // ── Helper: resolve a dev friend ID → prod ID via Clerk external_id lookup ──
+    async function resolveProdId(devFriendId) {
+      try {
+        const r = await fetch(
+          `https://api.clerk.com/v1/users?external_id=${encodeURIComponent(devFriendId)}&limit=1`,
+          { headers: { Authorization: `Bearer ${clerkSecretKey.value()}` } }
+        );
+        if (!r.ok) return devFriendId;
+        const users = await r.json();
+        return Array.isArray(users) && users.length > 0 ? users[0].id : devFriendId;
+      } catch {
+        return devFriendId;
+      }
+    }
+
+    // ── Helper: migrate requests — swap devId for prodId in fromUserId / toUserId ──
+    async function migrateRequests(devId, prodId) {
+      try {
+        const [fromSnap, toSnap] = await Promise.all([
+          db.collection("requests").where("fromUserId", "==", devId).get(),
+          db.collection("requests").where("toUserId",   "==", devId).get(),
+        ]);
+        if (fromSnap.empty && toSnap.empty) return 0;
+        const batch = db.batch();
+        fromSnap.docs.forEach(doc => batch.update(doc.ref, { fromUserId: prodId }));
+        toSnap.docs.forEach(doc =>   batch.update(doc.ref, { toUserId:   prodId }));
+        await batch.commit();
+        const count = fromSnap.size + toSnap.size;
+        console.log(`[migrateUserData] requests patched: ${count}`);
+        return count;
+      } catch (err) {
+        console.error("[migrateUserData] requests migration error:", err.message);
+        return 0;
+      }
+    }
+
+    // 2. Get dev user ID from Clerk prod API (external_id field)
     let devUserId;
+    let prodUserName;
     try {
       const clerkRes = await fetch(`https://api.clerk.com/v1/users/${prodUserId}`, {
         headers: { Authorization: `Bearer ${clerkSecretKey.value()}` },
       });
       if (!clerkRes.ok) throw new Error(`Clerk API ${clerkRes.status}`);
       const clerkUser = await clerkRes.json();
-      devUserId = clerkUser.external_id;
+      devUserId = clerkUser.external_id || null;
+      prodUserName = [clerkUser.first_name, clerkUser.last_name]
+        .filter(Boolean).join(" ").trim();
     } catch (err) {
       console.error("[migrateUserData] Could not fetch Clerk user:", err.message);
       res.json({ migrated: false, reason: "clerk_api_error" });
       return;
     }
 
+    // 2b. Apple Sign-In fallback: no external_id → match by full name in dev Clerk.
+    //     Apple generates a different private relay email per app, so email-based
+    //     linking is impossible. Name matching is the only viable heuristic.
+    //     We only proceed if there is exactly ONE match (avoids false positives).
+    if (!devUserId && prodUserName) {
+      try {
+        const devRes = await fetch(
+          `https://api.clerk.com/v1/users?query=${encodeURIComponent(prodUserName)}&limit=10`,
+          { headers: { Authorization: `Bearer ${clerkSecretKeyDev.value()}` } }
+        );
+        if (devRes.ok) {
+          const devUsers = await devRes.json();
+          if (Array.isArray(devUsers)) {
+            const exactMatches = devUsers.filter(u => {
+              const name = [u.first_name, u.last_name].filter(Boolean).join(" ").trim();
+              return name.toLowerCase() === prodUserName.toLowerCase();
+            });
+            if (exactMatches.length === 1) {
+              devUserId = exactMatches[0].id;
+              console.log(
+                `[migrateUserData] Apple fallback matched "${prodUserName}" → ${devUserId}`
+              );
+            } else if (exactMatches.length > 1) {
+              console.warn(
+                `[migrateUserData] Apple fallback: ambiguous name "${prodUserName}" ` +
+                `(${exactMatches.length} matches) — skipping`
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[migrateUserData] Apple fallback error:", err.message);
+      }
+    }
+
     if (!devUserId) {
-      // New user with no dev account — nothing to migrate
-      res.json({ migrated: false, reason: "no_external_id" });
+      res.json({ migrated: false, reason: "no_dev_account" });
       return;
     }
 
-    // 3. Check if already migrated (prod collection already exists)
-    const prodCollRef = admin.firestore()
-      .doc(`users/${prodUserId}/collections/world-cup-2026`);
+    // 3. Always sync premium (one-way), even if already migrated.
+    //    This covers: users who bought premium on dev after their first prod login.
+    await syncPremium(devUserId, prodUserId);
+
+    // 4. Check if collection already migrated
+    const prodCollRef = db.doc(`users/${prodUserId}/collections/world-cup-2026`);
     const prodCollSnap = await prodCollRef.get();
 
     if (prodCollSnap.exists) {
+      // Premium was already synced above — nothing else to do.
       res.json({ migrated: false, reason: "already_migrated" });
       return;
     }
 
-    // 4. Read dev collection data
-    const devCollRef = admin.firestore()
-      .doc(`users/${devUserId}/collections/world-cup-2026`);
-    const devCollSnap = await devCollRef.get();
+    // 5. Read dev collection
+    const devCollSnap = await db
+      .doc(`users/${devUserId}/collections/world-cup-2026`).get();
 
     if (!devCollSnap.exists) {
       res.json({ migrated: false, reason: "no_dev_collection" });
       return;
     }
 
-    // 5. Copy collection
+    // 6. Copy collection
     await prodCollRef.set(devCollSnap.data());
 
-    // 6. Copy premium profile
-    const devPremRef = admin.firestore().doc(`users/${devUserId}/profile/premium`);
-    const devPremSnap = await devPremRef.get();
-    if (devPremSnap.exists) {
-      await admin.firestore()
-        .doc(`users/${prodUserId}/profile/premium`)
-        .set(devPremSnap.data());
-    }
-
-    // 7. Copy social data (friends, pendingFrom) — IDs may be dev IDs but
-    //    they still work while dual-key is active; will be cleaned up later
-    const devUserSnap = await admin.firestore().doc(`users/${devUserId}`).get();
+    // 7. Resolve and copy friends / pendingFrom (dev IDs → prod IDs).
+    //    Also patches already-migrated friends' lists bidirectionally.
+    const devUserSnap = await db.doc(`users/${devUserId}`).get();
     if (devUserSnap.exists) {
       const d = devUserSnap.data();
-      if (d.friends?.length || d.pendingFrom?.length) {
-        await admin.firestore().doc(`users/${prodUserId}`).set(
-          { friends: d.friends ?? [], pendingFrom: d.pendingFrom ?? [] },
+      const devFriends     = Array.isArray(d.friends)     ? d.friends     : [];
+      const devPendingFrom = Array.isArray(d.pendingFrom) ? d.pendingFrom : [];
+
+      const [resolvedFriends, resolvedPending] = await Promise.all([
+        Promise.all(devFriends.map(resolveProdId)),
+        Promise.all(devPendingFrom.map(resolveProdId)),
+      ]);
+
+      if (resolvedFriends.length || resolvedPending.length) {
+        await db.doc(`users/${prodUserId}`).set(
+          { friends: resolvedFriends, pendingFrom: resolvedPending },
           { merge: true }
         );
       }
+
+      // Patch each already-migrated friend: replace devUserId with prodUserId
+      const patchPromises = resolvedFriends
+        .filter(friendId => friendId !== devUserId)
+        .map(friendProdId => {
+          const ref = db.doc(`users/${friendProdId}`);
+          return ref.update({ friends: admin.firestore.FieldValue.arrayRemove(devUserId) })
+            .then(() => ref.update({ friends: admin.firestore.FieldValue.arrayUnion(prodUserId) }))
+            .catch(() => {});
+        });
+      await Promise.all(patchPromises);
+
+      console.log(
+        `[migrateUserData] friends resolved: ${devFriends.length} → ` +
+        `${resolvedFriends.filter((id, i) => id !== devFriends[i]).length} updated`
+      );
     }
+
+    // 8. Migrate requests: swap devUserId for prodUserId in all related requests
+    await migrateRequests(devUserId, prodUserId);
 
     console.log(`[migrateUserData] ✅ ${devUserId} → ${prodUserId}`);
     res.json({ migrated: true, devUserId, prodUserId });
+  }
+);
+
+// ── Recovery Report ───────────────────────────────────────────────────
+// Reporte HTML de recuperación de usuarios bloqueados durante la migración.
+// Solo accesible con ?key=... para evitar exposición pública.
+const REPORT_KEY = defineSecret("REPORT_ACCESS_KEY");
+
+const AFFECTED_EMAILS = [
+  "mathimora2606@gmail.com",
+  "susuhais33@gmail.com",
+  "francougarte123@gmail.com",
+  "oscarglb07@gmail.com",
+  "dereck-31@hotmail.com",
+  "kenethj2303@gmail.com",
+  "keivinmoralesr28@gmail.com",
+  "keivinmorales22@gmail.com",
+  "joseandres9788@hotmail.com",
+  "saullaguna83@gmail.com",
+  "andrext100@gmail.com",
+  "imendietag@hotmail.com",
+  "isaacbreness2017@gmail.com",
+  "jason240693@gmail.com",
+  "myt79404@gmail.com",
+  "saspaae130@gmail.com",
+  "darencarmonabarquero@gmail.com",
+  "tosu2kcontacto@gmail.com",
+  "sebastiancarazo23@gmail.com",
+  "i.brenes.1@estudiantec.cr",
+  "kramirezarmijos@outlook.com",
+  "karolramirezlp@gmail.com",
+  "ibrenes119240115@gmail.com",
+];
+
+const APPLE_NAME_MAP = {
+  "daren carmona barquero": "darencarmonabarquero@gmail.com",
+};
+
+async function fetchAllClerkUsers(secretKey) {
+  const users = [];
+  let offset = 0;
+  while (true) {
+    const res = await fetch(
+      `https://api.clerk.com/v1/users?limit=100&offset=${offset}&order_by=-created_at`,
+      { headers: { Authorization: `Bearer ${secretKey}` } }
+    );
+    const batch = await res.json();
+    if (!Array.isArray(batch) || batch.length === 0) break;
+    users.push(...batch);
+    if (batch.length < 100) break;
+    offset += 100;
+  }
+  return users;
+}
+
+function fmtDate(ts) {
+  return new Date(ts).toLocaleString("es-CR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+exports.recoveryReport = onRequest(
+  { secrets: [clerkSecretKey, REPORT_KEY] },
+  async (req, res) => {
+    // Simple access key check
+    const key = req.query.key ?? "";
+    if (!key || key !== REPORT_KEY.value()) {
+      res.status(401).send("Unauthorized");
+      return;
+    }
+
+    const prodUsers = await fetchAllClerkUsers(clerkSecretKey.value());
+    const newUsers = prodUsers.filter((u) => !u.external_id);
+    const migratedUsers = prodUsers.filter((u) => !!u.external_id);
+
+    const prodByEmail = {};
+    const prodByName = {};
+    for (const u of prodUsers) {
+      const email = u.email_addresses?.[0]?.email_address ?? "";
+      const name = [u.first_name, u.last_name].filter(Boolean).join(" ").toLowerCase();
+      prodByEmail[email.toLowerCase()] = u;
+      if (name) prodByName[name] = u;
+    }
+
+    const affectedStatus = AFFECTED_EMAILS.map((email) => {
+      let user = prodByEmail[email.toLowerCase()];
+      let method = null;
+      if (user) {
+        method = user.external_identifications?.length ? "OAuth" : "Email";
+      } else {
+        const nameKey = Object.keys(APPLE_NAME_MAP).find(
+          (n) => APPLE_NAME_MAP[n] === email
+        );
+        if (nameKey && prodByName[nameKey]) {
+          user = prodByName[nameKey];
+          method = "Apple";
+        }
+      }
+      return {
+        email,
+        recovered: !!user,
+        method,
+        name: user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : null,
+        registeredAt: user ? fmtDate(user.created_at) : null,
+      };
+    });
+
+    const recovered = affectedStatus.filter((u) => u.recovered).length;
+    const pending = affectedStatus.length - recovered;
+
+    const affectedRows = affectedStatus.map((u) => `
+      <tr class="${u.recovered ? "ok" : "pend"}">
+        <td>${u.email}</td>
+        <td>${u.name ?? "—"}</td>
+        <td>${u.recovered ? "✅ Recuperado" : "⏳ Pendiente"}</td>
+        <td>${u.method ?? "—"}</td>
+        <td>${u.registeredAt ?? "—"}</td>
+      </tr>`).join("");
+
+    const newUserRows = newUsers.map((u) => {
+      const email = u.email_addresses?.[0]?.email_address ?? "—";
+      const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || "—";
+      return `<tr><td>${email}</td><td>${name}</td><td>${fmtDate(u.created_at)}</td></tr>`;
+    }).join("");
+
+    // ── Migración Dev → Prod: verificar colecciones ───────────────────
+    const db = admin.firestore();
+    const migrationStatus = await Promise.all(
+      migratedUsers.map(async (u) => {
+        const devId = u.external_id;
+        const prodId = u.id;
+        const email = u.email_addresses?.[0]?.email_address ?? "—";
+        const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || "—";
+
+        const [devSnap, prodSnap] = await Promise.all([
+          db.doc(`users/${devId}/collections/world-cup-2026`).get(),
+          db.doc(`users/${prodId}/collections/world-cup-2026`).get(),
+        ]);
+
+        const devOwned = devSnap.exists ? (devSnap.data().owned?.length ?? 0) : null;
+        const prodOwned = prodSnap.exists ? (prodSnap.data().owned?.length ?? 0) : null;
+
+        let status;
+        if (!devSnap.exists && !prodSnap.exists) status = "empty"; // usuario sin datos en ningún lado
+        else if (!prodSnap.exists) status = "pending";             // no ha hecho login con nuevo build
+        else if (devOwned !== null && prodOwned >= devOwned) status = "ok"; // colección transferida
+        else status = "partial";                                    // transferida pero con menos postales
+
+        return { email, name, devId, prodId, devOwned, prodOwned, status };
+      })
+    );
+
+    const migOk = migrationStatus.filter((u) => u.status === "ok").length;
+    const migPending = migrationStatus.filter((u) => u.status === "pending").length;
+    const migPartial = migrationStatus.filter((u) => u.status === "partial").length;
+    const migEmpty = migrationStatus.filter((u) => u.status === "empty").length;
+
+    const migrationRows = migrationStatus
+      .sort((a, b) => {
+        const order = { partial: 0, pending: 1, ok: 2, empty: 3 };
+        return order[a.status] - order[b.status];
+      })
+      .map((u) => {
+        const statusLabel = {
+          ok: "✅ Transferida",
+          pending: "⏳ Sin login",
+          partial: "⚠️ Incompleta",
+          empty: "📭 Sin datos",
+        }[u.status];
+        const cls = u.status === "ok" ? "ok" : u.status === "empty" ? "pend" : "";
+        const devCount = u.devOwned !== null ? u.devOwned : "—";
+        const prodCount = u.prodOwned !== null ? u.prodOwned : "—";
+        return `<tr class="${cls}">
+          <td>${u.email}</td>
+          <td>${u.name}</td>
+          <td>${statusLabel}</td>
+          <td style="text-align:center">${devCount}</td>
+          <td style="text-align:center">${prodCount}</td>
+        </tr>`;
+      }).join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>El Álbum 2026 — Reporte</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0B0B0E;color:#F5F4EE;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:40px 24px}
+    h1{font-size:24px;margin-bottom:4px}
+    .sub{color:rgba(245,244,238,.5);font-size:14px;margin-bottom:32px}
+    .cards{display:flex;gap:16px;margin-bottom:40px;flex-wrap:wrap}
+    .card{background:#15161B;border-radius:14px;padding:20px 24px;min-width:140px}
+    .card .n{font-size:36px;font-weight:800}
+    .card .l{color:rgba(245,244,238,.5);font-size:13px;margin-top:4px}
+    .yellow .n{color:#F4C430}.green .n{color:#4CAF50}.red .n{color:#FF5252}
+    h2{font-size:18px;margin-bottom:16px}
+    table{width:100%;border-collapse:collapse;background:#15161B;border-radius:14px;overflow:hidden;margin-bottom:40px}
+    th{background:#1C1D24;padding:12px 16px;text-align:left;font-size:12px;color:rgba(245,244,238,.5);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    td{padding:12px 16px;font-size:14px;border-top:1px solid rgba(245,244,238,.06)}
+    tr.pend td{color:rgba(245,244,238,.4)}
+    a.refresh{display:inline-block;margin-bottom:32px;background:#F4C430;color:#0B0B0E;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px}
+  </style>
+</head>
+<body>
+  <h1>🎴 El Álbum 2026 — Reporte de recuperación</h1>
+  <p class="sub">Generado el ${new Date().toLocaleString("es-CR")}</p>
+  <a class="refresh" href="?key=${req.query.key}">🔄 Actualizar</a>
+  <div class="cards">
+    <div class="card yellow"><div class="n">${prodUsers.length}</div><div class="l">Total en Producción</div></div>
+    <div class="card"><div class="n">${migratedUsers.length}</div><div class="l">Migrados de Dev</div></div>
+    <div class="card"><div class="n">${newUsers.length}</div><div class="l">Usuarios nuevos</div></div>
+    <div class="card green"><div class="n">${recovered}</div><div class="l">Afectados recuperados</div></div>
+    <div class="card red"><div class="n">${pending}</div><div class="l">Afectados pendientes</div></div>
+    <div class="card green"><div class="n">${migOk}</div><div class="l">Colecciones migradas</div></div>
+    <div class="card red"><div class="n">${migPending}</div><div class="l">Sin login nuevo build</div></div>
+    ${migPartial > 0 ? `<div class="card red"><div class="n">${migPartial}</div><div class="l">Migración incompleta</div></div>` : ""}
+  </div>
+  <h2>Estado de usuarios afectados (${recovered}/${AFFECTED_EMAILS.length})</h2>
+  <table>
+    <thead><tr><th>Email</th><th>Nombre</th><th>Estado</th><th>Método</th><th>Registrado</th></tr></thead>
+    <tbody>${affectedRows}</tbody>
+  </table>
+  <h2>Usuarios nuevos reales (${newUsers.length})</h2>
+  <table>
+    <thead><tr><th>Email</th><th>Nombre</th><th>Registrado</th></tr></thead>
+    <tbody>${newUserRows}</tbody>
+  </table>
+  <h2>Migración Dev → Prod: colecciones (${migOk}/${migratedUsers.length} transferidas)</h2>
+  <table>
+    <thead><tr><th>Email</th><th>Nombre</th><th>Estado</th><th style="text-align:center">Dev 🃏</th><th style="text-align:center">Prod 🃏</th></tr></thead>
+    <tbody>${migrationRows}</tbody>
+  </table>
+</body>
+</html>`;
+
+    res.set("Content-Type", "text/html");
+    res.send(html);
   }
 );

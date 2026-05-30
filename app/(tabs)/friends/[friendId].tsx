@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFriendCollection } from "@/hooks/useFriendCollection";
 import { useFriends } from "@/hooks/useFriends";
 import { useCollection } from "@/hooks/useCollection";
+import { useStickerRequests } from "@/hooks/useStickerRequests";
 import { sendStickerRequest } from "@/lib/firestore/requests";
 import { getProfile } from "@/lib/firestore/users";
 import { sendPushNotification } from "@/lib/notifications";
@@ -41,15 +42,34 @@ export default function FriendDetailScreen() {
   const { friendProfiles } = useFriends();
   const { duplicateStickers, loading } = useFriendCollection(friendId ?? null);
   const { ownedSet } = useCollection();
+  const { outgoing, pendingDeliveries } = useStickerRequests();
 
   const [selected, setSelected] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   const [preselected, setPreselected] = useState(false);
 
-  // IDs of friend's duplicates that I'm missing — used for pre-selection and visual hint
+  // Stickers in pending outgoing requests (asked, waiting for friend's reply)
+  const inFlightSet = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of outgoing) r.stickers.forEach((id) => ids.add(id));
+    return ids;
+  }, [outgoing]);
+
+  // Stickers confirmed by a friend (request accepted, givenStickers set)
+  const securedSet = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of pendingDeliveries) (r.givenStickers ?? []).forEach((id) => ids.add(id));
+    return ids;
+  }, [pendingDeliveries]);
+
+  // IDs of friend's duplicates that I'm missing AND not already in-flight/secured
   const neededSet = useMemo(
-    () => new Set(duplicateStickers.filter((s) => !ownedSet.has(s.id)).map((s) => s.id)),
-    [duplicateStickers, ownedSet]
+    () => new Set(
+      duplicateStickers
+        .filter((s) => !ownedSet.has(s.id) && !inFlightSet.has(s.id) && !securedSet.has(s.id))
+        .map((s) => s.id)
+    ),
+    [duplicateStickers, ownedSet, inFlightSet, securedSet]
   );
 
   // Reset pre-selection flag every time the screen gains focus
@@ -93,7 +113,7 @@ export default function FriendDetailScreen() {
       Alert.alert(
         t("requests.sentTitle"),
         t("requests.sentMsg", { name: friendName }),
-        [{ text: t("common.ok"), onPress: () => router.back() }]
+        [{ text: t("common.ok"), onPress: () => router.replace("/(tabs)/friends?tab=requests") }]
       );
     } catch {
       Alert.alert(t("common.error"), t("requests.errorSend"));
@@ -158,12 +178,14 @@ export default function FriendDetailScreen() {
         </View>
       </View>
 
-      {/* ── Sticker picker ── */}
+      {/* ── Sticker picker — needed stickers + in-flight (blocked) ── */}
       <StickerPickerPanel
-        pool={duplicateStickers}
+        pool={duplicateStickers.filter(s => !ownedSet.has(s.id))}
         selected={selected}
         onToggle={toggle}
         needed={neededSet}
+        inFlight={inFlightSet}
+        secured={securedSet}
         emptyText={t("friends.noDuplicates", { name: friendName })}
       />
 

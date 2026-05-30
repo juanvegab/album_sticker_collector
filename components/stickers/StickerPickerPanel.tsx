@@ -13,6 +13,8 @@ const DIM      = "rgba(245,244,238,0.38)";
 const DIM3     = "rgba(245,244,238,0.08)";
 const BRAND    = "#F4C430";
 const GREEN    = "#22C55E";
+const ORANGE   = "#F2853A";
+const TEAL     = "#14B8A6";
 
 interface PoolSection {
   sectionId: string;
@@ -22,7 +24,7 @@ interface PoolSection {
 
 type LeftItem =
   | { type: "header"; label: string }
-  | { type: "section"; sectionId: string; name: string; total: number; selectedCount: number; neededCount: number };
+  | { type: "section"; sectionId: string; name: string; total: number; selectedCount: number; neededCount: number; blockedCount: number };
 
 interface Props {
   pool: AlbumSticker[];
@@ -30,11 +32,20 @@ interface Props {
   onToggle: (id: string) => void;
   /** IDs the current user is missing — shown with a green "FALTA" badge */
   needed?: Set<string>;
+  /** IDs in a pending request (asked, waiting for friend's reply) — orange "EN PEDIDO" badge */
+  inFlight?: Set<string>;
+  /** IDs confirmed by another friend (accepted, coming in) — teal "CONSEGUIDA" badge */
+  secured?: Set<string>;
+  /**
+   * When true (default), in-flight/secured stickers are NOT toggleable — they're locked.
+   * When false, badges are informational only and the user can still select/deselect.
+   */
+  blockInFlight?: boolean;
   emptyIcon?: string;
   emptyText?: string;
 }
 
-export function StickerPickerPanel({ pool, selected, onToggle, needed, emptyIcon = "📭", emptyText }: Props) {
+export function StickerPickerPanel({ pool, selected, onToggle, needed, inFlight, secured, blockInFlight = true, emptyIcon = "📭", emptyText }: Props) {
   const { t } = useTranslation();
 
   const poolBySection = new Map<string, AlbumSticker[]>();
@@ -68,6 +79,7 @@ export function StickerPickerPanel({ pool, selected, onToggle, needed, emptyIcon
       total: s.data.length,
       selectedCount: s.data.filter((st) => selected.includes(st.id)).length,
       neededCount: needed ? s.data.filter((st) => needed.has(st.id)).length : 0,
+      blockedCount: s.data.filter((st) => (inFlight?.has(st.id) || secured?.has(st.id)) ?? false).length,
     });
   }
 
@@ -163,6 +175,15 @@ export function StickerPickerPanel({ pool, selected, onToggle, needed, emptyIcon
                     }}>
                       <Text style={{ color: GREEN, fontSize: 9, fontWeight: "800" }}>{item.neededCount}</Text>
                     </View>
+                  ) : item.blockedCount > 0 ? (
+                    <View style={{
+                      backgroundColor: "rgba(242,133,58,0.2)", borderRadius: 99,
+                      minWidth: 16, height: 16, paddingHorizontal: 3,
+                      alignItems: "center", justifyContent: "center",
+                      borderWidth: 1, borderColor: ORANGE,
+                    }}>
+                      <Text style={{ color: ORANGE, fontSize: 9, fontWeight: "800" }}>{item.blockedCount}</Text>
+                    </View>
                   ) : null}
                 </View>
                 {/* Progress bar */}
@@ -233,29 +254,48 @@ export function StickerPickerPanel({ pool, selected, onToggle, needed, emptyIcon
 
               {/* Sticker items */}
               {section.data.map((sticker) => {
-                const isSelected = selected.includes(sticker.id);
-                const isNeeded = needed?.has(sticker.id) ?? false;
+                const isSelected  = selected.includes(sticker.id);
+                const isNeeded    = needed?.has(sticker.id) ?? false;
+                const isSecured   = secured?.has(sticker.id) ?? false;
+                const isInFlight  = !isSecured && (inFlight?.has(sticker.id) ?? false);
+                // "Hard blocked" = in-flight/secured AND blockInFlight mode
+                const isHardBlock = blockInFlight && (isSecured || isInFlight);
+
                 return (
                   <TouchableOpacity
                     key={sticker.id}
-                    onPress={() => onToggle(sticker.id)}
+                    onPress={() => { if (!isHardBlock) onToggle(sticker.id); }}
                     style={{
                       flexDirection: "row", alignItems: "center",
                       borderRadius: 12, marginBottom: 6,
                       paddingHorizontal: 12, paddingVertical: 12,
+                      opacity: isHardBlock ? 0.55 : 1,
                       backgroundColor: isSelected
                         ? "rgba(244,196,48,0.10)"
-                        : isNeeded ? "rgba(34,197,94,0.06)" : SURFACE,
+                        : isSecured  ? "rgba(20,184,166,0.06)"
+                        : isInFlight ? "rgba(242,133,58,0.06)"
+                        : isNeeded   ? "rgba(34,197,94,0.06)"
+                        : SURFACE,
                       borderWidth: 1,
-                      borderColor: isSelected ? BRAND : isNeeded ? "rgba(34,197,94,0.35)" : DIM3,
+                      borderColor: isSelected
+                        ? BRAND
+                        : isSecured  ? "rgba(20,184,166,0.35)"
+                        : isInFlight ? "rgba(242,133,58,0.35)"
+                        : isNeeded   ? "rgba(34,197,94,0.35)"
+                        : DIM3,
                     }}
-                    activeOpacity={0.7}
+                    activeOpacity={isHardBlock ? 1 : 0.7}
                   >
                     <View style={{
                       width: 20, height: 20, borderRadius: 4,
                       borderWidth: 2,
                       backgroundColor: isSelected ? BRAND : "transparent",
-                      borderColor: isSelected ? BRAND : isNeeded ? GREEN : DIM,
+                      borderColor: isSelected
+                        ? BRAND
+                        : isSecured  ? TEAL
+                        : isInFlight ? ORANGE
+                        : isNeeded   ? GREEN
+                        : DIM,
                       marginRight: 10,
                       alignItems: "center", justifyContent: "center",
                       flexShrink: 0,
@@ -263,12 +303,41 @@ export function StickerPickerPanel({ pool, selected, onToggle, needed, emptyIcon
                       {isSelected && (
                         <Text style={{ color: BG, fontSize: 10, fontWeight: "800" }}>✓</Text>
                       )}
+                      {isSecured && !isSelected && blockInFlight && (
+                        <Text style={{ color: TEAL, fontSize: 10, fontWeight: "800" }}>✓</Text>
+                      )}
                     </View>
                     <Text style={{ color: DIM, fontSize: 11, width: 52 }} numberOfLines={1}>{sticker.id}</Text>
-                    <Text style={{ color: INK, fontSize: 13, flex: 1 }} numberOfLines={1}>
+                    <Text style={{
+                      color: isHardBlock ? DIM : INK,
+                      fontSize: 13, flex: 1,
+                    }} numberOfLines={1}>
                       {sticker.name}
                     </Text>
-                    {isNeeded && !isSelected && (
+                    {/* Badges — shown whether or not blocking is active */}
+                    {isSecured && !isSelected && (
+                      <View style={{
+                        backgroundColor: "rgba(20,184,166,0.15)",
+                        borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+                        marginLeft: 6,
+                      }}>
+                        <Text style={{ color: TEAL, fontSize: 9, fontWeight: "800", letterSpacing: 0.5 }}>
+                          CONSEGUIDA
+                        </Text>
+                      </View>
+                    )}
+                    {isInFlight && !isSelected && (
+                      <View style={{
+                        backgroundColor: "rgba(242,133,58,0.15)",
+                        borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+                        marginLeft: 6,
+                      }}>
+                        <Text style={{ color: ORANGE, fontSize: 9, fontWeight: "800", letterSpacing: 0.5 }}>
+                          EN PEDIDO
+                        </Text>
+                      </View>
+                    )}
+                    {isNeeded && !isSelected && !isSecured && !isInFlight && (
                       <View style={{
                         backgroundColor: "rgba(34,197,94,0.15)",
                         borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
