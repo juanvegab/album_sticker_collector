@@ -1,12 +1,18 @@
 import React, { useState, useCallback } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView,
-  Image, Dimensions, StatusBar, Platform,
+  Image, Dimensions, StatusBar, Platform, Alert, ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { useUser } from "@clerk/clerk-expo";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useCollection } from "@/hooks/useCollection";
+import { usePremium } from "@/hooks/usePremium";
+import { usePremiumStore } from "@/store/premiumStore";
+import { purchaseNoAds } from "@/lib/purchases";
 import { WORLD_CUP_2026, TEAM_GROUP, FIFA_TO_ISO } from "@/lib/data/world-cup-2026";
 import { colorForSection, needsDarkText } from "@/lib/design/groupColors";
 import type { AlbumSection, AlbumSticker } from "@/types/album";
@@ -159,6 +165,31 @@ export default function SobreScreen() {
   const insets = useSafeAreaInsets();
   const { ownedSet, toggle, setDuplicates, duplicates } = useCollection();
 
+  const { showAds } = usePremium();
+  const trialExpired = showAds();
+  const { user } = useUser();
+  const { isPurchasing, setIsPurchasing, setIsPremium } = usePremiumStore();
+
+  async function handlePurchase() {
+    setIsPurchasing(true);
+    try {
+      const success = await purchaseNoAds();
+      if (success) {
+        setIsPremium(true);
+        if (user) {
+          await setDoc(doc(db, "users", user.id, "profile", "premium"), { isPremium: true }, { merge: true });
+        }
+        Alert.alert(t("premium.successTitle"), t("premium.successMsg"));
+      }
+    } catch (err: any) {
+      if (err?.code !== 1 && err?.message !== "no_package") {
+        Alert.alert(t("common.error"), t("premium.purchaseError"));
+      }
+    } finally {
+      setIsPurchasing(false);
+    }
+  }
+
   const [step, setStep] = useState<Step>("landing");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [kb, setKb] = useState<KBPhase>({ phase: "letter" });
@@ -227,21 +258,74 @@ export default function SobreScreen() {
       <View style={{ flex: 1, backgroundColor: "#0B0B0E", paddingTop: insets.top, paddingBottom: insets.bottom }}>
         <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
 
-        {/* Header */}
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 16 }}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 22 }}>✕</Text>
-          </TouchableOpacity>
-          <Text style={{ color: "#F5F4EE", fontSize: 17, fontWeight: "700", flex: 1, textAlign: "center" }}>
+        {/* Header — X absoluta para que el título quede centrado de verdad */}
+        <View style={{ paddingHorizontal: 16, paddingVertical: 16, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: "#F5F4EE", fontSize: 17, fontWeight: "700", textAlign: "center" }}>
             {t("sobre.title")}
           </Text>
-          <View style={{ width: 30 }} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            style={{ position: "absolute", right: 16 }}
+          >
+            <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 22 }}>✕</Text>
+          </TouchableOpacity>
         </View>
+
+        {/* Banner trial expirado */}
+        {trialExpired && (
+          <View style={{
+            marginHorizontal: 16, marginBottom: 8,
+            backgroundColor: "rgba(239,68,68,0.08)",
+            borderRadius: 14, borderWidth: 1,
+            borderColor: "rgba(239,68,68,0.22)",
+            paddingHorizontal: 16, paddingVertical: 12,
+          }}>
+            <Text style={{ color: "#EF4444", fontSize: 12, fontWeight: "700", marginBottom: 6 }}>
+              ⏰ {t("premium.trialEnded")}
+            </Text>
+            <Text style={{ color: "rgba(239,68,68,0.75)", fontSize: 12, lineHeight: 17, marginBottom: 10 }}>
+              Tu período de prueba terminó. Suscribite a Premium para volver a usar el escáner automático.
+            </Text>
+            <TouchableOpacity
+              onPress={handlePurchase}
+              disabled={isPurchasing}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: "#EF4444", borderRadius: 10,
+                paddingVertical: 10, alignItems: "center", marginBottom: 6,
+              }}
+            >
+              {isPurchasing ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={{ color: "#fff", fontSize: 13, fontWeight: "800" }}>
+                  {t("premium.removeAdsCta")}
+                </Text>
+              )}
+            </TouchableOpacity>
+            <Text style={{ color: "rgba(239,68,68,0.45)", fontSize: 11, textAlign: "center" }}>
+              {t("premium.oneTimePurchase")}
+            </Text>
+          </View>
+        )}
 
         {/* Content */}
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
           <PackIllustration />
-          <Text style={{ color: "#F5F4EE", fontSize: 26, fontWeight: "800", textAlign: "center", marginTop: 32, marginBottom: 10 }}>
+
+          {/* Label informativo */}
+          <View style={{
+            marginTop: 24, marginBottom: 4,
+            backgroundColor: "rgba(245,244,238,0.06)",
+            borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8,
+          }}>
+            <Text style={{ color: "rgba(245,244,238,0.45)", fontSize: 12, textAlign: "center", lineHeight: 17 }}>
+              ¿Sin escáner? Abrir sobre te permite registrar las postales de cada sobre manualmente — rápido, sencillo y sin cámara.
+            </Text>
+          </View>
+
+          <Text style={{ color: "#F5F4EE", fontSize: 26, fontWeight: "800", textAlign: "center", marginTop: 16, marginBottom: 10 }}>
             {t("sobre.landing.heading")}
           </Text>
           <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 15, textAlign: "center", lineHeight: 22 }}>
@@ -255,22 +339,12 @@ export default function SobreScreen() {
             onPress={() => { setEntries([]); setKb({ phase: "letter" }); setStep("input"); }}
             style={{
               backgroundColor: "#F4C430", borderRadius: 16,
-              paddingVertical: 17, alignItems: "center", marginBottom: 14,
+              paddingVertical: 17, alignItems: "center",
             }}
             activeOpacity={0.85}
           >
             <Text style={{ color: "#0B0B0E", fontSize: 16, fontWeight: "800" }}>
               {t("sobre.landing.cta")}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.navigate("/(tabs)/album")}
-            style={{ alignItems: "center" }}
-            activeOpacity={0.7}
-          >
-            <Text style={{ color: "rgba(245,244,238,0.45)", fontSize: 14, fontWeight: "500" }}>
-              {t("sobre.landing.oneByOne")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -287,20 +361,17 @@ export default function SobreScreen() {
         <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
 
         {/* ── Header ── */}
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 }}>
+        <View style={{ paddingHorizontal: 16, paddingVertical: 14, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: "#F5F4EE", fontSize: 18, fontWeight: "700", textAlign: "center" }}>
+            {t("sobre.input.title", { n: entries.length, total: PACK_SIZE })}
+          </Text>
           <TouchableOpacity
             onPress={() => { setEntries([]); setKb({ phase: "letter" }); router.back(); }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ position: "absolute", right: 16 }}
           >
             <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 22 }}>✕</Text>
           </TouchableOpacity>
-
-          <Text style={{ flex: 1, color: "#F5F4EE", fontSize: 15, fontWeight: "700", textAlign: "center" }}>
-            {t("sobre.input.title", { n: entries.length, total: PACK_SIZE })}
-          </Text>
-
-          {/* Spacer replacing the removed "Listo" button */}
-          <View style={{ width: 38 }} />
         </View>
 
         {/* ── Segmented progress bar ── */}
@@ -421,6 +492,14 @@ export default function SobreScreen() {
               : t("sobre.input.completeN", { n: entries.length })}
           </Text>
         </TouchableOpacity>
+
+        {/* ── Instrucción ── */}
+        <Text style={{
+          color: "rgba(245,244,238,0.35)", fontSize: 11, textAlign: "center",
+          paddingHorizontal: 20, marginBottom: 8, lineHeight: 16,
+        }}>
+          Seleccioná la letra del país → el país → el número de la postal
+        </Text>
 
         {/* ── Keyboard area ── */}
         <View style={{ flex: 1, paddingHorizontal: 16, paddingBottom: insets.bottom + 8 }}>
@@ -646,14 +725,17 @@ export default function SobreScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
 
       {/* Header */}
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 16 }}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 22 }}>✕</Text>
-        </TouchableOpacity>
-        <Text style={{ color: "#F5F4EE", fontSize: 17, fontWeight: "700", flex: 1, textAlign: "center" }}>
+      <View style={{ paddingHorizontal: 16, paddingVertical: 16, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ color: "#F5F4EE", fontSize: 22, fontWeight: "800", textAlign: "center" }}>
           {t("sobre.result.title")}
         </Text>
-        <View style={{ width: 30 }} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={{ position: "absolute", right: 16 }}
+        >
+          <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 22 }}>✕</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}>

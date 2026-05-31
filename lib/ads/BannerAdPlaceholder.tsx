@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { View, Text, useWindowDimensions } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { usePremiumStore } from "@/store/premiumStore";
 
@@ -21,21 +21,39 @@ if (!isExpoGo) {
   }
 }
 
+/**
+ * Calculates the expected height for an ANCHORED_ADAPTIVE_BANNER.
+ * Formula per Google AdMob spec:
+ *   height = clamp(floor(containerWidth / 6.4), 50, 90)  [in dp/pt]
+ *
+ * Reference sizes:
+ *   375pt (iPhone SE)       → 58pt
+ *   390pt (iPhone 15)       → 60pt
+ *   393pt (iPhone 15 Pro)   → 61pt
+ *   430pt (iPhone 15 Pro Max) → 67pt
+ *   360pt (common Android)  → 56pt
+ */
+export function adaptiveBannerHeight(containerWidth: number): number {
+  return Math.max(50, Math.min(90, Math.floor(containerWidth / 6.4)));
+}
+
 interface Props {
   hidden?: boolean;
 }
 
 export function BannerAd({ hidden }: Props) {
   const showAds = usePremiumStore((s) => s.showAds());
+  const { width } = useWindowDimensions();
+  const adHeight = adaptiveBannerHeight(width);
 
   if (hidden || !showAds) return null;
 
-  // Expo Go → visual placeholder
+  // Expo Go or module failed to load → visual placeholder
   if (isExpoGo || !NativeBannerAd) {
     return (
       <View
         style={{
-          height: 50,
+          height: adHeight,
           backgroundColor: "#f3f4f6",
           borderTopWidth: 1,
           borderTopColor: "#e5e7eb",
@@ -50,7 +68,8 @@ export function BannerAd({ hidden }: Props) {
     );
   }
 
-  // Real build → AdMob
+  // Real build → AdMob anchored adaptive banner (modern standard)
+  // ANCHORED_ADAPTIVE_BANNER fills container width and auto-sizes height
   const unitId = __DEV__
     ? TestIds.BANNER
     : require("./config").AD_UNITS.BANNER;
@@ -58,7 +77,7 @@ export function BannerAd({ hidden }: Props) {
   return (
     <NativeBannerAd
       unitId={unitId}
-      size={BannerAdSize.BANNER}
+      size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
       requestOptions={{ requestNonPersonalizedAdsOnly: false }}
       onAdFailedToLoad={(err: any) =>
         console.warn("[BannerAd] failed:", err.message)

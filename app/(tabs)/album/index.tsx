@@ -664,7 +664,7 @@ export default function AlbumScreen() {
         </TouchableOpacity>
       </View>
 
-      <TrialBanner />
+      <TrialBanner fullWidth />
 
       <View style={{ flex: 1, flexDirection: "row" }}>
 

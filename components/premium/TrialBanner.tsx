@@ -7,9 +7,14 @@ import { usePremium } from "@/hooks/usePremium";
 import { usePremiumStore } from "@/store/premiumStore";
 import { purchaseNoAds, restorePurchases } from "@/lib/purchases";
 
+interface TrialBannerProps {
+  /** Remove horizontal margins and border radius — use when parent has no padding (e.g. Album) */
+  fullWidth?: boolean;
+}
+
 // Compact dark chip shown at the top of screens (friends, etc.)
 // Account screen handles premium state inline inside the gradient card.
-export function TrialBanner() {
+export function TrialBanner({ fullWidth = false }: TrialBannerProps) {
   const { t } = useTranslation();
   const { user } = useUser();
   const { isPremium, isTrialActive, trialDaysLeft } = usePremium();
@@ -68,11 +73,14 @@ export function TrialBanner() {
         disabled={isPurchasing}
         activeOpacity={0.85}
         style={{
-          marginHorizontal: 16, marginBottom: 10,
+          marginHorizontal: fullWidth ? 0 : 16,
+          marginBottom: 10,
           backgroundColor: "rgba(244,196,48,0.10)",
-          borderRadius: 99, borderWidth: 1,
+          borderRadius: fullWidth ? 0 : 99,
+          borderWidth: 1,
           borderColor: "rgba(244,196,48,0.30)",
-          paddingHorizontal: 14, paddingVertical: 9,
+          paddingHorizontal: fullWidth ? 16 : 14,
+          paddingVertical: 9,
           flexDirection: "row", alignItems: "center",
         }}
       >
@@ -97,11 +105,16 @@ export function TrialBanner() {
   // Trial ended → slightly more prominent dark bar
   return (
     <View style={{
-      marginHorizontal: 16, marginBottom: 10,
+      marginHorizontal: fullWidth ? 0 : 16,
+      marginBottom: 10,
       backgroundColor: "rgba(239,68,68,0.10)",
-      borderRadius: 12, borderWidth: 1,
+      borderRadius: fullWidth ? 0 : 12,
+      borderWidth: fullWidth ? 0 : 1,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
       borderColor: "rgba(239,68,68,0.25)",
-      paddingHorizontal: 14, paddingVertical: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
     }}>
       <Text style={{ color: "#EF4444", fontSize: 12, fontWeight: "700", marginBottom: 6 }}>
         {t("premium.trialEnded")}

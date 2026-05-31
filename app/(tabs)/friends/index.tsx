@@ -24,6 +24,7 @@ import { RequestDetailModal } from "@/components/friends/RequestDetailModal";
 import { TransactionHistoryModal } from "@/components/friends/TransactionHistoryModal";
 import { QRModal } from "@/components/friends/QRModal";
 import { TrialBanner } from "@/components/premium/TrialBanner";
+import { BannerAd } from "@/lib/ads/BannerAdPlaceholder";
 import { TrialExpiredModal } from "@/components/premium/TrialExpiredModal";
 import type { UserProfile } from "@/types/user";
 import type { StickerRequest } from "@/types/request";
@@ -659,6 +660,8 @@ export default function FriendsScreen() {
     <View style={{ flex: 1, backgroundColor: BG, paddingTop: insets.top }}>
       <StatusBar barStyle="light-content" backgroundColor={BG} />
 
+      <BannerAd />
+
       {/* ── Header ── */}
       <View style={{
         flexDirection: "row", alignItems: "center",
@@ -724,7 +727,7 @@ export default function FriendsScreen() {
         </View>
       )}
 
-      <TrialBanner />
+      <TrialBanner fullWidth />
 
       {/* ── Tab bar ── */}
       <TabBar />

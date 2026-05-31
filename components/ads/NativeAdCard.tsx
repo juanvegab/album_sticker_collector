@@ -1,32 +1,29 @@
 /**
- * NativeAdCard — inline ad shown at the start of each album section.
- * Height matches AD_HEIGHT constant (60px) used in album/index.tsx.
+ * NativeAdCard — inline native ad shown between album sections.
  *
- * API (react-native-google-mobile-ads v8+):
- *  - NativeAd.createForAdRequest(unitId) → async, returns a data object
- *  - <NativeAdView nativeAd={...}>       → React component for rendering
- *  - <NativeAsset assetType={...}>       → registers elements for click/impression tracking
+ * AdMob validator rule: NativeAdView must contain ALL NativeAsset views
+ * within its native bounds. This means:
+ *  - NO overflow:hidden anywhere in the component tree (native views ignore RN clipping)
+ *  - NO height constraint smaller than the content's natural size
+ *  - NativeAdView must have paddingVertical so assets never touch the edges
  *
- * Guards:
- *  - isPremium  → null (no space consumed)
- *  - Expo Go    → placeholder (keeps layout stable, no crash)
- *  - Real build → loads ad async then renders via NativeAdView + NativeAsset
- *  - ErrorBoundary → catches any remaining render crashes silently
+ * AD_HEIGHT is used by album/index.tsx to pre-compute FlashList offsets.
+ * It must be ≥ the natural content height (label + headline + CTA + vertical padding).
  */
 import React, { useState, useEffect } from "react";
 import { View, Text } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { usePremiumStore } from "@/store/premiumStore";
 
-export const AD_HEIGHT = 90;
+export const AD_HEIGHT = 80;
 
 const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 // Lazy-load AdMob only in real builds — avoids Expo Go crash
-let NativeAdClass: any = null;   // data class  → use .createForAdRequest()
-let NativeAdViewComp: any = null; // <NativeAdView nativeAd={...}>
-let NativeAssetComp: any = null;  // <NativeAsset assetType={...}>
+let NativeAdClass: any = null;
+let NativeAdViewComp: any = null;
+let NativeAssetComp: any = null;
 let NativeAssetType: any = null;
 let TestIds: any = null;
 
@@ -43,7 +40,7 @@ if (!isExpoGo) {
   }
 }
 
-// ── ErrorBoundary — last-resort catch for native render errors ─────────
+// ── ErrorBoundary ──────────────────────────────────────────────────────
 class AdErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { crashed: boolean }
@@ -93,13 +90,18 @@ function NativeAdInner({ adIndex }: { adIndex: number }) {
     };
   }, [unitId]);
 
-  // While loading, hold space so the list doesn't jump
+  // While loading, hold the exact same space so the list doesn't jump
   if (!nativeAd || !NativeAdViewComp) {
     return <View style={{ height: AD_HEIGHT }} />;
   }
 
-  // NativeAsset wraps each element so AdMob can register clicks/impressions.
-  // Direct child only — no extra <View> wrapper inside NativeAsset.
+  // ── Key rules to avoid "assets outside NativeAdView" validator error ──
+  // 1. NativeAdView gets a fixed height (AD_HEIGHT) with paddingVertical so
+  //    assets never touch or exceed its native bounds.
+  // 2. NO overflow:hidden anywhere — AdMob measures native UIView/View bounds
+  //    directly, React Native's clip mask is invisible to the SDK validator.
+  // 3. NativeAsset is the direct parent of the clickable element — no extra
+  //    wrapping Views between NativeAsset and its child.
   return (
     <NativeAdViewComp
       nativeAd={nativeAd}
@@ -107,14 +109,15 @@ function NativeAdInner({ adIndex }: { adIndex: number }) {
         height: AD_HEIGHT,
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 10,
-        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 14,
+        gap: 8,
         backgroundColor: "#fff8e7",
         borderBottomWidth: 1,
         borderBottomColor: "#fde68a",
       }}
     >
-      {/* "AD" label — required attribution */}
+      {/* "AD" attribution label */}
       <Text style={{
         fontSize: 9, color: "#92400e", fontWeight: "700",
         borderWidth: 1, borderColor: "#92400e",
@@ -123,13 +126,10 @@ function NativeAdInner({ adIndex }: { adIndex: number }) {
         AD
       </Text>
 
-      {/* Headline — registered with AdMob for click tracking */}
+      {/* Headline */}
       {NativeAssetComp && NativeAssetType ? (
-        <NativeAssetComp assetType={NativeAssetType.HEADLINE}>
-          <Text
-            style={{ fontSize: 11, color: "#78350f", flex: 1 }}
-            numberOfLines={2}
-          >
+        <NativeAssetComp assetType={NativeAssetType.HEADLINE} style={{ flex: 1 }}>
+          <Text style={{ fontSize: 11, color: "#78350f" }} numberOfLines={2}>
             {nativeAd.headline ?? ""}
           </Text>
         </NativeAssetComp>
@@ -139,7 +139,7 @@ function NativeAdInner({ adIndex }: { adIndex: number }) {
         </Text>
       )}
 
-      {/* Call to action — registered for click tracking */}
+      {/* Call to action */}
       {NativeAssetComp && NativeAssetType && nativeAd.callToAction ? (
         <NativeAssetComp assetType={NativeAssetType.CALL_TO_ACTION}>
           <Text style={{
@@ -155,32 +155,26 @@ function NativeAdInner({ adIndex }: { adIndex: number }) {
   );
 }
 
-// ── Public component ──────────────────────────────────────────────────
+// ── Public component ───────────────────────────────────────────────────
 interface Props {
-  /** Unique index so each ad slot loads independently */
   adIndex: number;
 }
 
 export const NativeAdCard = React.memo(({ adIndex }: Props) => {
   const showAds = usePremiumStore((s) => s.showAds());
 
-  // Premium users → nothing rendered, no space consumed
   if (!showAds) return null;
 
-  // Expo Go or module failed to load → stable placeholder
   if (isExpoGo || !NativeAdClass) {
     return (
-      <View
-        style={{
-          height: AD_HEIGHT,
-          backgroundColor: "#f9fafb",
-          borderBottomWidth: 1,
-          borderBottomColor: "#e5e7eb",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 12,
-        }}
-      >
+      <View style={{
+        height: AD_HEIGHT,
+        backgroundColor: "#f9fafb",
+        borderBottomWidth: 1,
+        borderBottomColor: "#e5e7eb",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
         <Text style={{ color: "#9ca3af", fontSize: 11 }}>
           📢 Ad — visible in Dev/Prod build
         </Text>

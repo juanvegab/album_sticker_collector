@@ -197,12 +197,14 @@ export default function ResumenScreen() {
     : t("resumen.trialDays", { count: trialDaysLeft });
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0B0B0E" }}>
+    <View style={{ flex: 1, backgroundColor: "#0B0B0E", paddingTop: insets.top }}>
       <StatusBar barStyle="light-content" backgroundColor="#0B0B0E" />
 
-      {/* ── Fixed top section ── */}
-      <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 16 }}>
-        {/* Header */}
+      {/* Banner ad — top of screen, consistent with Album and Friends screens */}
+      <BannerAd />
+
+      {/* ── Header (with horizontal padding) ── */}
+      <View style={{ paddingTop: 16, paddingHorizontal: 16 }}>
         <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 4 }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: "rgba(245,244,238,0.55)", fontSize: 14, fontWeight: "500" }}>
@@ -250,10 +252,13 @@ export default function ResumenScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </View>
 
-        {/* Remove ads banner (non-premium only) */}
-        <TrialBanner />
+      {/* ── Trial banner — full width, edge to edge ── */}
+      <TrialBanner fullWidth />
 
+      {/* ── Rest of fixed section (with horizontal padding) ── */}
+      <View style={{ paddingHorizontal: 16 }}>
         {/* Progress card */}
         <View style={{
           backgroundColor: "#15161B", borderRadius: 16,
@@ -336,9 +341,13 @@ export default function ResumenScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Banner ad — between fixed header and group list */}
+        <BannerAd />
+
         {groups.map((g, i) => (
           <View key={g.id}>
-            {i % 4 === 0 && <BannerAd />}
+            {/* Show ad every 4 groups, but skip index 0 (ad already shown above) */}
+            {i > 0 && i % 4 === 0 && <BannerAd />}
             <SectionRow
               item={g}
               onPress={() => router.navigate({ pathname: "/(tabs)/album", params: { scrollTo: g.id } })}
